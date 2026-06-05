@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from fundos.public_research import PublicResearchClient, classify_source, tool_result_to_evidence
-from fundos.cli import make_evidence_pack
+from fundos.evidence import make_evidence_pack
 
 
 class PublicResearchTests(unittest.TestCase):

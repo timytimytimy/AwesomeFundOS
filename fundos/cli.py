@@ -3,27 +3,22 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import yaml
+from fundos.agent_outputs import write_agent_output
+from fundos.context import context_focus, make_context_pack
+from fundos.decision import make_decision_memo, write_decision_markdown
+from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
+from fundos.harness import make_evaluation
+from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
+from fundos.public_research import PublicResearchClient
 
-from fundos.public_research import PublicResearchClient, tool_result_to_evidence
-
-DISCLAIMER = "研究分析，不构成投资建议；不接真实交易，不自动下单。"
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-
 
 def today_prefix() -> str:
     return datetime.now().strftime("%Y-%m-%d")
-
 
 def slugify(value: str) -> str:
     value = value.strip().lower()
@@ -33,30 +28,8 @@ def slugify(value: str) -> str:
         return ascii_part[:48]
     return "cn-topic"
 
-
-def write_yaml(path: Path, data: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
-
-
-def read_yaml(path: Path) -> Any:
-    return yaml.safe_load(path.read_text(encoding="utf-8"))
-
-
 def load_roster() -> dict[str, Any]:
     return read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
-
-
-def load_seed_library() -> dict[str, Any]:
-    return read_yaml(REPO_ROOT / "specs" / "learning" / "seed-library.yaml")
-
-
-def source_by_id(source_id: str) -> dict[str, Any]:
-    for source in load_seed_library().get("sources", []):
-        if source.get("id") == source_id:
-            return source
-    raise KeyError(source_id)
-
 
 def command_init(args: argparse.Namespace) -> int:
     cwd = Path.cwd()
@@ -73,7 +46,6 @@ def command_init(args: argparse.Namespace) -> int:
     print(f"loaded {len(roster.get('agents', []))} agents from specs/agents/default-roster.yaml")
     print(f"materialized {materialized} agent asset sets")
     return 0
-
 
 def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
     count = 0
@@ -96,7 +68,6 @@ def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
             memory_path.write_text(f"# {agent['name']} / {agent['role']} Long-term Memory\n\nNo accepted lessons yet. EvolutionGate must approve updates before they are written here.\n", encoding="utf-8")
         count += 1
     return count
-
 
 def build_agent_profile(agent: dict[str, Any]) -> dict[str, Any]:
     return {
@@ -124,7 +95,6 @@ def build_agent_profile(agent: dict[str, Any]) -> dict[str, Any]:
         "performance_metrics": ["role_consistency", "evidence_traceability", "contribution_quality", "learning_quality"],
     }
 
-
 def personality_for(agent: dict[str, Any]) -> list[str]:
     role = agent.get("role", "")
     if "Bear" in role or "Risk" in role or "Governance" in role:
@@ -134,7 +104,6 @@ def personality_for(agent: dict[str, Any]) -> list[str]:
     if "Analyst" in role:
         return ["curious", "structured", "source-driven"]
     return ["calm", "process-oriented", "accountable"]
-
 
 def principles_for(agent: dict[str, Any]) -> list[str]:
     role = agent.get("role", "")
@@ -153,7 +122,6 @@ def principles_for(agent: dict[str, Any]) -> list[str]:
         base.append("Map claims from public evidence before upgrading a thesis.")
     return base
 
-
 def biases_for(agent: dict[str, Any]) -> list[str]:
     role = agent.get("role", "")
     if "Trader" in role:
@@ -163,7 +131,6 @@ def biases_for(agent: dict[str, Any]) -> list[str]:
     if "Bear" in role or "Risk" in role:
         return ["May under-weight strong trend persistence."]
     return ["May overweight well-structured team inputs."]
-
 
 def build_context_policy(agent: dict[str, Any]) -> dict[str, Any]:
     focus = context_focus(agent["id"], agent["role"])
@@ -180,7 +147,6 @@ def build_context_policy(agent: dict[str, Any]) -> dict[str, Any]:
         "forbidden_focus": ["real_trade_orders", "personal_financial_advice", "uncited_high_confidence_claims"],
     }
 
-
 def build_model_policy(agent: dict[str, Any]) -> dict[str, Any]:
     role = agent.get("role", "")
     effort = "high" if any(key in role for key in ["FundManager", "Risk", "Bear", "Evaluation", "Governance"]) else "medium"
@@ -196,13 +162,11 @@ def build_model_policy(agent: dict[str, Any]) -> dict[str, Any]:
         "task_overrides": {"final_decision": {"reasoning_effort": "high"}, "self_reflection": {"reasoning_effort": "medium"}},
     }
 
-
 def materialize_learning_assets(root: Path) -> None:
     target = root / "memory" / "organization" / "seed-library.yaml"
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
         write_yaml(target, load_seed_library())
-
 
 def command_roster_list(args: argparse.Namespace) -> int:
     roster = load_roster()
@@ -212,14 +176,12 @@ def command_roster_list(args: argparse.Namespace) -> int:
         print(f"- {agent['id']} | {agent['role']} | {agent.get('category', '')}")
     return 0
 
-
 def infer_input(args: argparse.Namespace) -> tuple[str, str]:
     provided = [("topic", args.topic), ("stock", args.stock), ("question", args.question)]
     non_empty = [(k, v) for k, v in provided if v]
     if len(non_empty) != 1:
         raise SystemExit("exactly one of --topic, --stock, --question is required")
     return non_empty[0]
-
 
 def select_agents(input_type: str, value: str, roster: dict[str, Any]) -> list[dict[str, str]]:
     agents = {agent["id"]: agent for agent in roster["agents"]}
@@ -274,458 +236,14 @@ def select_agents(input_type: str, value: str, roster: dict[str, Any]) -> list[d
         for agent_id in selected
     ]
 
-
 def selection_reason(agent_id: str, input_type: str, value: str) -> str:
     if agent_id in {"chief_of_staff", "fund_manager", "risk_manager", "bear_debater", "evaluation_harness", "review_archivist"}:
         return "mandatory governance and committee role"
     return f"matched {input_type} task: {value}"
 
-
-def make_evidence_pack(run_id: str, input_type: str, value: str, public_results: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    retrieved_at = now_iso()
-    base_relevance = ["industry", "company", "trading", "risk", "bear_case"]
-    items = [
-        evidence_item("E001", "policy", "tier_1_primary_fact", "A股公开政策与监管材料检索占位", "公开政策和交易所材料应作为事实验证的一手来源。", "政策和监管口径必须优先于市场传言。", "fact", retrieved_at, ["industry", "risk"]),
-        evidence_item("E002", "financial_report", "tier_1_primary_fact", "公司公告与财报检索占位", "公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。", "公司层面判断必须回到公告和财报。", "fact", retrieved_at, ["company", "risk"]),
-        evidence_item("E003", "market_data", "tier_1_primary_fact", "行情与量价摘要占位", "价格、成交额、相对强弱和波动用于交易结构判断。", "交易判断必须和量价结构绑定。", "fact", retrieved_at, ["trading", "risk"]),
-    ]
-    seed_claims = [
-        ("E004", "serenity_aleabitoreddit", "practitioner_source", "学习 secular trend、supply-chain chokepoint、research gap、anti-consensus 和 falsification。", "Serenity 可用于方法论蒸馏，不能直接作为 A 股买卖依据。", "opinion", ["industry", "bear_case"]),
-        ("E005", "lihai_a_share", "practitioner_source", "学习市场状态、情绪周期、买卖点、仓位和复盘纪律。", "交易计划需要市场状态和仓位纪律约束。", "opinion", ["trading", "risk"]),
-        ("E006", "howard_marks", "book_summary", "学习 second-level thinking、周期和风险控制。", "风险评估必须关注赔率、周期位置和下行情景。", "opinion", ["risk", "bear_case"]),
-        ("E007", "william_oneil_canslim", "book_summary", "学习成长股基本面和量价确认结合。", "成长股观察需要基本面增长和市场方向共同确认。", "opinion", ["company", "trading"]),
-        ("E008", "mark_minervini", "book_summary", "学习 trend template、VCP 和风险纪律。", "趋势交易必须有明确止损和结构确认。", "opinion", ["trading", "risk"]),
-        ("E009", "buffett_munger", "book_summary", "学习商业质量、护城河、能力圈和管理层激励。", "公司研究必须评估质量、激励和可理解性。", "opinion", ["company", "risk"]),
-        ("E010", "peter_lynch", "book_summary", "学习 scuttlebutt、公司故事和增长分类。", "公司故事需要渠道和经营事实验证。", "opinion", ["company", "industry"]),
-    ]
-    for eid, source_id, source_type, summary, claim, claim_type, relevant_to in seed_claims:
-        items.append(seed_evidence_item(eid, source_id, source_type, summary, claim, claim_type, retrieved_at, relevant_to))
-    next_id = 11
-    for result in public_results or []:
-        items.append(tool_result_to_evidence(f"E{next_id:03d}", result, retrieved_at, base_relevance))
-        next_id += 1
-    items.append(evidence_item(f"E{next_id:03d}", "case", "tier_2_canonical_framework", "经典历史案例库种子", "包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。", "历史案例用于形成可测试模式，不可单案过拟合。", "inference", retrieved_at, base_relevance))
-    return {
-        "run_id": run_id,
-        "market": "CN_A_SHARE",
-        "query": value,
-        "retrieved_at": retrieved_at,
-        "retrieval_plan": [
-            "search primary announcements and filings",
-            "search policy and news sources",
-            "query market data summary",
-            "load seed practitioner and historical case library",
-        ] + (["public_research"] if public_results else []),
-        "evidence_items": items,
-        "unresolved_gaps": [
-            "V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。"
-        ],
-    }
-
-
-def seed_evidence_item(eid: str, source_id: str, source_type: str, summary: str, claim: str, claim_type: str, retrieved_at: str, relevant_to: list[str]) -> dict[str, Any]:
-    source = source_by_id(source_id)
-    item = evidence_item(
-        eid,
-        source_type,
-        source["source_tier"],
-        f"{source['display_name']} 学习源",
-        summary,
-        claim,
-        claim_type,
-        retrieved_at,
-        relevant_to,
-    )
-    item["source_id"] = source_id
-    item["source_url"] = source.get("source_url", "")
-    item["primary_value"] = source.get("primary_value", [])
-    item["allowed_learning_outputs"] = source.get("allowed_learning_outputs", [])
-    item["not_allowed_outputs"] = source.get("not_allowed_outputs", [])
-    item["validation_required"] = source.get("validation_required", [])
-    return item
-
-
-def evidence_item(eid: str, source_type: str, tier: str, title: str, summary: str, claim: str, claim_type: str, retrieved_at: str, relevant_to: list[str]) -> dict[str, Any]:
-    return {
-        "id": eid,
-        "source_type": source_type,
-        "source_tier": tier,
-        "title": title,
-        "url": "",
-        "published_at": "",
-        "retrieved_at": retrieved_at,
-        "raw_excerpt": summary,
-        "summary": summary,
-        "confidence": "medium" if tier != "tier_1_primary_fact" else "high",
-        "claims": [
-            {
-                "claim_id": f"C{eid[1:]}",
-                "claim_text": claim,
-                "claim_type": claim_type,
-                "confidence": "medium" if tier != "tier_1_primary_fact" else "high",
-                "relevant_to": relevant_to,
-                "supports": [],
-                "contradicts": [],
-            }
-        ],
-    }
-
-
-def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
-    role = agent["role"]
-    agent_id = agent["id"]
-    focus = context_focus(agent_id, role)
-    included = []
-    for item in evidence_pack["evidence_items"]:
-        claims = item.get("claims", [])
-        allowed = [c["claim_id"] for c in claims if set(c.get("relevant_to", [])) & set(focus["tags"])]
-        if allowed or agent_id in {"chief_of_staff", "fund_manager", "evaluation_harness", "review_archivist"}:
-            included.append(
-                {
-                    "evidence_id": item["id"],
-                    "reason": f"relevant to {role}",
-                    "compressed_summary": item["summary"],
-                    "allowed_claims": allowed or [c["claim_id"] for c in claims],
-                }
-            )
-    return {
-        "context_pack_id": f"ctx_{agent_id}",
-        "run_id": run_id,
-        "agent_id": agent_id,
-        "role": role,
-        "task_stage": "specialist_analysis",
-        "context_budget_tokens": 8000,
-        "included_evidence": included,
-        "contradiction_table": [
-            {
-                "issue": "方法论来源不能替代一手事实",
-                "supporting_claims": ["C004"],
-                "opposing_claims": ["C001", "C002"],
-            }
-        ],
-        "missing_evidence": evidence_pack.get("unresolved_gaps", []),
-        "excluded_evidence_summary": [
-            {"category": "irrelevant noise", "reason": "V1 context router excludes non-role evidence by relevance tags"}
-        ],
-        "required_focus": focus["required"],
-        "forbidden_focus": ["不要输出真实交易指令", "不要把低等级来源当作一手事实"],
-        "output_schema": f"{role}Output",
-    }
-
-
-def context_focus(agent_id: str, role: str) -> dict[str, Any]:
-    if "Trader" in role:
-        return {"tags": ["trading", "risk"], "required": ["量价结构", "买卖触发条件", "仓位纪律"]}
-    if "Risk" in role:
-        return {"tags": ["risk", "company", "trading"], "required": ["下行风险", "证据等级", "仓位上限"]}
-    if "Bear" in role:
-        return {"tags": ["bear_case", "risk", "company"], "required": ["攻击核心假设", "替代解释", "证据缺口"]}
-    if "Company" in role or "Governance" in role:
-        return {"tags": ["company", "risk"], "required": ["财报公告", "产品和订单", "治理风险"]}
-    if "Analyst" in role:
-        return {"tags": ["industry", "company"], "required": ["产业链", "chokepoint", "需求验证"]}
-    return {"tags": ["industry", "company", "trading", "risk", "bear_case"], "required": ["综合判断", "证据追溯", "流程完整性"]}
-
-
-def evidence_lookup(evidence_pack: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    return {item["id"]: item for item in evidence_pack.get("evidence_items", [])}
-
-
-def summarize_context_evidence(context: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
-    lookup = evidence_lookup(evidence_pack)
-    coverage = {
-        "tier_1_primary_fact": 0,
-        "tier_2_canonical_framework": 0,
-        "tier_3_verified_public_practitioner": 0,
-        "tier_4_expert_opinion": 0,
-        "tier_5_social_signal": 0,
-        "tier_6_unverified": 0,
-    }
-    source_types: dict[str, int] = {}
-    key_claims = []
-    for included in context.get("included_evidence", []):
-        item = lookup.get(included["evidence_id"])
-        if not item:
-            continue
-        tier = item.get("source_tier", "tier_6_unverified")
-        coverage[tier] = coverage.get(tier, 0) + 1
-        source_type = item.get("source_type", "unknown")
-        source_types[source_type] = source_types.get(source_type, 0) + 1
-        allowed = set(included.get("allowed_claims", []))
-        for claim in item.get("claims", []):
-            if allowed and claim.get("claim_id") not in allowed:
-                continue
-            key_claims.append(
-                {
-                    "evidence_id": item["id"],
-                    "claim_id": claim["claim_id"],
-                    "source_tier": tier,
-                    "source_type": source_type,
-                    "claim_type": claim.get("claim_type"),
-                    "confidence": claim.get("confidence"),
-                    "claim_text": claim.get("claim_text"),
-                }
-            )
-            break
-    return {"coverage": coverage, "source_types": source_types, "key_claims": key_claims}
-
-
-def agent_stance(agent: dict[str, Any], summary: dict[str, Any]) -> str:
-    role = agent.get("role", "")
-    primary = summary["coverage"].get("tier_1_primary_fact", 0)
-    social = summary["coverage"].get("tier_5_social_signal", 0)
-    if "Bear" in role:
-        return "cautious_attack" if primary else "evidence_gap_attack"
-    if "Risk" in role or "Defensive" in role:
-        return "risk_control_first"
-    if "Trader" in role:
-        return "wait_for_price_confirmation" if primary else "no_trade_without_confirmation"
-    if "FundManager" in role:
-        return "continue_research" if primary else "needs_more_evidence"
-    if social and not primary:
-        return "hypothesis_only"
-    return "constructive_but_evidence_capped" if primary else "needs_more_evidence"
-
-
-def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any], evidence_pack: dict[str, Any], query: str) -> dict[str, Any]:
-    summary = summarize_context_evidence(context, evidence_pack)
-    primary = summary["coverage"].get("tier_1_primary_fact", 0)
-    low_tier = summary["coverage"].get("tier_5_social_signal", 0) + summary["coverage"].get("tier_6_unverified", 0)
-    confidence = "medium" if primary >= 1 else "low"
-    return {
-        "run_id": context["run_id"],
-        "agent_id": agent["id"],
-        "agent_name": agent.get("name"),
-        "role": agent.get("role"),
-        "query": query,
-        "stance": agent_stance(agent, summary),
-        "confidence": confidence,
-        "required_focus": context.get("required_focus", []),
-        "evidence_coverage": summary["coverage"],
-        "source_type_coverage": summary["source_types"],
-        "key_claims": summary["key_claims"][:8],
-        "analysis_points": analysis_points_for(agent, summary),
-        "risks_or_gaps": context.get("missing_evidence", []) + risk_gaps_for(agent, primary, low_tier),
-        "forbidden_actions_checked": context.get("forbidden_focus", []),
-        "disclaimer": DISCLAIMER,
-    }
-
-
-def analysis_points_for(agent: dict[str, Any], summary: dict[str, Any]) -> list[str]:
-    role = agent.get("role", "")
-    claims = summary.get("key_claims", [])
-    first_claim = claims[0]["claim_text"] if claims else "当前缺少可引用 claim。"
-    if "Trader" in role:
-        return ["只在一手事实和量价证据同时支持时讨论模拟入场触发。", first_claim]
-    if "Risk" in role:
-        return ["优先检查一手证据覆盖、低等级来源占比和仓位边界。", first_claim]
-    if "Bear" in role:
-        return ["攻击方法论源替代事实源、社媒热度替代订单验证的风险。", first_claim]
-    if "Company" in role or "Governance" in role:
-        return ["公司映射必须由公告、财报、订单、客户或收入证据验证。", first_claim]
-    if "Analyst" in role:
-        return ["产业链/chokepoint 假设必须从政策、公告、产业资料逐层验证。", first_claim]
-    return ["综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。", first_claim]
-
-
-def risk_gaps_for(agent: dict[str, Any], primary: int, low_tier: int) -> list[str]:
-    gaps = []
-    if primary == 0:
-        gaps.append("缺少 tier_1_primary_fact，一切结论只能作为假设。")
-    if low_tier > 0:
-        gaps.append("存在 tier_5/tier_6 低等级信号，只能用于情绪或线索。")
-    if "Trader" in agent.get("role", ""):
-        gaps.append("V1 尚未接入真实价格序列，不能形成具体买卖点。")
-    return gaps
-
-
-def write_agent_output(path: Path, agent: dict[str, Any], context: dict[str, Any], query: str, evidence_pack: dict[str, Any]) -> dict[str, Any]:
-    structured = make_structured_agent_output(agent, context, evidence_pack, query)
-    evidence_refs = [f"{claim['evidence_id']}:{claim['claim_id']}" for claim in structured["key_claims"][:5]]
-    text = f"""# {agent['name']} / {agent['role']} 输出
-
-任务：{query}
-
-## 角色聚焦
-
-{', '.join(context['required_focus'])}
-
-## 立场与置信度
-
-- stance: {structured['stance']}
-- confidence: {structured['confidence']}
-
-## 证据覆盖
-
-"""
-    text += "\n".join(f"- {tier}: {count}" for tier, count in structured["evidence_coverage"].items())
-    text += "\n\n## 分析要点\n\n" + "\n".join(f"- {point}" for point in structured["analysis_points"])
-    text += "\n\n## 证据引用\n\n" + (", ".join(evidence_refs) if evidence_refs else "无")
-    text += f"\n\n## 边界\n\n{DISCLAIMER}\n"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-    write_yaml(path.with_suffix(".structured.yaml"), structured)
-    return structured
-
-
-def make_decision_memo(run_id: str, query: str, evidence_pack: dict[str, Any], agent_outputs: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    refs = []
-    for item in evidence_pack["evidence_items"]:
-        if item.get("source_tier") in {"tier_1_primary_fact", "tier_3_verified_public_practitioner"}:
-            claim = item["claims"][0]
-            refs.append({"evidence_id": item["id"], "claim_id": claim["claim_id"], "usage": "supports simulated committee memo"})
-        if len(refs) >= 6:
-            break
-    public_items = [item for item in evidence_pack["evidence_items"] if item.get("source_id") == "public_research"]
-    primary_public = [item for item in public_items if item.get("source_tier") == "tier_1_primary_fact"]
-    social_items = [item for item in public_items if item.get("source_tier") == "tier_5_social_signal"]
-    has_public_primary = bool(primary_public)
-    label = "continue_research" if has_public_primary else "needs_more_evidence"
-    stance = "constructive" if has_public_primary else "neutral"
-    conviction = "medium" if has_public_primary and not social_items else "low"
-    thesis = f"{query} 已有 {len(primary_public)} 条 fixture/public 一手证据线索和 {len(public_items)} 条公开检索结果进入 EvidencePack；仍需真实公告、财报、行情和案例回放继续验证。"
-    if not public_items:
-        thesis = f"{query} 当前主要依赖 seed library 和占位事实源，需要接入真实公开资料后再判断。"
-    return {
-        "run_id": run_id,
-        "memo_type": "simulated_investment_committee_memo",
-        "disclaimer": DISCLAIMER,
-        "final_decision": {
-            "label": label,
-            "stance": stance,
-            "conviction": conviction,
-            "hypothetical_position_range": "0%，仅进入观察和研究队列" if conviction == "low" else "0-1%，仅限 Paper Portfolio 观察仓",
-        },
-        "thesis": thesis,
-        "bull_case": "若一手公告、政策和产业证据继续确认需求、订单、核心零部件瓶颈和公司映射，研究优先级可提升。",
-        "bear_case": "社媒热度和方法论源不能替代订单、收入、客户和价格行为验证；若只有叙事则不得升级。",
-        "risk_review": "主要风险是证据链不完整、低等级信号污染、产业链映射过度推断、价格序列缺失。",
-        "trading_plan": {
-            "entry_conditions": ["真实行情趋势确认", "公告/财报验证订单或收入", "风控确认模拟仓位上限"],
-            "add_conditions": ["核心假设被多源验证", "价格强度和板块扩散同步"],
-            "reduce_conditions": ["证据等级下降", "量价结构恶化", "主题拥挤且基本面未兑现"],
-            "exit_conditions": ["核心假设被证伪", "公告/财报不支持产业链映射", "风控触发退出"],
-        },
-        "kill_criteria": ["缺少一手证据", "关键假设被公告或财报证伪", "反方和风控提出未解决阻断项", "社媒热度成为主要依据"],
-        "agent_output_summary": summarize_agent_outputs(agent_outputs or []),
-        "evidence_references": refs,
-    }
-
-
-def summarize_agent_outputs(agent_outputs: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return [
-        {
-            "agent_id": output["agent_id"],
-            "stance": output["stance"],
-            "confidence": output["confidence"],
-            "primary_evidence_count": output["evidence_coverage"].get("tier_1_primary_fact", 0),
-        }
-        for output in agent_outputs
-    ]
-
-
-def write_decision_markdown(path: Path, memo: dict[str, Any]) -> None:
-    fd = memo["final_decision"]
-    text = f"""# 模拟投委会研究决策备忘录
-
-{memo['disclaimer']}
-
-## 最终标签
-
-- label: {fd['label']}
-- stance: {fd['stance']}
-- conviction: {fd['conviction']}
-- hypothetical_position_range: {fd['hypothetical_position_range']}
-
-## Thesis
-
-{memo['thesis']}
-
-## Bull Case
-
-{memo['bull_case']}
-
-## Bear Case
-
-{memo['bear_case']}
-
-## Risk Review
-
-{memo['risk_review']}
-
-## Agent Output Summary
-
-"""
-    text += "\n".join(f"- {item['agent_id']}: {item['stance']} / {item['confidence']} / primary={item['primary_evidence_count']}" for item in memo.get("agent_output_summary", []))
-    text += "\n\n## Kill Criteria\n\n"
-    text += "\n".join(f"- {item}" for item in memo["kill_criteria"])
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text + "\n", encoding="utf-8")
-
-
-def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
-    items = evidence_pack["evidence_items"]
-    public_items = [item for item in items if item.get("source_id") == "public_research"]
-    primary_count = sum(1 for item in items if item.get("source_tier") == "tier_1_primary_fact")
-    low_count = sum(1 for item in items if item.get("source_tier") in {"tier_5_social_signal", "tier_6_unverified"})
-    evidence_quality = min(95, 55 + primary_count * 5 + len(public_items) * 10 - low_count * 3)
-    tool_usage_quality = 70 if public_items else 50
-    overall = round((evidence_quality + 70 + 82 + 72 + 75 + tool_usage_quality + 80) / 7, 1)
-    blocking = []
-    if not public_items:
-        blocking.append("真实公开数据检索工具尚未接入，当前为 EvidencePack stub。")
-    if primary_count == 0:
-        blocking.append("缺少 tier_1_primary_fact，不能形成高置信结论。")
-    if low_count > primary_count:
-        blocking.append("低等级信号数量超过一手证据，需要降级结论。")
-    return {
-        "run_id": run_id,
-        "overall_score": overall,
-        "source_coverage": {
-            "total_items": len(items),
-            "public_research_items": len(public_items),
-            "tier_1_primary_fact": primary_count,
-            "low_tier_items": low_count,
-        },
-        "dimension_scores": {
-            "evidence_quality": evidence_quality,
-            "reasoning_quality": 70,
-            "role_consistency": 82,
-            "decision_quality": 72 if public_items else 68,
-            "collaboration_quality": 75,
-            "tool_usage_quality": tool_usage_quality,
-            "context_quality": 80,
-        },
-        "context_quality_scores": {
-            "relevance": 82,
-            "compression_fidelity": 78,
-            "evidence_traceability": 86,
-            "role_specificity": 82,
-            "information_sufficiency": 70 if public_items else 60,
-            "noise_control": 84,
-            "leakage_control": 85,
-            "contradiction_preservation": 80,
-        },
-        "agent_scores": [
-            {
-                "agent_id": item["agent_id"],
-                "role_consistency": 82,
-                "contribution_quality": 74 if public_items else 70,
-                "context_fit": 80,
-                "improvement_suggestions": ["继续提高一手证据密度", "接入真实价格序列和公告解析"],
-            }
-            for item in selected
-        ],
-        "blocking_issues": blocking,
-        "accepted_outputs": ["final-decision-memo"],
-        "rejected_outputs": [],
-    }
-
-
 def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: str) -> None:
     ref_dir = run_path / "reflections"
     ref_dir.mkdir(parents=True, exist_ok=True)
-    candidates = []
     for item in selected:
         agent_id = item["agent_id"]
         reflection = {
@@ -760,7 +278,6 @@ def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: st
     evo.parent.mkdir(parents=True, exist_ok=True)
     evo.write_text(json.dumps(candidate, ensure_ascii=False) + "\n", encoding="utf-8")
 
-
 def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     candidates_path = run_path / "evolution" / "candidates.jsonl"
     results = []
@@ -789,7 +306,6 @@ def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in results), encoding="utf-8")
     return results
-
 
 def command_run(args: argparse.Namespace) -> int:
     input_type, value = infer_input(args)
@@ -863,7 +379,6 @@ def command_run(args: argparse.Namespace) -> int:
     print(f"run_path={run_path.relative_to(Path.cwd())}")
     return 0
 
-
 def command_eval(args: argparse.Namespace) -> int:
     run_path = Path(args.run)
     if not run_path.is_absolute():
@@ -876,7 +391,6 @@ def command_eval(args: argparse.Namespace) -> int:
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")
     return 0
 
-
 def command_evolve(args: argparse.Namespace) -> int:
     run_path = Path(args.run)
     if not run_path.is_absolute():
@@ -885,7 +399,6 @@ def command_evolve(args: argparse.Namespace) -> int:
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")
     return 0
-
 
 def command_inspect(args: argparse.Namespace) -> int:
     run_path = Path(args.run)
@@ -896,7 +409,6 @@ def command_inspect(args: argparse.Namespace) -> int:
     print(f"status={run_doc['status']}")
     print(f"selected_agents={len(run_doc['selected_agents'])}")
     return 0
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fundos")
@@ -931,12 +443,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
