@@ -36,6 +36,7 @@ from fundos.public_research import PublicResearchClient
 from fundos.research_cache import write_run_research_manifest
 from fundos.reporting import write_first_version_report
 from fundos.source_ingestion import ingest_source_candidates
+from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
 from fundos.tool_policies import load_tool_policy
 
@@ -66,6 +67,7 @@ def command_init(args: argparse.Namespace) -> int:
             print(f"created {name}/")
     roster = load_roster()
     materialized = materialize_agent_assets(cwd, roster)
+    write_tool_adapter_manifest(cwd, roster)
     materialize_learning_assets(cwd)
     thread_summary = materialize_agent_threads(cwd, roster)
     print(f"loaded {len(roster.get('agents', []))} agents from specs/agents/default-roster.yaml")
@@ -388,6 +390,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_yaml(run_path / "selected-agents.yaml", {"selected_agents": selected})
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
     write_run_research_manifest(run_path, value, public_results, research_client.adapter_name, research_cache_root)
+    write_tool_adapter_manifest(run_path, roster)
     write_tool_harness(run_path, evidence_pack)
     write_run_learning_patterns(run_path, [item["agent_id"] for item in selected])
     write_run_learning_source_registry(run_path)
@@ -432,6 +435,7 @@ def command_eval(args: argparse.Namespace) -> int:
     evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
     selected = run_doc["selected_agents"]
     run_case_replay(run_path)
+    write_tool_adapter_manifest(run_path, load_roster())
     write_tool_harness(run_path, evidence)
     write_run_learning_source_registry(run_path)
     if (run_path / "agent_work").exists():

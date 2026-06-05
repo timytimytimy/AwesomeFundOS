@@ -71,6 +71,7 @@ class FundosCliTests(unittest.TestCase):
                 "portfolio/outcome-attribution.jsonl",
                 "harness/historical-case-replay.yaml",
                 "harness/agent-harness.yaml",
+                "tools/tool-adapter-manifest.yaml",
                 "harness/tool-harness.yaml",
                 "harness/pm-competition-harness.yaml",
                 "committee/pm-competition.yaml",
@@ -112,6 +113,10 @@ class FundosCliTests(unittest.TestCase):
             agent_harness = yaml.safe_load((run_path / "harness/agent-harness.yaml").read_text())
             self.assertEqual(agent_harness["agent_count"], len(run_doc["selected_agents"]))
             self.assertIn("skill_invocation", agent_harness["aggregate_scores"])
+            tool_adapter_manifest = yaml.safe_load((run_path / "tools/tool-adapter-manifest.yaml").read_text())
+            self.assertEqual(tool_adapter_manifest["artifact_type"], "tool_adapter_contract_report")
+            self.assertTrue(tool_adapter_manifest["all_agent_required_tools_mapped"])
+            self.assertFalse(tool_adapter_manifest["real_trade_allowed"])
             tool_harness = yaml.safe_load((run_path / "harness/tool-harness.yaml").read_text())
             self.assertIn("adapter_coverage", tool_harness)
             self.assertIn("source_boundary_quality", tool_harness)
@@ -209,6 +214,7 @@ class FundosCliTests(unittest.TestCase):
             skill_md = tmp_path / "skills" / "fund_manager" / "SKILL.md"
             memory = tmp_path / "memory" / "agents" / "fund_manager" / "semantic_memory.md"
             source_registry = tmp_path / "memory" / "organization" / "learning-source-registry.yaml"
+            tool_adapter_manifest = tmp_path / "tools" / "tool-adapter-manifest.yaml"
             self.assertTrue(profile.exists())
             self.assertTrue(agent_md.exists())
             self.assertTrue(context_policy.exists())
@@ -216,6 +222,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(skill_md.exists())
             self.assertTrue(memory.exists())
             self.assertTrue(source_registry.exists())
+            self.assertTrue(tool_adapter_manifest.exists())
             self.assertIn("## Memory and Evolution", agent_md.read_text())
             self.assertIn("name: fundos-fund_manager", skill_md.read_text())
             profile_doc = yaml.safe_load(profile.read_text())

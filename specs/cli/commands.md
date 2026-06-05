@@ -79,6 +79,7 @@ runs/{date}-{slug}/
   selected-agents.yaml
   evidence/evidence-pack.yaml
   evidence/public-research-manifest.yaml
+  tools/tool-adapter-manifest.yaml
   context/{agent_id}.context-pack.yaml
   agent_work/{agent_id}.md
   debate/
@@ -274,3 +275,13 @@ Governance 用于晋升观察、降权观察、复训、席位竞争和组织学
 ```text
 研究分析，不构成投资建议；不接真实交易，不自动下单。
 ```
+
+## 17. Tool Adapter Contracts
+
+V1 的工具层先以 source-controlled contract 固化，不直接接券商、不下单、不写真实交易。运行 `fundos init`、`fundos run`、`fundos eval` 时会生成：
+
+```text
+tools/tool-adapter-manifest.yaml
+```
+
+该 manifest 校验默认 Agent 声明的工具是否都映射到只读 adapter contract，并检查 `real_trade_allowed=false`、`broker_integration=disabled`、ToolResult / Evidence traceability。

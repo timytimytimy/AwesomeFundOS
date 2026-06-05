@@ -1,0 +1,322 @@
+contract_id: tool_adapter_contracts_v1
+version: 0.1.0
+purpose: Define source-controlled, read-only tool adapter contracts for local-first research, evidence creation, memory retrieval, and harness evaluation.
+market_scope: CN_A_SHARE
+permission_model:
+  default_permission_level: read_only_analysis
+  real_trade_allowed: false
+  broker_integration: disabled
+  adapters_are_contracts_not_live_credentials: true
+forbidden_adapter_categories:
+  - broker_api
+  - order_placement
+  - real_trade_execution
+  - account_login
+  - capital_transfer
+  - margin_borrowing
+global_controls:
+  - every_tool_result_must_have_tool_result_id
+  - every_factual_claim_must_map_to_evidence_or_claim_id
+  - primary_sources_required_for_high_confidence
+  - kol_social_book_course_case_sources_are_hypothesis_or_methodology_only
+  - no_adapter_may_place_orders_or_access_broker_accounts
+adapters:
+  - adapter_id: context_reader
+    category: evidence
+    purpose: Read assigned ContextPack and evidence references for a single agent.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, agent_id, context_pack_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, claim_refs, missing_inputs]}
+    source_tier_output: inherits_existing_evidence
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: memo_writer
+    category: writing
+    purpose: Write simulated committee memo from structured evidence and agent outputs.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, evidence_refs, agent_output_refs]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, memo_path, boundary_controls]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: watchlist_writer
+    category: portfolio
+    purpose: Write watchlist and Paper Portfolio artifacts without real orders.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, final_memo_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, watchlist_path, paper_portfolio_path]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: risk_checklist
+    category: risk
+    purpose: Apply downside, liquidity, concentration, and evidence-gap risk checks.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, evidence_pack_path, portfolio_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, risk_flags, position_caps]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: evidence_pack_reader
+    category: evidence
+    purpose: Read EvidencePack and expose claim IDs to agents.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, evidence_pack_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, claim_refs, source_tier_counts]}
+    source_tier_output: inherits_existing_evidence
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: run_store
+    category: runtime
+    purpose: Read and write run-local artifacts, manifests, and archive summaries.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, artifact_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, artifact_refs, audit_notes]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: roster_reader
+    category: runtime
+    purpose: Read source-controlled default roster and runtime selected agents.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [roster_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, agent_ids, role_refs]}
+    source_tier_output: source_controlled_spec
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: context_router
+    category: runtime
+    purpose: Route evidence and compressed context to selected agents.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, selected_agents, evidence_pack_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, context_pack_refs, excluded_items]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: harness_trigger
+    category: harness
+    purpose: Trigger local deterministic harness reports for run artifacts.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, run_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, harness_report_refs, blocking_issues]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: artifact_reader
+    category: harness
+    purpose: Read generated artifacts for evaluation.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_path, artifact_globs]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, artifact_refs, missing_artifacts]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: scoring_engine
+    category: harness
+    purpose: Score evidence, role consistency, collaboration, context management, and boundary controls.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, artifact_refs]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, scorecard, blocking_issues]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: report_writer
+    category: writing
+    purpose: Write evaluation and archive reports.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, scorecard]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, report_path, boundary_controls]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: source_registry
+    category: learning
+    purpose: Read and update governed learning source registry artifacts.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, source_candidate_refs]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, registry_refs, quarantine_refs]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: case_library
+    category: case_library
+    purpose: Read and index historical case library for methodology replay.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [case_library_path, target_patterns]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, matched_cases, overfit_warnings]}
+    source_tier_output: tier_2_canonical_framework
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: case_store
+    category: case_library
+    purpose: Write proposed case-library updates after review, not direct trading signals.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, review_candidates]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, proposed_case_refs, approval_status]}
+    source_tier_output: quarantined_candidate
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: paper_portfolio_reader
+    category: portfolio
+    purpose: Read Paper Portfolio, watchlist, attribution, and review artifacts without placing orders.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, paper_portfolio_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, paper_actions, attribution_refs]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: evolution_candidate_writer
+    category: learning
+    purpose: Write governed evolution candidates into quarantine or proposed status for later validation.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [run_id, source_basis, target_agent]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, candidate_refs, required_tests]}
+    source_tier_output: quarantined_candidate
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: memory_store
+    category: memory
+    purpose: Read and append approved memory ledger entries after EvolutionGate.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [agent_id, candidate_id, approval_record]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, memory_refs, reversible_ledger_ref]}
+    source_tier_output: approved_evolution_output
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: memory_retrieval
+    category: memory
+    purpose: Retrieve role-specific long-term memory with tags and recency constraints.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [agent_id, retrieval_tags, max_memory_items]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, memory_items, stale_memory_warnings]}
+    source_tier_output: approved_memory
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: market_data_query
+    category: market_data
+    purpose: Retrieve read-only historical or current price, volume, relative strength, volatility, and liquidity summaries.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [symbol_or_topic, market, date_range]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, market_data_summary, data_vendor, retrieved_at]}
+    source_tier_output: tier_1_primary_fact
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: chart_summary
+    category: market_data
+    purpose: Convert market data into chart-structure summaries without trade execution.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [market_data_result_id, timeframe]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, trend_state, invalidation_levels]}
+    source_tier_output: derived_from_market_data
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: liquidity_check
+    category: market_data
+    purpose: Check liquidity, turnover, gap risk, and crowding proxies for Paper Portfolio sizing constraints.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [symbol_or_topic, market_data_result_id]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, liquidity_flags, position_cap_suggestion]}
+    source_tier_output: derived_from_market_data
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: announcement_search
+    category: primary_disclosure
+    purpose: Search exchange filings, company announcements, CNINFO-style disclosures, and investor relations records.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [query, market, date_range]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, announcement_refs, retrieved_at]}
+    source_tier_output: tier_1_primary_fact
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: financial_report_parser
+    category: primary_disclosure
+    purpose: Parse annual, quarterly, interim, prospectus, and audit-report facts into claim-level evidence.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [report_url_or_path, company_id]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, financial_claims, parser_warnings]}
+    source_tier_output: tier_1_primary_fact
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: tender_search
+    category: primary_disclosure
+    purpose: Search public tenders and procurement records for order or demand clues.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [query, date_range, jurisdiction]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, tender_refs, source_quality]}
+    source_tier_output: tier_1_primary_fact
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: policy_search
+    category: policy
+    purpose: Search official policy, regulator, exchange, and local-government documents.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [query, jurisdiction, date_range]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, policy_refs, source_authority]}
+    source_tier_output: tier_1_primary_fact
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: macro_data_query
+    category: macro_data
+    purpose: Retrieve read-only macro, commodity, inventory, rate, and cycle data summaries.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [series_ids_or_query, date_range]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, macro_summary, data_vendor]}
+    source_tier_output: tier_1_primary_fact
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: news_search
+    category: news
+    purpose: Search news, event, and policy interpretation sources with source-tier classification.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [query, date_range, source_whitelist_or_tier_policy]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, news_refs, source_tier_distribution]}
+    source_tier_output: tiered_by_source_quality
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: web_search
+    category: public_web
+    aliases: [public_web_search]
+    purpose: Search public web sources and classify them into primary, expert, practitioner, social, or unverified tiers.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [query, recency_or_date_range, source_tier_policy]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, web_refs, classification_notes]}
+    source_tier_output: tiered_by_source_quality
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: public_web_search
+    category: public_web
+    aliases: [web_search]
+    purpose: Canonical public web search adapter alias for external implementation plans.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [query, recency_or_date_range, source_tier_policy]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, web_refs, classification_notes]}
+    source_tier_output: tiered_by_source_quality
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: claim_auditor
+    category: harness
+    purpose: Audit claim-to-evidence mapping and identify unsupported assumptions.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [claim_refs, evidence_pack_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, unsupported_claims, contradiction_refs]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: evidence_gap_finder
+    category: harness
+    purpose: Find missing primary facts, contradictory evidence, and overfit risks.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [thesis_claims, evidence_pack_path]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, gap_list, required_next_queries]}
+    source_tier_output: derived_from_inputs
+    real_trade_allowed: false
+    broker_integration: disabled
+  - adapter_id: case_library_reader
+    category: case_library
+    purpose: Read historical case library, failure modes, and replay templates.
+    permission_level: read_only_analysis
+    input_contract: {required_fields: [query_tags, target_agent_id]}
+    output_contract: {required_fields: [tool_result_id, evidence_items, matched_cases, cautionary_patterns]}
+    source_tier_output: tier_2_canonical_framework
+    real_trade_allowed: false
+    broker_integration: disabled
