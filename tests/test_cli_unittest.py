@@ -74,6 +74,7 @@ class FundosCliTests(unittest.TestCase):
                 "tools/tool-adapter-manifest.yaml",
                 "harness/tool-harness.yaml",
                 "harness/pm-competition-harness.yaml",
+                "harness/skill-benchmark.yaml",
                 "committee/pm-competition.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
@@ -113,6 +114,10 @@ class FundosCliTests(unittest.TestCase):
             agent_harness = yaml.safe_load((run_path / "harness/agent-harness.yaml").read_text())
             self.assertEqual(agent_harness["agent_count"], len(run_doc["selected_agents"]))
             self.assertIn("skill_invocation", agent_harness["aggregate_scores"])
+            skill_benchmark = yaml.safe_load((run_path / "harness/skill-benchmark.yaml").read_text())
+            self.assertEqual(skill_benchmark["artifact_type"], "skill_benchmark_report")
+            self.assertEqual(skill_benchmark["agents_evaluated"], len(run_doc["selected_agents"]))
+            self.assertFalse(skill_benchmark["real_trade_allowed"])
             tool_adapter_manifest = yaml.safe_load((run_path / "tools/tool-adapter-manifest.yaml").read_text())
             self.assertEqual(tool_adapter_manifest["artifact_type"], "tool_adapter_contract_report")
             self.assertTrue(tool_adapter_manifest["all_agent_required_tools_mapped"])
@@ -165,7 +170,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("agent_harness_quality", report)
             self.assertIn("tool_harness_quality", report)
             self.assertIn("pm_competition_quality", report)
+            self.assertIn("skill_benchmark_quality", report)
             self.assertIn("pm_competition", report["accepted_outputs"])
+            self.assertIn("skill_benchmark", report["accepted_outputs"])
             self.assertIn("portfolio_review", report["accepted_outputs"])
             self.assertIn("agent_harness", report["accepted_outputs"])
 
@@ -179,6 +186,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue((run_path / "evolution/capability-candidates.jsonl").exists())
             self.assertTrue((run_path / "harness/capability-regression.yaml").exists())
             self.assertTrue((run_path / "harness/agent-performance.yaml").exists())
+            self.assertTrue((run_path / "harness/skill-benchmark.yaml").exists())
             self.assertTrue((run_path / "learning/failure-patterns.yaml").exists())
             self.assertTrue((tmp_path / "memory" / "organization" / "failure-pattern-library.jsonl").exists())
             regression = load_yaml(run_path / "harness/capability-regression.yaml")

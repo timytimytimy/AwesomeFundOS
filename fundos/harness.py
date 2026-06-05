@@ -12,6 +12,7 @@ from fundos.committee import load_collaboration_harness
 from fundos.outcomes import load_outcome_tracking
 from fundos.pm_competition import load_pm_competition_harness
 from fundos.portfolio import load_portfolio_state
+from fundos.skill_benchmark import load_skill_benchmark_report
 from fundos.source_ingestion import load_ingestion_report
 from fundos.tool_harness import load_tool_harness
 
@@ -52,6 +53,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     source_ingestion = load_ingestion_report(run_path)
     outcome_tracking = load_outcome_tracking(run_path)
     capability_regression = load_capability_regression(run_path)
+    skill_benchmark = load_skill_benchmark_report(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
@@ -89,6 +91,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("outcome_tracking")
     if capability_regression.get("candidates_total", 0) > 0:
         accepted_outputs.append("capability_regression")
+    if skill_benchmark.get("overall_score", 0) > 0:
+        accepted_outputs.append("skill_benchmark")
     if agent_governance.get("agent_count", 0) > 0:
         accepted_outputs.append("agent_governance")
     for issue in tool_harness.get("blocking_issues", []):
@@ -105,6 +109,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     for issue in agent_thread_quality.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_agent_thread_manifest":
             blocking.append(issue)
+    for issue in skill_benchmark.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_skill_benchmark":
+            blocking.append(issue)
+    if skill_benchmark.get("real_trade_allowed"):
+        blocking.append("Skill Benchmark 出现 real_trade_allowed=true，违反能力评测边界。")
     if source_ingestion.get("real_trade_allowed"):
         blocking.append("Source Ingestion 出现 real_trade_allowed=true，违反学习源边界。")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
@@ -241,6 +250,17 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "candidates_total": capability_regression.get("candidates_total", 0),
             "passed_candidates": capability_regression.get("passed_candidates", 0),
             "blocked_candidates": capability_regression.get("blocked_candidates", 0),
+        },
+        "skill_benchmark_quality": {
+            "overall_score": skill_benchmark.get("overall_score", 0),
+            "agents_evaluated": skill_benchmark.get("agents_evaluated", 0),
+            "passed_agents": skill_benchmark.get("passed_agents", 0),
+            "blocked_agents": skill_benchmark.get("blocked_agents", 0),
+            "skill_candidates_evaluated": skill_benchmark.get("skill_candidates_evaluated", 0),
+            "blocked_skill_candidates": skill_benchmark.get("blocked_skill_candidates", 0),
+            "blocking_issues": skill_benchmark.get("blocking_issues", []),
+            "real_trade_allowed": skill_benchmark.get("real_trade_allowed", False),
+            "broker_integration": skill_benchmark.get("broker_integration", "disabled"),
         },
         "agent_scores": [
             {

@@ -35,6 +35,7 @@ from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, wr
 from fundos.public_research import PublicResearchClient
 from fundos.research_cache import write_run_research_manifest
 from fundos.reporting import write_first_version_report
+from fundos.skill_benchmark import run_skill_benchmark
 from fundos.source_ingestion import ingest_source_candidates
 from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
@@ -403,6 +404,7 @@ def command_run(args: argparse.Namespace) -> int:
         write_yaml(run_path / "context" / f"{agent['id']}.context-pack.yaml", context)
         agent_outputs.append(write_agent_output(run_path / "agent_work" / f"{agent['id']}.md", agent, context, value, evidence_pack))
     write_agent_harness(run_path, selected)
+    run_skill_benchmark(run_path)
     collaboration_report = write_committee_artifacts(run_path, run_id, value, selected, agent_outputs, evidence_pack)
     pm_competition_report = write_pm_competition(run_path, run_id, value, evidence_pack, selected, agent_outputs)
     (run_path / "risk" / "risk-review.md").write_text(f"# Risk Review\n\n真实数据工具未接入，模拟仓位为 0%。\n\n{DISCLAIMER}\n", encoding="utf-8")
@@ -445,6 +447,7 @@ def command_eval(args: argparse.Namespace) -> int:
     run_outcome_tracking(run_path)
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)
+    run_skill_benchmark(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")
@@ -458,6 +461,7 @@ def command_evolve(args: argparse.Namespace) -> int:
     run_doc = read_yaml(run_path / "run.yaml") if (run_path / "run.yaml").exists() else {"selected_agents": []}
     if run_doc.get("selected_agents"):
         record_run_threads(run_path, run_doc["selected_agents"], event_type="evolution", payload={"candidate_count": len(results)})
+    run_skill_benchmark(run_path)
     write_agent_performance(run_path)
     governance = write_agent_governance(run_path)
     failure_report = write_failure_patterns(run_path)
@@ -468,6 +472,7 @@ def command_evolve(args: argparse.Namespace) -> int:
     print(f"memory_writeback_summary={run_path / 'evolution' / 'memory-writeback-summary.yaml'}")
     print(f"agent_performance={run_path / 'harness' / 'agent-performance.yaml'}")
     print(f"agent_governance={run_path / 'harness' / 'agent-governance.yaml'}")
+    print(f"skill_benchmark={run_path / 'harness' / 'skill-benchmark.yaml'}")
     print(f"governance_agents={governance['agent_count']}")
     print(f"failure_patterns={run_path / 'learning' / 'failure-patterns.yaml'}")
     print(f"failure_pattern_count={failure_report['pattern_count']}")
