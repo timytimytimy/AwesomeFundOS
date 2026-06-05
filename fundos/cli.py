@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -60,6 +61,9 @@ def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
         profile_path = agent_dir / "profile.yaml"
         context_path = agent_dir / "context-policy.yaml"
         model_path = agent_dir / "model-policy.yaml"
+        agent_md_path = agent_dir / "agent.md"
+        skill_dir = root / "skills" / agent["id"]
+        skill_path = skill_dir / "SKILL.md"
         memory_path = memory_dir / "semantic_memory.md"
         profile = build_agent_profile(agent)
         context_policy = build_context_policy(agent)
@@ -67,6 +71,13 @@ def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
         for path, data in [(profile_path, profile), (context_path, context_policy), (model_path, model_policy)]:
             if not path.exists():
                 write_yaml(path, data)
+        source_agent_md = REPO_ROOT / "specs" / "agents" / "agent-cards" / agent["id"] / "agent.md"
+        if source_agent_md.exists() and not agent_md_path.exists():
+            shutil.copyfile(source_agent_md, agent_md_path)
+        source_skill_md = REPO_ROOT / "specs" / "skills" / agent["id"] / "SKILL.md"
+        if source_skill_md.exists() and not skill_path.exists():
+            skill_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source_skill_md, skill_path)
         if not memory_path.exists():
             memory_path.write_text(f"# {agent['name']} / {agent['role']} Long-term Memory\n\nNo accepted lessons yet. EvolutionGate must approve updates before they are written here.\n", encoding="utf-8")
         count += 1

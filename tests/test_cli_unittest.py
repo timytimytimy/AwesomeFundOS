@@ -121,13 +121,19 @@ class FundosCliTests(unittest.TestCase):
             result = run_cli(["init"], tmp_path)
             self.assertEqual(result.returncode, 0, result.stderr)
             profile = tmp_path / "agents" / "fund_manager" / "profile.yaml"
+            agent_md = tmp_path / "agents" / "fund_manager" / "agent.md"
             context_policy = tmp_path / "agents" / "fund_manager" / "context-policy.yaml"
             model_policy = tmp_path / "agents" / "fund_manager" / "model-policy.yaml"
+            skill_md = tmp_path / "skills" / "fund_manager" / "SKILL.md"
             memory = tmp_path / "memory" / "agents" / "fund_manager" / "semantic_memory.md"
             self.assertTrue(profile.exists())
+            self.assertTrue(agent_md.exists())
             self.assertTrue(context_policy.exists())
             self.assertTrue(model_policy.exists())
+            self.assertTrue(skill_md.exists())
             self.assertTrue(memory.exists())
+            self.assertIn("## Memory and Evolution", agent_md.read_text())
+            self.assertIn("name: fundos-fund_manager", skill_md.read_text())
             profile_doc = yaml.safe_load(profile.read_text())
             self.assertEqual(profile_doc["id"], "fund_manager")
             self.assertIn("decision_principles", profile_doc)
