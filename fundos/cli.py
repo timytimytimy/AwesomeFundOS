@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fundos.agent_outputs import write_agent_output
+from fundos.agent_outputs import refresh_agent_outputs_with_tool_use, write_agent_output
 from fundos.agent_governance import load_governance_summary, write_agent_governance
 from fundos.agent_harness import write_agent_harness
 from fundos.agent_tool_use import write_agent_tool_use_report
@@ -426,6 +426,9 @@ def command_run(args: argparse.Namespace) -> int:
     write_task_dag(run_path, selected, evidence_pack)
     write_claim_graph(run_path, evidence_pack)
     write_agent_tool_use_report(run_path, selected)
+    refresh_agent_outputs_with_tool_use(run_path)
+    write_agent_harness(run_path, selected)
+    run_skill_benchmark(run_path)
 
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
@@ -462,6 +465,8 @@ def command_eval(args: argparse.Namespace) -> int:
     write_task_dag(run_path, selected, evidence)
     write_claim_graph(run_path, evidence)
     write_agent_tool_use_report(run_path, selected)
+    refresh_agent_outputs_with_tool_use(run_path)
+    write_agent_harness(run_path, selected)
     run_skill_benchmark(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)

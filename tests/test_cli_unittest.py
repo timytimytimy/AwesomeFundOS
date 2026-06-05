@@ -425,6 +425,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertGreaterEqual(doc["evidence_coverage"]["tier_5_social_signal"], 1)
             self.assertTrue(doc["key_claims"])
             self.assertTrue(all("evidence_id" in claim and "claim_id" in claim for claim in doc["key_claims"]))
+            self.assertIn("tool_runtime_reconciliation", doc)
+            self.assertIn("tool_use_reconciliation", doc["agent_runtime"])
+            self.assertFalse(any(row.get("reason") == "tool_call_ledger_not_available_v1" for row in doc.get("missing_tool_calls", [])))
 
     def test_evaluation_scores_reflect_public_evidence_coverage(self):
         with tempfile.TemporaryDirectory() as d:

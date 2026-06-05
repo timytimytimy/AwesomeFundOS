@@ -71,3 +71,80 @@ class AgentRuntimeIntegrationTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class AgentToolUseRuntimeRefreshTests(unittest.TestCase):
+    def test_refresh_agent_outputs_replaces_v1_missing_tools_with_runtime_reconciliation(self):
+        from fundos.agent_outputs import refresh_agent_outputs_with_tool_use
+        from fundos.agent_tool_use import write_agent_tool_use_report
+        from fundos.claim_graph import write_claim_graph
+        from fundos.tool_runtime import run_fixture_tool_runtime
+
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        agent = next(item for item in roster["agents"] if item["id"] == "position_trend_trader")
+        selected = [{"agent_id": agent["id"], "role": agent["role"]}]
+        pack = make_evidence_pack("agent-refresh", "topic", "机器人产业链投资机会")
+        context = make_context_pack("agent-refresh", agent, pack)
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml = __import__("fundos.io", fromlist=["write_yaml"]).write_yaml
+            write_yaml(run_path / "run.yaml", {"run_id": "agent-refresh", "selected_agents": selected})
+            write_yaml(run_path / "evidence" / "evidence-pack.yaml", pack)
+            write_agent_output(run_path / "agent_work" / "position_trend_trader.md", agent, context, "机器人产业链投资机会", pack)
+            before = yaml.safe_load((run_path / "agent_work" / "position_trend_trader.structured.yaml").read_text())
+            self.assertTrue(before["missing_tool_calls"])
+            self.assertTrue(any(row["reason"] == "tool_call_ledger_not_available_v1" for row in before["missing_tool_calls"]))
+
+            run_fixture_tool_runtime(run_path, selected, pack)
+            refreshed_pack = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
+            write_claim_graph(run_path, refreshed_pack)
+            write_agent_tool_use_report(run_path, selected)
+            summary = refresh_agent_outputs_with_tool_use(run_path)
+            after = yaml.safe_load((run_path / "agent_work" / "position_trend_trader.structured.yaml").read_text())
+            markdown = (run_path / "agent_work" / "position_trend_trader.md").read_text(encoding="utf-8")
+
+        self.assertEqual(summary["updated_outputs"], 1)
+        self.assertEqual(after["missing_tool_calls"], [])
+        self.assertEqual(after["tool_permission_checks"]["missing_required_tools_reported"], True)
+        self.assertFalse(after["tool_permission_checks"]["confidence_cap_required"])
+        self.assertEqual(after["tool_runtime_reconciliation"]["score"], 100)
+        self.assertIn("tool_use_reconciliation", after["agent_runtime"])
+        self.assertIn("harness/agent-tool-use.yaml", after["agent_runtime"]["tool_use_reconciliation"])
+        self.assertIn("missing_tool_calls: 0", markdown)
+
+    def test_refresh_agent_outputs_preserves_missing_runtime_tools_when_reconciliation_fails(self):
+        from fundos.agent_outputs import refresh_agent_outputs_with_tool_use
+
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        agent = next(item for item in roster["agents"] if item["id"] == "position_trend_trader")
+        pack = make_evidence_pack("agent-refresh-missing", "topic", "机器人产业链投资机会")
+        context = make_context_pack("agent-refresh-missing", agent, pack)
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_agent_output(run_path / "agent_work" / "position_trend_trader.md", agent, context, "机器人产业链投资机会", pack)
+            __import__("fundos.io", fromlist=["write_yaml"]).write_yaml(run_path / "harness" / "agent-tool-use.yaml", {
+                "artifact_type": "agent_tool_use_report",
+                "overall_score": 30,
+                "agent_results": [{
+                    "agent_id": "position_trend_trader",
+                    "missing_required_tools": ["market_data_query", "chart_summary"],
+                    "forbidden_called_tools": [],
+                    "confidence_cap_required": True,
+                    "score": 30,
+                    "called_tools": [],
+                    "tool_results_linked_to_claim_graph": 0,
+                }],
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            })
+            refresh_agent_outputs_with_tool_use(run_path)
+            after = yaml.safe_load((run_path / "agent_work" / "position_trend_trader.structured.yaml").read_text())
+
+        self.assertEqual(
+            after["missing_tool_calls"],
+            [
+                {"tool": "market_data_query", "reason": "missing_in_agent_tool_use_reconciliation"},
+                {"tool": "chart_summary", "reason": "missing_in_agent_tool_use_reconciliation"},
+            ],
+        )
+        self.assertTrue(after["tool_permission_checks"]["confidence_cap_required"])
+        self.assertEqual(after["tool_runtime_reconciliation"]["score"], 30)

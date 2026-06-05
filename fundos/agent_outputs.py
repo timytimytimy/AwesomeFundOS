@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fundos.io import DISCLAIMER, write_yaml
+from fundos.io import DISCLAIMER, read_yaml, write_yaml
 from fundos.learning import compact_pattern, patterns_for_agent
 
 
@@ -266,16 +266,15 @@ def risk_gaps_for(agent: dict[str, Any], primary: int, low_tier: int) -> list[st
     return gaps
 
 
-def write_agent_output(path: Path, agent: dict[str, Any], context: dict[str, Any], query: str, evidence_pack: dict[str, Any]) -> dict[str, Any]:
-    structured = make_structured_agent_output(agent, context, evidence_pack, query)
+def render_agent_markdown(agent_name: str, agent_role: str, query: str, context_focus: list[str], structured: dict[str, Any]) -> str:
     evidence_refs = [f"{claim['evidence_id']}:{claim['claim_id']}" for claim in structured["key_claims"][:5]]
-    text = f"""# {agent['name']} / {agent['role']} 输出
+    text = f"""# {agent_name} / {agent_role} 输出
 
 任务：{query}
 
 ## 角色聚焦
 
-{', '.join(context['required_focus'])}
+{', '.join(context_focus)}
 
 ## 立场与置信度
 
@@ -296,9 +295,19 @@ def write_agent_output(path: Path, agent: dict[str, Any], context: dict[str, Any
     text += f"- tool_policy: {structured.get('tool_policy', {}).get('source_path')}\n"
     text += "- allowed_tools: " + ", ".join(structured.get("allowed_tools", [])) + "\n"
     text += "- missing_tool_calls: " + str(len(structured.get("missing_tool_calls", []))) + "\n"
+    if structured.get("tool_runtime_reconciliation"):
+        rec = structured["tool_runtime_reconciliation"]
+        text += "- tool_use_reconciliation_score: " + str(rec.get("score")) + "\n"
+        text += "- confidence_cap_required: " + str(rec.get("confidence_cap_required")) + "\n"
     text += "\n\n## 分析要点\n\n" + "\n".join(f"- {point}" for point in structured["analysis_points"])
     text += "\n\n## 证据引用\n\n" + (", ".join(evidence_refs) if evidence_refs else "无")
     text += f"\n\n## 边界\n\n{DISCLAIMER}\n"
+    return text
+
+
+def write_agent_output(path: Path, agent: dict[str, Any], context: dict[str, Any], query: str, evidence_pack: dict[str, Any]) -> dict[str, Any]:
+    structured = make_structured_agent_output(agent, context, evidence_pack, query)
+    text = render_agent_markdown(agent["name"], agent["role"], query, context["required_focus"], structured)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     write_yaml(path.with_suffix(".structured.yaml"), structured)
@@ -328,3 +337,64 @@ def load_agent_outputs(run_path: Path) -> list[dict[str, Any]]:
         if loaded:
             outputs.append(loaded)
     return outputs
+
+
+def refresh_agent_outputs_with_tool_use(run_path: Path) -> dict[str, Any]:
+    report_path = run_path / "harness" / "agent-tool-use.yaml"
+    if not report_path.exists():
+        return {"updated_outputs": 0, "reason": "missing_agent_tool_use_report"}
+    report = read_yaml(report_path) or {}
+    results = {row.get("agent_id"): row for row in report.get("agent_results", [])}
+    updated = 0
+    for structured_path in sorted((run_path / "agent_work").glob("*.structured.yaml")):
+        structured = read_yaml(structured_path) or {}
+        agent_id = structured.get("agent_id")
+        reconciliation = results.get(agent_id)
+        if not reconciliation:
+            continue
+        apply_tool_reconciliation(structured, reconciliation)
+        write_yaml(structured_path, structured)
+        markdown_path = run_path / "agent_work" / f"{agent_id}.md"
+        markdown_path.write_text(
+            render_agent_markdown(
+                structured.get("agent_name") or agent_id,
+                structured.get("role") or "Agent",
+                structured.get("query") or "",
+                structured.get("required_focus", []),
+                structured,
+            ),
+            encoding="utf-8",
+        )
+        updated += 1
+    return {"updated_outputs": updated, "report_path": "harness/agent-tool-use.yaml"}
+
+
+def apply_tool_reconciliation(structured: dict[str, Any], reconciliation: dict[str, Any]) -> None:
+    missing = reconciliation.get("missing_required_tools", []) or []
+    forbidden = reconciliation.get("forbidden_called_tools", []) or []
+    structured["missing_tool_calls"] = [
+        {"tool": tool, "reason": "missing_in_agent_tool_use_reconciliation"}
+        for tool in missing
+    ]
+    structured["forbidden_tool_actions"] = list(structured.get("forbidden_tool_actions", [])) + [
+        {"action": tool, "status": "forbidden_tool_called_in_runtime"}
+        for tool in forbidden
+    ]
+    checks = dict(structured.get("tool_permission_checks", {}))
+    checks["missing_required_tools_reported"] = bool(structured["missing_tool_calls"]) if missing else True
+    checks["confidence_cap_required"] = bool(reconciliation.get("confidence_cap_required"))
+    checks["runtime_reconciliation_available"] = True
+    checks["tool_results_linked_to_claim_graph"] = reconciliation.get("tool_results_linked_to_claim_graph", 0)
+    structured["tool_permission_checks"] = checks
+    structured["tool_runtime_reconciliation"] = {
+        "source_path": "harness/agent-tool-use.yaml",
+        "score": reconciliation.get("score", 0),
+        "called_tools": reconciliation.get("called_tools", []),
+        "missing_required_tools": missing,
+        "forbidden_called_tools": forbidden,
+        "confidence_cap_required": bool(reconciliation.get("confidence_cap_required")),
+        "tool_results_linked_to_claim_graph": reconciliation.get("tool_results_linked_to_claim_graph", 0),
+    }
+    runtime = dict(structured.get("agent_runtime", {}))
+    runtime["tool_use_reconciliation"] = "harness/agent-tool-use.yaml"
+    structured["agent_runtime"] = runtime
