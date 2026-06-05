@@ -65,6 +65,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("portfolio_review")
     if agent_harness.get("agent_count", 0):
         accepted_outputs.append("agent_harness")
+    if agent_harness.get("aggregate_scores", {}).get("context_management_quality", 0) > 0:
+        accepted_outputs.append("context_management")
     if collaboration_harness.get("overall_score", 0) > 0:
         accepted_outputs.append("collaboration_harness")
     if tool_harness.get("high_confidence_allowed"):
@@ -87,6 +89,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
     tool_harness_adapter = tool_harness.get("adapter_coverage", {})
+    context_management = summarize_context_management(agent_harness)
     return {
         "run_id": run_id,
         "overall_score": overall,
@@ -120,10 +123,12 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         "agent_harness_quality": {
             "agent_count": agent_harness.get("agent_count", 0),
             "context_compression": agent_harness_scores.get("context_compression", 0),
+            "context_management_quality": agent_harness_scores.get("context_management_quality", 0),
             "skill_invocation": agent_harness_scores.get("skill_invocation", 0),
             "role_consistency": agent_harness_scores.get("role_consistency", 0),
             "overall": agent_harness_scores.get("overall", 0),
         },
+        "context_management_quality": context_management,
         "collaboration_harness_quality": {
             "overall_score": collaboration_harness.get("overall_score", 0),
             "handoff_count": collaboration_harness.get("handoff_count", 0),
@@ -197,4 +202,33 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         "blocking_issues": blocking,
         "accepted_outputs": accepted_outputs,
         "rejected_outputs": [],
+    }
+
+
+def summarize_context_management(agent_harness: dict[str, Any]) -> dict[str, Any]:
+    results = agent_harness.get("agent_results", [])
+    qualities = [row.get("context_management_quality", {}) for row in results if row.get("context_management_quality")]
+    if not qualities:
+        return {
+            "overall": 0,
+            "agents_evaluated": 0,
+            "budget_manifest_present": 0,
+            "token_budget_respected": 0,
+            "loss_accounting_present": 0,
+            "role_specific_compression_present": 0,
+            "excluded_items": 0,
+            "estimated_tokens_before": 0,
+            "estimated_tokens_after": 0,
+        }
+    return {
+        "overall": agent_harness.get("aggregate_scores", {}).get("context_management_quality", 0),
+        "agents_evaluated": len(qualities),
+        "budget_manifest_present": sum(1 for item in qualities if item.get("budget_manifest_present")),
+        "token_budget_respected": sum(1 for item in qualities if item.get("token_budget_respected")),
+        "loss_accounting_present": sum(1 for item in qualities if item.get("loss_accounting_present")),
+        "role_specific_compression_present": sum(1 for item in qualities if item.get("role_specific_compression_present")),
+        "excluded_items": sum(int(item.get("excluded_items", 0) or 0) for item in qualities),
+        "estimated_tokens_before": sum(int(item.get("estimated_tokens_before", 0) or 0) for item in qualities),
+        "estimated_tokens_after": sum(int(item.get("estimated_tokens_after", 0) or 0) for item in qualities),
+        "drop_reasons": sorted({reason for item in qualities for reason in item.get("drop_reasons", [])}),
     }

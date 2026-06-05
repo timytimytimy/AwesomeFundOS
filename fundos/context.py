@@ -17,6 +17,7 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
     tool_policy = load_tool_policy(agent)
     focus = context_focus(agent_id, role, policy)
     candidates = []
+    non_candidates = []
     max_items = int(policy.get("max_context_items", 10))
     include_all_claims = policy.get("evidence_selection", {}).get("include_governance_agents_all_claims", False)
     for item in evidence_pack["evidence_items"]:
@@ -34,9 +35,16 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
                     "compressed_summary": item["summary"],
                     "allowed_claims": allowed or [c["claim_id"] for c in claims],
                     "policy_matched_tags": matched_tags or focus["tags"],
+                    "estimated_tokens": estimate_tokens(item.get("summary", "") + " " + " ".join(c.get("claim_text", "") for c in claims)),
                 }
             )
+        else:
+            non_candidates.append(excluded_row(item, "role_tag_mismatch"))
     included = sorted(candidates, key=context_candidate_rank)[:max_items]
+    excluded_candidates = sorted(candidates, key=context_candidate_rank)[max_items:]
+    excluded = non_candidates + [excluded_row_from_context_item(item, "low_tier_or_lower_priority") for item in excluded_candidates]
+    manifest = make_context_budget_manifest(agent_id, policy, candidates, included, excluded, focus)
+    loss_accounting = make_context_loss_accounting(included, excluded)
     return {
         "context_pack_id": f"ctx_{agent_id}",
         "run_id": run_id,
@@ -49,6 +57,7 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "tool_policy": tool_policy,
         "task_stage": "specialist_analysis",
         "context_budget_tokens": policy.get("token_budget", 8000),
+        "context_budget_manifest": manifest,
         "included_evidence": included,
         "contradiction_table": [
             {
@@ -58,9 +67,8 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
             }
         ],
         "missing_evidence": evidence_pack.get("unresolved_gaps", []),
-        "excluded_evidence_summary": [
-            {"category": "irrelevant noise", "reason": "V1 context router excludes non-role evidence by relevance tags"}
-        ],
+        "excluded_evidence_summary": summarize_exclusions(excluded),
+        "context_loss_accounting": loss_accounting,
         "required_focus": focus["required"],
         "forbidden_focus": policy.get("exclusion_rules", []) + ["不要输出真实交易指令", "不要把低等级来源当作一手事实"],
         "context_quality_controls": policy.get("harness_checks", []),
@@ -69,6 +77,96 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "tool_quality_controls": tool_policy.get("harness_checks", []),
         "output_schema": f"{role}Output",
     }
+
+
+def estimate_tokens(text: str) -> int:
+    # Cheap deterministic estimate for context-budget accounting. Chinese text is
+    # character-dense, so use a conservative char/3 approximation with a floor.
+    return max(1, len(text) // 3)
+
+
+def make_context_budget_manifest(agent_id: str, policy: dict[str, Any], candidates: list[dict[str, Any]], included: list[dict[str, Any]], excluded: list[dict[str, Any]], focus: dict[str, Any]) -> dict[str, Any]:
+    before = sum(int(item.get("estimated_tokens", 0)) for item in candidates) + sum(int(item.get("estimated_tokens", 0)) for item in excluded if item.get("reason") == "role_tag_mismatch")
+    after = sum(int(item.get("estimated_tokens", 0)) for item in included)
+    return {
+        "agent_id": agent_id,
+        "policy_id": policy.get("context_policy_id"),
+        "role_family": policy.get("role_family"),
+        "token_budget": int(policy.get("token_budget", 8000)),
+        "max_context_items": int(policy.get("max_context_items", 10)),
+        "candidate_items": len(candidates),
+        "included_items": len(included),
+        "excluded_items": len(excluded),
+        "estimated_tokens_before": before,
+        "estimated_tokens_after": after,
+        "compression_ratio": round(after / before, 3) if before else 0,
+        "preferred_context_tags": policy.get("preferred_context_tags", []),
+        "required_focus": focus.get("required", []),
+        "compression_style": policy.get("compression_style", []),
+        "controls": [
+            "role_specific_compression",
+            "loss_accounting_required",
+            "evidence_id_preservation",
+            "claim_id_preservation",
+            "token_budget_respected",
+            "no_real_trade_action",
+        ],
+    }
+
+
+def make_context_loss_accounting(included: list[dict[str, Any]], excluded: list[dict[str, Any]]) -> dict[str, Any]:
+    retained_claims = [claim for item in included for claim in item.get("allowed_claims", [])]
+    dropped_claims = [claim for item in excluded for claim in item.get("claim_ids", [])]
+    return {
+        "retained_evidence_ids": [item.get("evidence_id") for item in included if item.get("evidence_id")],
+        "excluded_evidence": excluded,
+        "retained_claim_ids": retained_claims,
+        "dropped_claim_ids": dropped_claims,
+        "loss_controls": [
+            "excluded_items_are_named",
+            "drop_reasons_are_explicit",
+            "dropped_claim_ids_are_auditable",
+            "missing_evidence_preserved_elsewhere",
+        ],
+    }
+
+
+def excluded_row(item: dict[str, Any], reason: str) -> dict[str, Any]:
+    claims = item.get("claims", [])
+    return {
+        "evidence_id": item.get("id") or item.get("evidence_id"),
+        "source_id": item.get("source_id", ""),
+        "source_tier": item.get("source_tier", ""),
+        "source_type": item.get("source_type", ""),
+        "claim_ids": [claim.get("claim_id") for claim in claims if claim.get("claim_id")],
+        "reason": reason,
+        "estimated_tokens": estimate_tokens(item.get("summary", "") + " " + " ".join(c.get("claim_text", "") for c in claims)),
+    }
+
+
+def excluded_row_from_context_item(item: dict[str, Any], reason: str) -> dict[str, Any]:
+    return {
+        "evidence_id": item.get("evidence_id"),
+        "source_id": item.get("source_id", ""),
+        "source_tier": item.get("source_tier", ""),
+        "source_type": item.get("source_type", ""),
+        "claim_ids": item.get("allowed_claims", []),
+        "reason": reason,
+        "estimated_tokens": item.get("estimated_tokens", 0),
+    }
+
+
+def summarize_exclusions(excluded: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not excluded:
+        return []
+    counts: dict[str, int] = {}
+    for item in excluded:
+        reason = item.get("reason", "unknown")
+        counts[reason] = counts.get(reason, 0) + 1
+    return [
+        {"category": reason, "reason": reason, "count": count}
+        for reason, count in sorted(counts.items())
+    ]
 
 
 def context_candidate_rank(item: dict[str, Any]) -> tuple[int, int, str]:

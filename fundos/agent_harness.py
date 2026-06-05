@@ -26,6 +26,9 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
         "agent_results": agent_results,
         "controls": [
             "agent_specific_context_only",
+            "context_management_required",
+            "context_budget_manifest_required",
+            "context_loss_accounting_required",
             "skill_contract_required",
             "agent_card_required",
             "evidence_traceability_required",
@@ -59,6 +62,7 @@ def default_report() -> dict[str, Any]:
         "aggregate_scores": {
             "context_compression": 0,
             "context_policy": 0,
+            "context_management_quality": 0,
             "memory_policy": 0,
             "tool_policy": 0,
             "skill_invocation": 0,
@@ -73,22 +77,71 @@ def default_report() -> dict[str, Any]:
 def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
     context_quality = evaluate_context_compression(context, output)
     context_policy_quality = evaluate_context_policy(context)
+    context_management_quality = evaluate_context_management(context)
     memory_policy_quality = evaluate_memory_policy(context, output)
     tool_policy_quality = evaluate_tool_policy(context, output)
     skill_quality = evaluate_skill_invocation(context, output)
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + context_policy_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 6, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 7, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
         "overall_score": overall,
         "context_compression_quality": context_quality,
         "context_policy_quality": context_policy_quality,
+        "context_management_quality": context_management_quality,
         "memory_policy_quality": memory_policy_quality,
         "tool_policy_quality": tool_policy_quality,
         "skill_invocation_quality": skill_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, context_policy_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
+    }
+
+
+def evaluate_context_management(context: dict[str, Any]) -> dict[str, Any]:
+    manifest = context.get("context_budget_manifest", {})
+    loss = context.get("context_loss_accounting", {})
+    controls = set(manifest.get("controls", []))
+    token_budget = int(manifest.get("token_budget", context.get("context_budget_tokens", 0)) or 0)
+    estimated_after = int(manifest.get("estimated_tokens_after", 0) or 0)
+    excluded = loss.get("excluded_evidence", [])
+    retained_claims = loss.get("retained_claim_ids", [])
+    dropped_claims = loss.get("dropped_claim_ids", [])
+    compression_style = manifest.get("compression_style", [])
+    budget_manifest_present = bool(manifest)
+    token_budget_respected = bool(token_budget) and estimated_after <= token_budget
+    loss_accounting_present = bool(loss) and all(row.get("reason") for row in excluded)
+    role_specific_compression_present = "role_specific_compression" in controls and bool(compression_style)
+    evidence_loss_auditable = bool(retained_claims) and isinstance(dropped_claims, list)
+    candidate_counted = manifest.get("candidate_items", 0) >= manifest.get("included_items", 0)
+    score = 20
+    if budget_manifest_present:
+        score += 20
+    if token_budget_respected:
+        score += 15
+    if loss_accounting_present:
+        score += 20
+    if role_specific_compression_present:
+        score += 15
+    if evidence_loss_auditable:
+        score += 15
+    if candidate_counted:
+        score += 10
+    return {
+        "score": min(100, score),
+        "budget_manifest_present": budget_manifest_present,
+        "token_budget_respected": token_budget_respected,
+        "loss_accounting_present": loss_accounting_present,
+        "role_specific_compression_present": role_specific_compression_present,
+        "evidence_loss_auditable": evidence_loss_auditable,
+        "candidate_items": manifest.get("candidate_items", 0),
+        "included_items": manifest.get("included_items", 0),
+        "excluded_items": manifest.get("excluded_items", len(excluded)),
+        "estimated_tokens_before": manifest.get("estimated_tokens_before", 0),
+        "estimated_tokens_after": estimated_after,
+        "compression_ratio": manifest.get("compression_ratio", 0),
+        "compression_style": compression_style,
+        "drop_reasons": sorted({row.get("reason") for row in excluded if row.get("reason")}),
     }
 
 
@@ -332,9 +385,10 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
+    context_management_score = avg(row["context_management_quality"]["score"] for row in agent_results)
     memory_score = avg(row["memory_policy_quality"]["score"] for row in agent_results)
     tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
@@ -342,11 +396,12 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     return {
         "context_compression": context_score,
         "context_policy": policy_score,
+        "context_management_quality": context_management_score,
         "memory_policy": memory_score,
         "tool_policy": tool_score,
         "skill_invocation": skill_score,
         "role_consistency": role_score,
-        "overall": round((context_score + policy_score + memory_score + tool_score + skill_score + role_score) / 6, 1),
+        "overall": round((context_score + policy_score + context_management_score + memory_score + tool_score + skill_score + role_score) / 7, 1),
     }
 
 
