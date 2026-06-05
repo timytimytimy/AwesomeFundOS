@@ -90,6 +90,14 @@ This agent is evaluated as an independent operating role, not as a generic promp
 - All proposed upgrades must enter EvolutionGate or capability approval queues; this agent may not self-mutate its core profile.
 - Each upgrade candidate must name the evidence basis, target failure pattern, required regression tests, and rollback path.
 
+## Thread
+
+- Persistent thread manifest: `memory/agents/fund_manager/thread.yaml`.
+- Append-only thread event log: `memory/agents/fund_manager/thread-events.jsonl`.
+- Thread continuity must preserve role identity, important open questions, accepted lessons, rejected lessons, and unresolved contradictions.
+- Thread summaries are retrieval inputs only; they do not override current evidence, tool policies, ContextPack boundaries, or Harness results.
+- Any thread update that changes durable behavior must be routed through EvolutionGate and, when required, human approval.
+
 ## Memory and Evolution
 
 - Long-term namespace: `memory/agents/fund_manager`.

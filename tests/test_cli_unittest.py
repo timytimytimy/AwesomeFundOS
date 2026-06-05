@@ -495,6 +495,17 @@ class FundosCliTests(unittest.TestCase):
         self.assertEqual(serenity["source_tier"], "tier_3_verified_public_practitioner")
         self.assertIn("direct_a_share_buy_signal", serenity["not_allowed_outputs"])
 
+    def test_system_audit_cli_reports_requirement_coverage(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["system", "audit", "--repo", str(ROOT), "--out", "audit"], tmp_path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("system_audit=", result.stdout)
+            self.assertIn("overall_coverage_score=", result.stdout)
+            self.assertIn("real_trade_allowed=False", result.stdout)
+            self.assertTrue((tmp_path / "audit" / "system-audit.yaml").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

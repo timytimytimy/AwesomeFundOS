@@ -41,6 +41,7 @@ from fundos.research_cache import write_run_research_manifest
 from fundos.reporting import write_first_version_report
 from fundos.skill_benchmark import run_skill_benchmark
 from fundos.source_ingestion import ingest_source_candidates
+from fundos.system_audit import run_system_audit
 from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
 from fundos.task_dag import write_task_dag
@@ -668,6 +669,22 @@ def command_governance_summary(args: argparse.Namespace) -> int:
     print(f"broker_integration={summary['broker_integration']}")
     return 0
 
+def command_system_audit(args: argparse.Namespace) -> int:
+    repo = Path(args.repo)
+    if not repo.is_absolute():
+        repo = Path.cwd() / repo
+    out_dir = Path(args.out)
+    if not out_dir.is_absolute():
+        out_dir = Path.cwd() / out_dir
+    report = run_system_audit(repo, out_dir=out_dir)
+    print(f"system_audit={out_dir / 'system-audit.yaml'}")
+    print(f"overall_coverage_score={report['overall_coverage_score']}")
+    print(f"passed_requirements={report['passed_requirements']}")
+    print(f"failed_requirements={report['failed_requirements']}")
+    print(f"real_trade_allowed={report['real_trade_allowed']}")
+    print(f"broker_integration={report['broker_integration']}")
+    return 0
+
 def command_cases_list(args: argparse.Namespace) -> int:
     library = load_case_library()
     index = build_case_library_index(library)
@@ -770,6 +787,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_governance_summary = governance_sub.add_parser("summary")
     p_governance_summary.add_argument("--run", required=True)
     p_governance_summary.set_defaults(func=command_governance_summary)
+
+    p_system = sub.add_parser("system")
+    system_sub = p_system.add_subparsers(dest="system_command", required=True)
+    p_system_audit = system_sub.add_parser("audit")
+    p_system_audit.add_argument("--repo", default=".")
+    p_system_audit.add_argument("--out", default="audit")
+    p_system_audit.set_defaults(func=command_system_audit)
 
     return parser
 
