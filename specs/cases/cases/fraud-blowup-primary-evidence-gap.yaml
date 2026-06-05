@@ -1,0 +1,19 @@
+case_id: governance_blowup_primary_evidence_gap
+case_type: fraud_blowup
+market: cross_market
+time_range: pre_blowup_to_confidence_break
+market_state: confidence_break
+summary: Governance and accounting warning signs can invalidate even strong themes; missing primary evidence and source-tier inflation are common pre-blowup mistakes.
+tags: [company, risk, bear_case, governance, primary_validation]
+pattern_ids: [fraud_blowup_case, howard_marks_cycle_risk]
+applicable_agents: [fraud_governance_analyst, risk_manager, bear_debater, fund_manager]
+evidence_requirements: [auditor_or_disclosure_flags, related_party_checks, cashflow_vs_profit, pledge_or_financing_risk, management_incentives]
+known_lessons:
+  - Financial and governance doubts cannot be offset by theme strength.
+  - Lack of primary evidence must reduce confidence and simulated exposure.
+failure_modes: [governance_blindness, source_tier_inflation, cashflow_neglect]
+replay_questions:
+  - Did risk override narrative when evidence quality weakened?
+  - Were governance issues assigned to a specialist rather than ignored?
+forbidden_uses: [direct_buy_sell_signal, defamatory_unverified_claim, broker_instruction]
+real_trade_allowed: false

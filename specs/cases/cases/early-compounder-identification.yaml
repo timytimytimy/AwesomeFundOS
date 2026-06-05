@@ -1,0 +1,19 @@
+case_id: early_compounder_identification_public_evidence_ladder
+case_type: early_compounder_identification
+market: cross_market
+time_range: multi_cycle
+market_state: early_adoption_to_institutional_recognition
+summary: Early compounders are often recognized through a ladder of product-market fit, unit economics, distribution, management quality, and improving public evidence rather than a single cheap valuation signal.
+tags: [company, industry, quality_growth, primary_validation]
+pattern_ids: [oneil_canslim_growth, buffett_munger_quality, peter_lynch_scuttlebutt]
+applicable_agents: [quality_growth_company_analyst, tech_growth_analyst, fund_manager]
+evidence_requirements: [filings_growth_consistency, margin_quality, customer_or_channel_validation, management_incentives, valuation_scenario]
+known_lessons:
+  - Early quality signals must be sequenced from product evidence to financial evidence to market recognition.
+  - Narrative without operating evidence should remain a watchlist hypothesis.
+failure_modes: [story_without_numbers, valuation_blindness, channel_anecdote_overweight]
+replay_questions:
+  - Did the analyst separate company fact, inference, and story?
+  - Were growth quality and valuation risk both checked?
+forbidden_uses: [direct_buy_sell_signal, single_case_price_target, broker_instruction]
+real_trade_allowed: false

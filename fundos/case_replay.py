@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from fundos.case_library import load_case_library as load_source_case_library, write_run_case_library
 from fundos.io import read_yaml, write_yaml
 
-CASE_REPLAY_VERSION = "0.1.0"
+CASE_REPLAY_VERSION = "0.2.0"
 
 DEFAULT_CASES: list[dict[str, Any]] = [
     {
@@ -55,7 +56,7 @@ def load_case_library(case_library_path: Path | None = None) -> list[dict[str, A
     if case_library_path and case_library_path.exists():
         doc = read_yaml(case_library_path) or {}
         return doc.get("cases", [])
-    return DEFAULT_CASES
+    return load_source_case_library().get("cases", DEFAULT_CASES)
 
 
 def load_run_patterns(run_path: Path) -> list[dict[str, Any]]:
@@ -74,6 +75,7 @@ def needs_case_replay(pattern: dict[str, Any]) -> bool:
 def run_case_replay(run_path: Path, case_library_path: Path | None = None) -> dict[str, Any]:
     patterns = [pattern for pattern in load_run_patterns(run_path) if needs_case_replay(pattern)]
     cases = load_case_library(case_library_path)
+    case_index = write_run_case_library(run_path)
     results: list[dict[str, Any]] = []
     for pattern in patterns:
         matched = match_cases(pattern, cases)
@@ -82,7 +84,7 @@ def run_case_replay(run_path: Path, case_library_path: Path | None = None) -> di
             continue
         for case in matched:
             results.append(evaluate_pattern_against_case(pattern, case))
-    replay = build_replay_summary(patterns, cases, results)
+    replay = build_replay_summary(patterns, cases, results, case_index)
     write_yaml(run_path / "harness" / "historical-case-replay.yaml", replay)
     return replay
 
@@ -90,10 +92,12 @@ def run_case_replay(run_path: Path, case_library_path: Path | None = None) -> di
 def match_cases(pattern: dict[str, Any], cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
     pattern_id = pattern.get("id")
     pattern_tags = set(pattern.get("tags", []))
+    pattern_agents = set(pattern.get("target_agents", []))
     matched = []
     for case in cases:
         case_tags = set(case.get("tags", []))
-        if pattern_id in case.get("pattern_ids", []) or pattern_tags & case_tags:
+        case_agents = set(case.get("applicable_agents", []))
+        if pattern_id in case.get("pattern_ids", []) or pattern_tags & case_tags or pattern_agents & case_agents:
             matched.append(case)
     return matched[:3]
 
@@ -129,11 +133,14 @@ def evaluate_pattern_against_case(pattern: dict[str, Any], case: dict[str, Any])
         "verdict": verdict,
         "lessons_checked": case.get("known_lessons", []),
         "failure_modes_checked": case.get("failure_modes", []),
+        "case_evidence_requirements": case.get("evidence_requirements", []),
+        "replay_questions": case.get("replay_questions", []),
         "allowed_use": "hypothesis_and_checklist_only_not_direct_mapping",
+        "real_trade_allowed": False,
     }
 
 
-def build_replay_summary(patterns: list[dict[str, Any]], cases: list[dict[str, Any]], results: list[dict[str, Any]]) -> dict[str, Any]:
+def build_replay_summary(patterns: list[dict[str, Any]], cases: list[dict[str, Any]], results: list[dict[str, Any]], case_index: dict[str, Any] | None = None) -> dict[str, Any]:
     passed = [row for row in results if row.get("verdict") == "usable_as_pattern_check"]
     risky = [row for row in results if row.get("overfit_risk", 100) > 55]
     avg_fit = round(sum(row.get("fit_score", 0) for row in results) / len(results), 1) if results else 0
@@ -150,12 +157,32 @@ def build_replay_summary(patterns: list[dict[str, Any]], cases: list[dict[str, A
         "average_fit_score": avg_fit,
         "average_overfit_risk": avg_overfit,
         "case_replay_score": score,
+        "case_library_coverage": case_library_coverage(results, cases),
         "controls": [
+            "case_library_is_training_and_evaluation_not_trade_signal",
             "case_replay_is_not_trade_signal",
             "direct_case_mapping_forbidden",
             "primary_evidence_still_required",
         ],
+        "case_library_index": "learning/case-library-index.yaml" if case_index else "",
         "case_results": results,
+    }
+
+
+def case_library_coverage(results: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[str, Any]:
+    matched_case_ids = {row.get("case_id") for row in results if row.get("case_id") and row.get("case_id") != "none"}
+    matched_cases = [case for case in cases if case.get("case_id") in matched_case_ids]
+    matched_types = {case.get("case_type") for case in matched_cases if case.get("case_type")}
+    agent_counts: dict[str, int] = {}
+    for case in matched_cases:
+        for agent in case.get("applicable_agents", []):
+            agent_counts[agent] = agent_counts.get(agent, 0) + 1
+    return {
+        "matched_cases": len(matched_cases),
+        "matched_case_types": len(matched_types),
+        "matched_case_type_names": sorted(matched_types),
+        "agent_coverage": agent_counts,
+        "case_count": len(cases),
     }
 
 
@@ -170,6 +197,7 @@ def load_case_replay(run_path: Path) -> dict[str, Any]:
             "passed_results": 0,
             "high_overfit_results": 0,
             "case_replay_score": 0,
+            "case_library_coverage": {"matched_cases": 0, "matched_case_types": 0, "agent_coverage": {}, "case_count": 0},
             "controls": [],
             "case_results": [],
         }

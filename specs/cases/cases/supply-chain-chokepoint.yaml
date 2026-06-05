@@ -1,0 +1,19 @@
+case_id: supply_chain_chokepoint_from_system_architecture_to_company_evidence
+case_type: supply_chain_chokepoint
+market: cross_market
+time_range: secular_theme_buildout
+market_state: bottleneck_discovery_and_capacity_validation
+summary: Chokepoint research starts from system architecture, identifies scarce bottlenecks, then validates whether listed companies actually own the scarce capability, pricing power, and delivery capacity.
+tags: [industry, company, chokepoint, primary_validation, bear_case]
+pattern_ids: [serenity_scheme_first_chokepoint]
+applicable_agents: [tech_growth_analyst, advanced_manufacturing_analyst, quality_growth_company_analyst, bear_debater]
+evidence_requirements: [system_architecture_map, bottleneck_layer, customer_validation, capacity_or_order_evidence, substitute_risk]
+known_lessons:
+  - Bottleneck-in-bottleneck mapping is useful only after company-level evidence confirms capability ownership.
+  - KOL or expert framing can generate the map, but filings and customer evidence must validate it.
+failure_modes: [concept_mapping_without_company_evidence, substitute_blindness, capacity_overclaim]
+replay_questions:
+  - Was the essential question stated before ticker mapping?
+  - Were bottlenecks validated against primary or cross-validated evidence?
+forbidden_uses: [direct_buy_sell_signal, unverified_company_fact, broker_instruction]
+real_trade_allowed: false

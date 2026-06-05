@@ -1,0 +1,19 @@
+case_id: kol_thesis_failure_when_public_signal_outruns_primary_evidence
+case_type: kol_thesis_failure
+market: cross_market
+time_range: public_thesis_to_disconfirmation
+market_state: social_consensus_without_evidence_confirmation
+summary: Strong public KOL or 大V reasoning can be useful as a signal or lens, but fails when copied into decisions without primary evidence, disconfirmation, or market-state checks.
+tags: [kol, social_signal, bear_case, evidence_quality, risk]
+pattern_ids: [serenity_scheme_first_chokepoint]
+applicable_agents: [learning_curator, bear_debater, evaluation_harness, risk_manager]
+evidence_requirements: [original_public_source, primary_evidence_check, disconfirming_evidence, source_tier_label, no_direct_trade_signal]
+known_lessons:
+  - KOL reasoning can be a high-quality hypothesis generator while still being invalid as direct trade evidence.
+  - The stronger the public consensus, the more explicit the falsification work must be.
+failure_modes: [kol_authority_bias, social_signal_as_fact, falsification_skipped]
+replay_questions:
+  - Did the system preserve source-vs-inference separation?
+  - Did the candidate require primary evidence before adoption?
+forbidden_uses: [direct_buy_sell_signal, copied_social_trade, broker_instruction]
+real_trade_allowed: false

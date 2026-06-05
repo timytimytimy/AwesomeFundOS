@@ -14,6 +14,7 @@ from fundos.agent_harness import write_agent_harness
 from fundos.agent_performance import load_performance_summary, write_agent_performance
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.case_replay import run_case_replay
+from fundos.case_library import build_case_library_index, load_case_library
 from fundos.committee import write_committee_artifacts
 from fundos.context import context_focus, make_context_pack
 from fundos.context_policies import load_context_policy
@@ -575,6 +576,16 @@ def command_sources_ingest(args: argparse.Namespace) -> int:
     print("real_trade_allowed=False")
     return 0
 
+def command_cases_list(args: argparse.Namespace) -> int:
+    library = load_case_library()
+    index = build_case_library_index(library)
+    print(f"case_count={index['case_count']}")
+    print("case_type_counts=" + inline_counts(index.get("case_type_counts", {})))
+    print("agent_case_counts=" + inline_counts(index.get("agent_case_counts", {})))
+    print("real_trade_allowed=False")
+    print("broker_integration=disabled")
+    return 0
+
 def inline_counts(counts: dict[str, Any]) -> str:
     if not counts:
         return "none"
@@ -650,6 +661,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_sources_ingest.add_argument("--run", required=True, help="Run workspace where source-ingestion artifacts should be written")
     p_sources_ingest.add_argument("--fixture", required=True, help="YAML fixture containing a list or candidates: [...] mapping")
     p_sources_ingest.set_defaults(func=command_sources_ingest)
+
+    p_cases = sub.add_parser("cases")
+    cases_sub = p_cases.add_subparsers(dest="cases_command", required=True)
+    p_cases_list = cases_sub.add_parser("list")
+    p_cases_list.set_defaults(func=command_cases_list)
 
     return parser
 

@@ -1,0 +1,19 @@
+case_id: bubble_breakdown_reflexivity_to_liquidity_exit
+case_type: bubble_breakdown
+market: cross_market
+time_range: mania_to_liquidity_break
+market_state: reflexive_boom_to_forced_deleveraging
+summary: Bubble breakdowns often start when reflexive narratives lose liquidity support, volatility rises, and marginal buyers disappear; risk control matters more than narrative elegance.
+tags: [trading, risk, macro, bear_case, liquidity]
+pattern_ids: [soros_reflexivity, howard_marks_cycle_risk]
+applicable_agents: [cyclical_macro_analyst, position_trend_trader, defensive_execution_trader, risk_manager]
+evidence_requirements: [liquidity_condition, valuation_extreme, volatility_regime, narrative_crowding, exit_liquidity]
+known_lessons:
+  - Reflexivity can work both ways; rising price validates story until liquidity reverses.
+  - Stop and exposure discipline are more important when crowding is high.
+failure_modes: [liquidity_blindness, narrative_anchoring, no_exit_plan]
+replay_questions:
+  - Did the trader identify crowding and liquidity risk?
+  - Did risk management override upside narrative near breakdown?
+forbidden_uses: [direct_buy_sell_signal, leverage_instruction, broker_instruction]
+real_trade_allowed: false

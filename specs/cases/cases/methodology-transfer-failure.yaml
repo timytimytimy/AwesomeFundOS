@@ -1,0 +1,19 @@
+case_id: methodology_transfer_failure_between_markets_or_regimes
+case_type: methodology_transfer_failure
+market: cross_market
+time_range: regime_or_market_transfer
+market_state: framework_mismatch
+summary: Trader and book frameworks can fail when transferred across markets, liquidity regimes, accounting regimes, or policy structures without adaptation and validation.
+tags: [methodology, transfer, evidence_quality, risk, learning]
+pattern_ids: [serenity_scheme_first_chokepoint, minervini_trend_template, oneil_canslim_growth, howard_marks_cycle_risk]
+applicable_agents: [learning_curator, evaluation_harness, fund_manager, risk_manager]
+evidence_requirements: [source_context, target_market_difference, adaptation_rule, replay_cases, failure_boundary]
+known_lessons:
+  - A good framework in one market is only a candidate in another until replay and adaptation pass.
+  - Evolution candidates must name what changes in target market structure.
+failure_modes: [framework_cargo_culting, regime_mismatch, adaptation_skipped]
+replay_questions:
+  - Was target-market adaptation explicit?
+  - Did replay include at least one failure case, not just success cases?
+forbidden_uses: [direct_buy_sell_signal, unvalidated_framework_adoption, broker_instruction]
+real_trade_allowed: false

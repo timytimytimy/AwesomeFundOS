@@ -1,0 +1,19 @@
+case_id: failed_breakout_trend_template_risk_control
+case_type: failed_breakout
+market: cross_market
+time_range: breakout_to_failed_follow_through
+market_state: trend_failure_or_distribution
+summary: Trend templates and breakout signals fail when volume confirmation, market state, or follow-through are weak; loss control and invalidation must be explicit.
+tags: [trading, risk, failed_breakout, market_state]
+pattern_ids: [minervini_trend_template, oneil_canslim_growth, lihai_a_share_market_state]
+applicable_agents: [position_trend_trader, swing_trader, defensive_execution_trader, risk_manager]
+evidence_requirements: [setup_quality, volume_confirmation, market_state, stop_distance, follow_through_or_failure]
+known_lessons:
+  - A breakout without follow-through must not be defended with fundamental narrative alone.
+  - Stop distance and position sizing are part of the idea, not an afterthought.
+failure_modes: [failed_breakout_denial, stop_loss_drift, position_size_too_large]
+replay_questions:
+  - Was invalidation defined before simulated entry?
+  - Did the agent downgrade when follow-through failed?
+forbidden_uses: [direct_buy_sell_signal, real_order, broker_instruction]
+real_trade_allowed: false

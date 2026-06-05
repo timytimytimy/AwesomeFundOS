@@ -61,6 +61,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     accepted_outputs = ["final-decision-memo"]
     if case_replay.get("case_results_total", 0):
         accepted_outputs.append("historical_case_replay")
+    if case_replay.get("case_library_coverage", {}).get("case_count", 0):
+        accepted_outputs.append("case_library")
     if portfolio_review.get("reviewed_actions", 0):
         accepted_outputs.append("portfolio_review")
     if agent_harness.get("agent_count", 0):
@@ -182,6 +184,15 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "passed_results": case_replay.get("passed_results", 0),
             "high_overfit_results": case_replay.get("high_overfit_results", 0),
             "case_replay_score": case_replay_score,
+        },
+        "case_library_quality": {
+            "case_count": case_replay.get("case_library_coverage", {}).get("case_count", case_replay.get("cases_available", 0)),
+            "matched_cases": case_replay.get("case_library_coverage", {}).get("matched_cases", 0),
+            "matched_case_types": case_replay.get("case_library_coverage", {}).get("matched_case_types", 0),
+            "matched_case_type_names": case_replay.get("case_library_coverage", {}).get("matched_case_type_names", []),
+            "agent_coverage": case_replay.get("case_library_coverage", {}).get("agent_coverage", {}),
+            "case_library_index": case_replay.get("case_library_index", ""),
+            "real_trade_allowed": False,
         },
         "capability_regression_quality": {
             "regression_status": capability_regression.get("regression_status", "missing"),

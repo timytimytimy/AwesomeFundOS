@@ -1,0 +1,19 @@
+case_id: turnaround_or_value_trap_evidence_sequence
+case_type: turnaround
+market: cross_market
+time_range: distress_to_recovery_or_trap
+market_state: contested_recovery
+summary: "Turnaround cases require an evidence sequence: balance-sheet survival, operating inflection, governance improvement, and market recognition; cheapness alone is not enough."
+tags: [company, value, risk, bear_case]
+pattern_ids: [howard_marks_cycle_risk, peter_lynch_scuttlebutt]
+applicable_agents: [turnaround_value_company_analyst, fraud_governance_analyst, risk_manager, bear_debater]
+evidence_requirements: [liquidity_runway, debt_schedule, operating_inflection, asset_quality, governance_change]
+known_lessons:
+  - Valuation cheapness is not a catalyst without survival and operating evidence.
+  - Turnaround claims need strict kill criteria when balance-sheet risk rises.
+failure_modes: [value_trap, balance_sheet_blindness, false_turnaround]
+replay_questions:
+  - Did the analyst prove survival before upside?
+  - Were kill criteria tied to solvency and operating data?
+forbidden_uses: [direct_buy_sell_signal, distressed_security_instruction, broker_instruction]
+real_trade_allowed: false

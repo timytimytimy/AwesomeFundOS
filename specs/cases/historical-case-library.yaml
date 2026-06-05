@@ -1,0 +1,34 @@
+version: 0.2.0
+artifact_type: historical_case_library_manifest
+purpose: >-
+  Source-controlled library of historical investment, trading, research, and failure cases used for Agent training,
+  case replay, evolution gates, and harness evaluation. The library is never a trade signal.
+case_files:
+  - cases/early-compounder-identification.yaml
+  - cases/theme-diffusion-policy-cycle.yaml
+  - cases/supply-chain-chokepoint.yaml
+  - cases/fraud-blowup-primary-evidence-gap.yaml
+  - cases/bubble-breakdown.yaml
+  - cases/policy-driven-cycle.yaml
+  - cases/turnaround-value-trap.yaml
+  - cases/failed-breakout-risk-control.yaml
+  - cases/kol-thesis-failure.yaml
+  - cases/methodology-transfer-failure.yaml
+controls:
+  - case_library_is_training_and_evaluation_not_trade_signal
+  - direct_case_mapping_forbidden
+  - primary_evidence_still_required
+  - no_real_trade_action
+  - no_broker_integration
+  - no_single_case_overfitting
+minimum_case_types:
+  - early_compounder_identification
+  - theme_diffusion
+  - supply_chain_chokepoint
+  - fraud_blowup
+  - bubble_breakdown
+  - policy_driven_cycle
+  - turnaround
+  - failed_breakout
+  - kol_thesis_failure
+  - methodology_transfer_failure

@@ -44,7 +44,7 @@ class HistoricalCaseReplayTests(unittest.TestCase):
 
             replay = run_case_replay(run_path)
 
-            self.assertEqual(replay["case_replay_version"], "0.1.0")
+            self.assertEqual(replay["case_replay_version"], "0.2.0")
             self.assertEqual(replay["patterns_replayed"], 2)
             self.assertGreaterEqual(replay["case_results_total"], 2)
             self.assertIn("case_replay_score", replay)

@@ -1,0 +1,19 @@
+case_id: policy_driven_cycle_from_support_to_withdrawal
+case_type: policy_driven_cycle
+market: CN_A_SHARE
+time_range: policy_support_to_policy_normalization
+market_state: policy_cycle_turning_point
+summary: Policy-driven cycles can create demand, valuation expansion, and later normalization risk; agents must separate policy intent, implementation, company benefit, and exit conditions.
+tags: [policy, industry, macro, risk, trading]
+pattern_ids: [a_share_theme_diffusion_case, howard_marks_cycle_risk]
+applicable_agents: [policy_event_analyst, cyclical_macro_analyst, risk_manager, fund_manager]
+evidence_requirements: [policy_document, implementation_timeline, beneficiary_chain, demand_data, withdrawal_or_normalization_signal]
+known_lessons:
+  - Policy direction must be mapped to actual spending, demand, and company exposure.
+  - Policy normalization can change odds before fundamentals visibly deteriorate.
+failure_modes: [policy_headline_overweight, implementation_gap, exit_signal_missed]
+replay_questions:
+  - Was policy translated into measurable company or industry evidence?
+  - Were withdrawal and normalization signals included in kill criteria?
+forbidden_uses: [direct_buy_sell_signal, policy_rumor_as_fact, broker_instruction]
+real_trade_allowed: false

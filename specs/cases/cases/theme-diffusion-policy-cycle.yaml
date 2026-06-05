@@ -1,0 +1,19 @@
+case_id: a_share_theme_diffusion_policy_to_leader_to_laggard
+case_type: theme_diffusion
+market: CN_A_SHARE
+time_range: policy_ignition_to_late_stage
+market_state: policy_ignition_to_late_stage_diffusion
+summary: A-share themes can diffuse from policy signal to leaders, supply-chain beneficiaries, laggards, and low-quality followers; evidence quality usually decays during late-stage diffusion.
+tags: [industry, trading, risk, bear_case, policy]
+pattern_ids: [a_share_theme_diffusion_case, serenity_scheme_first_chokepoint]
+applicable_agents: [policy_event_analyst, tech_growth_analyst, advanced_manufacturing_analyst, position_trend_trader, bear_debater]
+evidence_requirements: [policy_document, leader_identification, supply_chain_mapping, volume_price_stage, late_stage_risk_flags]
+known_lessons:
+  - Policy ignition is not equal to fundamental delivery for every mapped company.
+  - Late-stage theme diffusion requires lower confidence and stricter sell or invalidation criteria.
+failure_modes: [late_stage_chasing, evidence_quality_decay, low_quality_follower_overweight]
+replay_questions:
+  - Did the research distinguish leaders from followers?
+  - Did the trader identify the theme stage before discussing paper exposure?
+forbidden_uses: [direct_buy_sell_signal, direct_case_mapping, broker_instruction]
+real_trade_allowed: false
