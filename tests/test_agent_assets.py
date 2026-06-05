@@ -22,6 +22,9 @@ class AgentAssetTests(unittest.TestCase):
                     "## Decision Principles",
                     "## Skills",
                     "## Tools",
+                    "## Harness and Evaluation",
+                    "## Context Management Policy",
+                    "## Evolution Path",
                     "## Memory and Evolution",
                     "## Output Contract",
                     "不构成投资建议",
@@ -31,11 +34,17 @@ class AgentAssetTests(unittest.TestCase):
                 self.assertIn(f"name: fundos-{aid}", skill_text)
                 self.assertIn("description:", skill_text)
                 for required in [
+                    "## When to Use This Skill",
+                    "## Inputs",
                     "# Operating Workflow",
                     "## Evidence Rules",
                     "## Context Management",
+                    "## Output Schema",
+                    "## Failure Modes",
                     "## Learning Patterns",
+                    "## Harness Hooks",
                     "## Forbidden Outputs",
+                    "## Boundaries",
                 ]:
                     self.assertIn(required, skill_text)
 

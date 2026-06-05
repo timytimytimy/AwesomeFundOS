@@ -66,6 +66,9 @@ def load_agent_card(agent_id: str) -> dict[str, Any]:
         "declared_tools": code_or_bullet_values(section_body(text, "Tools")),
         "learning_patterns": code_or_bullet_values(section_body(text, "Learning Patterns")),
         "capability_boundaries": bullet_lines(section_body(text, "Capability Boundaries")),
+        "harness_and_evaluation": bullet_lines(section_body(text, "Harness and Evaluation")),
+        "context_management_policy": bullet_lines(section_body(text, "Context Management Policy")),
+        "evolution_path": bullet_lines(section_body(text, "Evolution Path")),
         "output_contract": compact_section(text, "Output Contract", max_lines=10),
     }
 
@@ -84,12 +87,18 @@ def load_skill_contract(agent_id: str) -> dict[str, Any]:
         "name": frontmatter.get("name", ""),
         "description": frontmatter.get("description", ""),
         "sections": sections,
+        "when_to_use": compact_section(text, "When to Use This Skill", max_lines=6),
+        "inputs": bullet_lines(section_body(text, "Inputs")),
         "operating_workflow": bullet_lines(section_body(text, "Operating Workflow")),
         "evidence_rules": bullet_lines(section_body(text, "Evidence Rules")),
         "context_management": bullet_lines(section_body(text, "Context Management")),
+        "output_schema": bullet_lines(section_body(text, "Output Schema")),
+        "failure_modes": bullet_lines(section_body(text, "Failure Modes")),
         "learning_patterns": code_or_bullet_values(section_body(text, "Learning Patterns")),
         "role_checklist": bullet_lines(section_body(text, "Role-Specific Checklist")),
+        "harness_hooks": bullet_lines(section_body(text, "Harness Hooks")),
         "forbidden_outputs": bullet_lines(section_body(text, "Forbidden Outputs")),
+        "boundaries": bullet_lines(section_body(text, "Boundaries")),
         "required_closing": compact_section(text, "Required Closing", max_lines=4),
     }
 
