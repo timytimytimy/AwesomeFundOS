@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml
+from fundos.learning import build_learning_source_registry
 from fundos.memory import load_memory_writeback_summary
 
 
@@ -23,6 +24,7 @@ def build_first_version_report(run_path: Path) -> str:
     selected = read_yaml(run_path / "selected-agents.yaml")["selected_agents"]
     evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
     learning = read_yaml(run_path / "learning" / "patterns.yaml")
+    source_registry = read_optional_yaml(run_path / "learning" / "source-registry.yaml", build_learning_source_registry())
     memo = read_yaml(run_path / "decision" / "final-decision-memo.yaml")
     evaluation = read_yaml(run_path / "evaluations" / "evaluation-report.yaml")
     watchlist = read_optional_yaml(run_path / "portfolio" / "watchlist.yaml", {"items": []})
@@ -63,6 +65,8 @@ def build_first_version_report(run_path: Path) -> str:
         "## 学习源与蒸馏 Pattern",
         "",
         f"- Seed learning sources：{len(seed.get('sources', []))} 个。",
+        f"- Learning Source Registry：{source_registry.get('source_count', 0)} 个来源，tiers={inline_counts(source_registry.get('source_tier_counts', {}))}。",
+        "- Learning boundary controls：" + ", ".join(source_registry.get("boundary_policy", {}).get("controls", [])[:5]),
         f"- Run-scoped distilled patterns：{len(pattern_ids)} 个。",
         "- Pattern IDs：" + ", ".join(pattern_ids),
         "",

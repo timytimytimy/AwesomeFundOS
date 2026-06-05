@@ -33,6 +33,22 @@ V1 Seed Library 小而精，包含：
 - organization_lessons
 - accepted_skill_library
 
+V1 必须把学习源登记为可审计 registry，而不是让 Agent 直接从大 V、书籍、课程或案例中吸收结论。运行级产物：
+
+```text
+runs/{run_id}/learning/source-registry.yaml
+```
+
+初始化级组织产物：
+
+```text
+memory/organization/learning-source-registry.yaml
+```
+
+Registry 至少包含：source_count、source_tier_counts、source_type_counts、allowed_learning_outputs、not_allowed_outputs、validation_required、required_gates_for_evolution、requires_primary_validation、adoption_policy 和 boundary_policy。
+
+Serenity、里海、知名交易员、研究员、知名大 V、课程、书籍和历史案例可以进入 registry，但默认只能作为 methodology / hypothesis / checklist / case_pattern 来源。任何能力升级候选如果引用这些来源，必须满足 registry 声明的 gates，例如 primary_evidence_check、target_market_adaptation、historical_case_replay、bear_case_review、role_drift_check 和 evidence_quality_check。
+
 ### 3.2 角色专属学习路径
 
 - FundManager: cycle thinking, second-level thinking, risk-reward, capital allocation
@@ -133,7 +149,9 @@ V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hy
 ## 8. 验收标准
 
 - 能从 run 生成 reflection 和 upgrade candidates。
+- 能为 run 生成 learning/source-registry.yaml，并把组织级 registry 物化到 memory/organization。
 - 能标注学习源和 source tier。
+- EvolutionGate 能读取 source registry gates；缺少必要 gates 的升级候选必须 quarantine，不能直接写入长期记忆。
 - 能通过 EvolutionGate 输出 accept / reject / quarantine / needs_more_evidence。
 - 被接受升级能版本化写入对应 Agent 的 memory 与 evolution-ledger；principles / skillset 的直接改写必须进入后续审批流。
 - 被拒绝升级保留拒绝理由，不能删除。

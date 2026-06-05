@@ -18,7 +18,7 @@ from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
-from fundos.learning import write_run_learning_patterns
+from fundos.learning import build_learning_source_registry, write_run_learning_patterns, write_run_learning_source_registry
 from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient
@@ -187,6 +187,9 @@ def materialize_learning_assets(root: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.exists():
         write_yaml(target, load_seed_library())
+    registry = root / "memory" / "organization" / "learning-source-registry.yaml"
+    if not registry.exists():
+        write_yaml(registry, build_learning_source_registry())
 
 def command_roster_list(args: argparse.Namespace) -> int:
     roster = load_roster()
@@ -344,6 +347,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
     write_tool_harness(run_path, evidence_pack)
     write_run_learning_patterns(run_path, [item["agent_id"] for item in selected])
+    write_run_learning_source_registry(run_path)
     run_case_replay(run_path)
 
     agent_outputs = []
@@ -385,6 +389,7 @@ def command_eval(args: argparse.Namespace) -> int:
     selected = run_doc["selected_agents"]
     run_case_replay(run_path)
     write_tool_harness(run_path, evidence)
+    write_run_learning_source_registry(run_path)
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)

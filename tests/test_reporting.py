@@ -17,6 +17,8 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("agent.md / SKILL.md", report)
         self.assertIn("19", report)
         self.assertIn("## 学习源与蒸馏 Pattern", report)
+        self.assertIn("Learning Source Registry", report)
+        self.assertIn("no_direct_trade_signal", report)
         self.assertIn("serenity_scheme_first_chokepoint", report)
         self.assertIn("howard_marks_cycle_risk", report)
         self.assertIn("## 示例运行：机器人产业链投资机会", report)

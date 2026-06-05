@@ -152,6 +152,12 @@
 
 ## 9. Phase 7: Reflection and EvolutionGate
 
+V1 增加 Learning Source Registry：
+
+- `fundos init` 物化 `memory/organization/learning-source-registry.yaml`。
+- `fundos run` 物化 `learning/source-registry.yaml`。
+- EvolutionGate 读取 registry 中的 `required_gates_for_evolution`，引用 KOL / 大V / 书籍 / 课程 / 案例的候选如果缺少必要 gate，必须 quarantine。
+
 目标：实现 Agent 自我复盘和受控进化。
 
 任务：

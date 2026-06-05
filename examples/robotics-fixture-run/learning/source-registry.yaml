@@ -1,0 +1,363 @@
+version: 0.1.0
+artifact_type: learning_source_registry
+purpose: Govern external trader, KOL, book, course, and case learning sources before
+  they can become agent memory or capability upgrades.
+source_count: 10
+source_tier_counts:
+  tier_3_verified_public_practitioner: 2
+  tier_2_canonical_framework: 8
+source_type_counts:
+  public_practitioner: 2
+  canonical_framework: 8
+required_default_gates:
+- historical_case_replay
+- evidence_quality_check
+- role_drift_check
+boundary_policy:
+  real_trade_allowed: false
+  broker_integration: disabled
+  primary_evidence_required_for_company_conclusions: true
+  methodology_sources_are_hypothesis_generators: true
+  copyright_boundary: Store public metadata, legal summaries, distilled patterns,
+    and links only. Do not ingest paid course text or copyrighted book chapters.
+  investment_boundary: Learning sources generate frameworks, hypotheses, cases, and
+    skill candidates; final A-share conclusions still require primary evidence.
+  controls:
+  - no_direct_trade_signal
+  - no_unverified_company_fact
+  - no_copied_paid_course_or_book_text
+  - primary_evidence_check_before_adoption
+  - historical_case_replay_before_memory_write
+sources:
+- id: serenity_aleabitoreddit
+  display_name: Serenity / aleabitoreddit
+  source_url: https://aleabitoreddit.substack.com
+  source_tier: tier_3_verified_public_practitioner
+  source_type: public_practitioner
+  public_handles:
+  - X: aleabitoreddit
+  - Substack: aleabitoreddit.substack.com
+  primary_value:
+  - secular trend recognition
+  - AI and semiconductor supply-chain chokepoint mapping
+  - research gap identification
+  - anti-consensus framing
+  - falsification discipline
+  target_agents:
+  - tech_growth_analyst
+  - advanced_manufacturing_analyst
+  - bear_debater
+  - learning_curator
+  allowed_learning_outputs:
+  - research_lens
+  - decision_principle_candidate
+  - skill_candidate
+  - case_pattern
+  - checklist
+  not_allowed_outputs:
+  - direct_a_share_buy_signal
+  - unverified_company_fact
+  - copied_target_price
+  - copied_position_size
+  - copied_option_trade
+  validation_required:
+  - source_trace
+  - target_market_adaptation
+  - primary_evidence_check
+  - historical_case_replay
+  - bear_case_review
+  required_gates_for_evolution:
+  - target_market_adaptation
+  - primary_evidence_check
+  - historical_case_replay
+  - bear_case_review
+  requires_primary_validation: true
+  adoption_policy: methodology_only_until_validated
+  distilled_patterns:
+  - name: scheme_first_chokepoint_mapping
+    summary: Start from a named downstream system architecture, derive bottlenecks
+      through BOM/subsystems/process constraints, then map companies only after evidence
+      checks.
+  - name: research_gap_questioning
+    summary: Ask what market participants may miss and what public evidence would
+      falsify the hidden bottleneck thesis.
+- id: lihai_a_share
+  display_name: 里海 A股交易框架
+  source_url: local://skills/lihai-stock
+  source_tier: tier_3_verified_public_practitioner
+  source_type: public_practitioner
+  public_handles: []
+  primary_value:
+  - A-share market state recognition
+  - sentiment cycle
+  - entry and exit discipline
+  - position management
+  - post-trade review
+  target_agents:
+  - position_trend_trader
+  - swing_trader
+  - event_driven_trader
+  - defensive_execution_trader
+  - risk_manager
+  allowed_learning_outputs:
+  - market_state_pattern
+  - trading_checklist
+  - position_management_rule_candidate
+  - review_template
+  not_allowed_outputs:
+  - direct_buy_sell_order
+  - personal_financial_advice
+  - unverified_chat_record_as_fact
+  validation_required:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+  required_gates_for_evolution:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+  - primary_evidence_check
+  requires_primary_validation: true
+  adoption_policy: methodology_only_until_validated
+  distilled_patterns: []
+- id: howard_marks
+  display_name: Howard Marks / Oaktree memos
+  source_url: https://www.oaktreecapital.com/insights
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - second-level thinking
+  - risk control
+  - market cycles
+  - investor psychology
+  target_agents:
+  - fund_manager
+  - risk_manager
+  - bear_debater
+  allowed_learning_outputs:
+  - risk_principle_candidate
+  - cycle_checklist
+  - decision_memo_review_rule
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns:
+  - name: second_level_thinking
+    summary: Explicitly compare consensus expectation, variant perception, odds, and
+      downside before forming a simulated decision.
+  - name: risk_first_review
+    summary: Evaluate permanent loss, adverse scenarios, and price paid rather than
+      only upside narratives.
+- id: druckenmiller
+  display_name: Stan Druckenmiller
+  source_url: https://www.druckenmillerfoundation.org
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - asymmetric bets
+  - macro plus concentration
+  - cutting losses
+  target_agents:
+  - fund_manager
+  - risk_manager
+  - position_trend_trader
+  allowed_learning_outputs:
+  - asymmetric_payoff_checklist
+  - concentration_risk_rule_candidate
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns: []
+- id: soros_reflexivity
+  display_name: George Soros / Reflexivity
+  source_url: https://www.georgesoros.com
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - reflexivity
+  - feedback loops
+  - market narrative and fundamentals interaction
+  target_agents:
+  - fund_manager
+  - cyclical_macro_analyst
+  - bear_debater
+  allowed_learning_outputs:
+  - reflexive_market_state_pattern
+  - narrative_feedback_checklist
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns: []
+- id: livermore
+  display_name: Jesse Livermore
+  source_url: https://www.gutenberg.org/ebooks/60979
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - trend speculation
+  - timing
+  - trading psychology
+  - loss cutting
+  target_agents:
+  - position_trend_trader
+  - swing_trader
+  - defensive_execution_trader
+  allowed_learning_outputs:
+  - trend_following_checklist
+  - stop_loss_principle_candidate
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns: []
+- id: william_oneil_canslim
+  display_name: William O'Neil / CAN SLIM
+  source_url: https://www.investors.com/ibd-university/can-slim/
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - growth stock selection
+  - fundamental plus technical confirmation
+  - relative strength
+  - market direction
+  target_agents:
+  - quality_growth_company_analyst
+  - position_trend_trader
+  - swing_trader
+  allowed_learning_outputs:
+  - growth_stock_screen_checklist
+  - price_volume_confirmation_rule
+  - market_direction_gate
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns: []
+- id: mark_minervini
+  display_name: Mark Minervini / Trend Template / SEPA
+  source_url: https://www.minervini.com
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - trend template
+  - volatility contraction
+  - risk discipline
+  - leadership screening
+  target_agents:
+  - position_trend_trader
+  - swing_trader
+  - defensive_execution_trader
+  allowed_learning_outputs:
+  - trend_template_checklist
+  - vcp_pattern_candidate
+  - stop_and_position_rule_candidate
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns: []
+- id: peter_lynch
+  display_name: Peter Lynch
+  source_url: https://www.simonandschuster.com/books/One-Up-On-Wall-Street/Peter-Lynch/9780743200400
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - scuttlebutt
+  - growth classification
+  - consumer observation
+  - company story validation
+  target_agents:
+  - consumer_healthcare_analyst
+  - quality_growth_company_analyst
+  - fund_manager
+  allowed_learning_outputs:
+  - company_story_checklist
+  - channel_observation_prompt
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns: []
+- id: buffett_munger
+  display_name: Buffett / Munger
+  source_url: https://www.berkshirehathaway.com/letters/letters.html
+  source_tier: tier_2_canonical_framework
+  source_type: canonical_framework
+  public_handles: []
+  primary_value:
+  - business quality
+  - moat
+  - circle of competence
+  - patience
+  - incentives
+  target_agents:
+  - fund_manager
+  - quality_growth_company_analyst
+  - fraud_governance_analyst
+  allowed_learning_outputs:
+  - moat_checklist
+  - management_quality_checklist
+  - circle_of_competence_gate
+  not_allowed_outputs: []
+  validation_required: []
+  required_gates_for_evolution: []
+  requires_primary_validation: false
+  adoption_policy: canonical_framework_until_context_validated
+  distilled_patterns: []
+case_types:
+- id: early_compounder_identification
+  name: 大牛股早期识别案例
+  target_agents:
+  - fund_manager
+  - quality_growth_company_analyst
+  - position_trend_trader
+- id: theme_diffusion
+  name: 主题行情扩散案例
+  target_agents:
+  - policy_event_analyst
+  - swing_trader
+  - bear_debater
+- id: supply_chain_chokepoint
+  name: 产业链瓶颈案例
+  target_agents:
+  - tech_growth_analyst
+  - advanced_manufacturing_analyst
+- id: fraud_blowup
+  name: 财务造假和爆雷案例
+  target_agents:
+  - fraud_governance_analyst
+  - risk_manager
+  - bear_debater
+- id: bubble_breakdown
+  name: 高位泡沫破裂案例
+  target_agents:
+  - risk_manager
+  - defensive_execution_trader
+  - bear_debater
+- id: policy_driven_cycle
+  name: 政策驱动行情案例
+  target_agents:
+  - policy_event_analyst
+  - event_driven_trader
+- id: turnaround
+  name: 业绩反转案例
+  target_agents:
+  - turnaround_value_company_analyst
+  - cyclical_macro_analyst

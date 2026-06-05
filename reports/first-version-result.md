@@ -18,6 +18,8 @@
 ## 学习源与蒸馏 Pattern
 
 - Seed learning sources：10 个。
+- Learning Source Registry：10 个来源，tiers=tier_3_verified_public_practitioner=2, tier_2_canonical_framework=8。
+- Learning boundary controls：no_direct_trade_signal, no_unverified_company_fact, no_copied_paid_course_or_book_text, primary_evidence_check_before_adoption, historical_case_replay_before_memory_write
 - Run-scoped distilled patterns：6 个。
 - Pattern IDs：a_share_theme_diffusion_case, howard_marks_cycle_risk, lihai_a_share_market_state, serenity_scheme_first_chokepoint, oneil_canslim_growth, minervini_trend_template
 
