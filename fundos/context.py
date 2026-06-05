@@ -5,12 +5,14 @@ from typing import Any
 
 from fundos.io import REPO_ROOT
 from fundos.context_policies import load_context_policy
+from fundos.tool_policies import load_tool_policy
 
 
 def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
     role = agent["role"]
     agent_id = agent["id"]
     policy = load_context_policy(agent)
+    tool_policy = load_tool_policy(agent)
     focus = context_focus(agent_id, role, policy)
     candidates = []
     max_items = int(policy.get("max_context_items", 10))
@@ -41,6 +43,7 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "agent_card": load_agent_card(agent_id),
         "skill_contract": load_skill_contract(agent_id),
         "context_policy": policy,
+        "tool_policy": tool_policy,
         "task_stage": "specialist_analysis",
         "context_budget_tokens": policy.get("token_budget", 8000),
         "included_evidence": included,
@@ -58,6 +61,7 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "required_focus": focus["required"],
         "forbidden_focus": policy.get("exclusion_rules", []) + ["不要输出真实交易指令", "不要把低等级来源当作一手事实"],
         "context_quality_controls": policy.get("harness_checks", []),
+        "tool_quality_controls": tool_policy.get("harness_checks", []),
         "output_schema": f"{role}Output",
     }
 

@@ -75,6 +75,10 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     learning_patterns = [compact_pattern(pattern) for pattern in patterns_for_agent(agent["id"], context_focus_tags(context))]
     agent_card = context.get("agent_card", {})
     skill_contract = context.get("skill_contract", {})
+    tool_policy = context.get("tool_policy", {})
+    missing_tool_calls = missing_required_tool_calls(tool_policy)
+    forbidden_tool_actions = forbidden_tool_actions_for(tool_policy)
+    tool_permission_checks = tool_permission_checks_for(agent_card, tool_policy, missing_tool_calls, forbidden_tool_actions)
     return {
         "run_id": context["run_id"],
         "agent_id": agent["id"],
@@ -96,6 +100,12 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "skill_evidence_rules": skill_contract.get("evidence_rules", [])[:8],
         "agent_declared_skills": agent_card.get("declared_skills", []),
         "agent_declared_tools": agent_card.get("declared_tools", []),
+        "tool_policy": compact_tool_policy(tool_policy),
+        "allowed_tools": tool_policy.get("allowed_tools", []),
+        "required_tools": tool_policy.get("required_tools", []),
+        "missing_tool_calls": missing_tool_calls,
+        "tool_permission_checks": tool_permission_checks,
+        "forbidden_tool_actions": forbidden_tool_actions,
         "agent_declared_learning_patterns": agent_card.get("learning_patterns", []),
         "evidence_coverage": summary["coverage"],
         "source_type_coverage": summary["source_types"],
@@ -106,6 +116,51 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "risks_or_gaps": context.get("missing_evidence", []) + risk_gaps_for(agent, primary, low_tier),
         "forbidden_actions_checked": context.get("forbidden_focus", []),
         "disclaimer": DISCLAIMER,
+}
+
+
+def compact_tool_policy(policy: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "source_path": policy.get("source_path"),
+        "available": bool(policy.get("available", False)),
+        "tool_policy_id": policy.get("tool_policy_id"),
+        "permission_level": policy.get("permission_level"),
+        "real_trade_allowed": policy.get("real_trade_allowed"),
+        "broker_integration": policy.get("broker_integration"),
+        "source_boundary_rules": policy.get("source_boundary_rules", []),
+    }
+
+
+def missing_required_tool_calls(policy: dict[str, Any]) -> list[dict[str, str]]:
+    # V1 records tool permissions before a concrete tool-call ledger exists.
+    # Reporting required tools as missing keeps confidence capped and makes the
+    # missing runtime adapter explicit instead of silently pretending tools ran.
+    if not policy:
+        return []
+    reason = policy.get("missing_tool_reporting", {}).get("v1_reason", "tool_call_ledger_not_available_v1")
+    return [{"tool": tool, "reason": reason} for tool in policy.get("required_tools", [])]
+
+
+def forbidden_tool_actions_for(policy: dict[str, Any]) -> list[dict[str, str]]:
+    actions = []
+    if policy.get("real_trade_allowed") is not False:
+        actions.append({"action": "real_trade_execution", "status": "forbidden_policy_not_disabled"})
+    if policy.get("broker_integration") is not False:
+        actions.append({"action": "broker_integration", "status": "forbidden_policy_not_disabled"})
+    return actions
+
+
+def tool_permission_checks_for(agent_card: dict[str, Any], policy: dict[str, Any], missing: list[dict[str, str]], forbidden_actions: list[dict[str, str]]) -> dict[str, Any]:
+    allowed = set(policy.get("allowed_tools", []))
+    declared = set(agent_card.get("declared_tools", []))
+    forbidden = set(policy.get("forbidden_tools", []))
+    return {
+        "tool_policy_available": bool(policy.get("available")),
+        "allowed_tools_declared": bool(allowed) and declared <= allowed,
+        "forbidden_tools_respected": not bool(allowed & forbidden) and not forbidden_actions,
+        "missing_required_tools_reported": bool(missing) if policy.get("required_tools") else True,
+        "real_trade_allowed": bool(policy.get("real_trade_allowed")),
+        "broker_integration": bool(policy.get("broker_integration")),
     }
 
 
@@ -195,6 +250,10 @@ def write_agent_output(path: Path, agent: dict[str, Any], context: dict[str, Any
     text += "\n".join(f"- {tier}: {count}" for tier, count in structured["evidence_coverage"].items())
     text += "\n\n## Agent Card / Skill 已加载\n\n" + "\n".join(runtime_lines(structured))
     text += "\n\n## Skill 角色检查清单\n\n" + "\n".join(f"- {item}" for item in structured.get("role_checklist_applied", []))
+    text += "\n\n## Tool Policy 已加载\n\n"
+    text += f"- tool_policy: {structured.get('tool_policy', {}).get('source_path')}\n"
+    text += "- allowed_tools: " + ", ".join(structured.get("allowed_tools", [])) + "\n"
+    text += "- missing_tool_calls: " + str(len(structured.get("missing_tool_calls", []))) + "\n"
     text += "\n\n## 分析要点\n\n" + "\n".join(f"- {point}" for point in structured["analysis_points"])
     text += "\n\n## 证据引用\n\n" + (", ".join(evidence_refs) if evidence_refs else "无")
     text += f"\n\n## 边界\n\n{DISCLAIMER}\n"

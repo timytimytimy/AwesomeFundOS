@@ -59,6 +59,7 @@ def default_report() -> dict[str, Any]:
         "aggregate_scores": {
             "context_compression": 0,
             "context_policy": 0,
+            "tool_policy": 0,
             "skill_invocation": 0,
             "role_consistency": 0,
             "overall": 0,
@@ -71,18 +72,20 @@ def default_report() -> dict[str, Any]:
 def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
     context_quality = evaluate_context_compression(context, output)
     context_policy_quality = evaluate_context_policy(context)
+    tool_policy_quality = evaluate_tool_policy(context, output)
     skill_quality = evaluate_skill_invocation(context, output)
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + context_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 4, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 5, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
         "overall_score": overall,
         "context_compression_quality": context_quality,
         "context_policy_quality": context_policy_quality,
+        "tool_policy_quality": tool_policy_quality,
         "skill_invocation_quality": skill_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, context_policy_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, tool_policy_quality, skill_quality, role_quality),
     }
 
 
@@ -194,6 +197,52 @@ def evaluate_skill_invocation(context: dict[str, Any], output: dict[str, Any]) -
     }
 
 
+def evaluate_tool_policy(context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
+    policy = context.get("tool_policy", {})
+    allowed = set(policy.get("allowed_tools", []))
+    required = set(policy.get("required_tools", []))
+    forbidden = set(policy.get("forbidden_tools", []))
+    declared = set(context.get("agent_card", {}).get("declared_tools", [])) or set(output.get("agent_declared_tools", []))
+    output_allowed = set(output.get("allowed_tools", []))
+    output_required = set(output.get("required_tools", []))
+    missing_tools = {row.get("tool") for row in output.get("missing_tool_calls", []) if row.get("tool")}
+    forbidden_actions = output.get("forbidden_tool_actions", [])
+    checks = output.get("tool_permission_checks", {})
+    tool_policy_available = bool(policy.get("available")) and bool(policy.get("source_path"))
+    allowed_tools_declared = bool(allowed) and declared <= allowed and output_allowed == allowed
+    required_tools_reported = required <= output_required and (not required or required <= missing_tools)
+    forbidden_tools_respected = not bool((allowed | output_allowed) & forbidden) and not forbidden_actions and checks.get("forbidden_tools_respected", True)
+    real_trade_disabled = policy.get("real_trade_allowed") is False and checks.get("real_trade_allowed") is False
+    broker_integration_disabled = policy.get("broker_integration") is False and checks.get("broker_integration") is False
+    score = 20
+    if tool_policy_available:
+        score += 15
+    if allowed_tools_declared:
+        score += 20
+    if required_tools_reported:
+        score += 15
+    if forbidden_tools_respected:
+        score += 15
+    if real_trade_disabled:
+        score += 8
+    if broker_integration_disabled:
+        score += 7
+    return {
+        "score": min(100, score),
+        "tool_policy_available": tool_policy_available,
+        "allowed_tools_declared": allowed_tools_declared,
+        "required_tools_reported": required_tools_reported,
+        "forbidden_tools_respected": forbidden_tools_respected,
+        "real_trade_disabled": real_trade_disabled,
+        "broker_integration_disabled": broker_integration_disabled,
+        "harness_checks_present": sorted(policy.get("harness_checks", [])),
+        "allowed_tools": sorted(allowed),
+        "required_tools": sorted(required),
+        "missing_required_tools": sorted(required - missing_tools),
+        "forbidden_tools": sorted(forbidden),
+    }
+
+
 def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
     card = context.get("agent_card", {})
     runtime = output.get("agent_runtime", {})
@@ -227,17 +276,19 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
+    tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
     role_score = avg(row["role_consistency_quality"]["score"] for row in agent_results)
     return {
         "context_compression": context_score,
         "context_policy": policy_score,
+        "tool_policy": tool_score,
         "skill_invocation": skill_score,
         "role_consistency": role_score,
-        "overall": round((context_score + policy_score + skill_score + role_score) / 4, 1),
+        "overall": round((context_score + policy_score + tool_score + skill_score + role_score) / 5, 1),
     }
 
 

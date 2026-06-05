@@ -30,6 +30,7 @@ from fundos.public_research import PublicResearchClient
 from fundos.research_cache import write_run_research_manifest
 from fundos.reporting import write_first_version_report
 from fundos.tool_harness import write_tool_harness
+from fundos.tool_policies import load_tool_policy
 
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
 
@@ -72,6 +73,7 @@ def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
         memory_dir.mkdir(parents=True, exist_ok=True)
         profile_path = agent_dir / "profile.yaml"
         context_path = agent_dir / "context-policy.yaml"
+        tool_path = agent_dir / "tool-policy.yaml"
         model_path = agent_dir / "model-policy.yaml"
         agent_md_path = agent_dir / "agent.md"
         skill_dir = root / "skills" / agent["id"]
@@ -79,8 +81,9 @@ def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
         memory_path = memory_dir / "semantic_memory.md"
         profile = build_agent_profile(agent)
         context_policy = build_context_policy(agent)
+        tool_policy = build_tool_policy(agent)
         model_policy = build_model_policy(agent)
-        for path, data in [(profile_path, profile), (context_path, context_policy), (model_path, model_policy)]:
+        for path, data in [(profile_path, profile), (context_path, context_policy), (tool_path, tool_policy), (model_path, model_policy)]:
             if not path.exists():
                 write_yaml(path, data)
         source_agent_md = REPO_ROOT / "specs" / "agents" / "agent-cards" / agent["id"] / "agent.md"
@@ -162,6 +165,11 @@ def build_context_policy(agent: dict[str, Any]) -> dict[str, Any]:
     policy = load_context_policy(agent)
     policy["id"] = policy.get("context_policy_id")
     policy["max_token_budget"] = policy.get("token_budget")
+    return policy
+
+def build_tool_policy(agent: dict[str, Any]) -> dict[str, Any]:
+    policy = load_tool_policy(agent)
+    policy["id"] = policy.get("tool_policy_id")
     return policy
 
 def build_model_policy(agent: dict[str, Any]) -> dict[str, Any]:

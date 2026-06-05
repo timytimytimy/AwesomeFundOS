@@ -1,0 +1,54 @@
+version: 0.1.0
+agent_id: cyclical_macro_analyst
+role: CyclicalMacroAnalyst
+tool_policy_id: cyclical_macro_analyst_tool_policy
+allowed_tools:
+- macro_data_query
+- web_search
+- market_data_query
+required_tools:
+- macro_data_query
+- web_search
+- market_data_query
+optional_tools: []
+forbidden_tools:
+- broker_api
+- order_placement
+- real_trade_execution
+- account_login
+- capital_transfer
+- margin_borrowing
+tool_categories:
+  macro_data_query: analysis
+  web_search: research
+  market_data_query: market_data
+permission_level: read_only_analysis
+tool_use_rules:
+- Only use tools listed in allowed_tools for this agent and task.
+- Every factual output from a tool must be traceable to a ToolResult ID, Evidence
+  ID, or Claim ID when available.
+- If a required tool is unavailable or not invoked, report it as missing_tool_calls
+  and cap confidence.
+- Do not place orders, connect to broker accounts, move capital, or provide brokerage
+  instructions.
+- Social, KOL, book, course, and historical-case tools may generate hypotheses or
+  checklists only; they cannot produce direct buy/sell signals.
+source_boundary_rules:
+- primary_source_required_for_high_confidence
+- kol_is_hypothesis_not_trade_signal
+- book_and_case_are_methodology_only
+- social_signal_never_direct_buy
+- real_trade_action_forbidden
+harness_checks:
+- tool_policy_loaded
+- allowed_tools_declared
+- forbidden_tools_respected
+- missing_required_tools_reported
+- no_real_trade_action
+- broker_integration_disabled
+missing_tool_reporting:
+  required: true
+  confidence_cap_when_missing_required: low_or_medium
+  v1_reason: tool_call_ledger_not_available_v1
+real_trade_allowed: false
+broker_integration: false
