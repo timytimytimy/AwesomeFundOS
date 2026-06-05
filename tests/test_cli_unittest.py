@@ -8,6 +8,10 @@ from pathlib import Path
 
 import yaml
 
+
+def load_yaml(path):
+    return yaml.safe_load(Path(path).read_text())
+
 ROOT = Path(__file__).resolve().parents[1]
 CLI = [sys.executable, "-m", "fundos.cli"]
 
@@ -57,6 +61,9 @@ class FundosCliTests(unittest.TestCase):
                 "portfolio/watchlist.yaml",
                 "portfolio/paper-portfolio.yaml",
                 "portfolio/portfolio-actions.jsonl",
+                "portfolio/portfolio-review.yaml",
+                "portfolio/attribution.jsonl",
+                "portfolio/review-candidates.jsonl",
                 "harness/historical-case-replay.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
@@ -98,9 +105,13 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(memo["evidence_references"])
             watchlist = yaml.safe_load((run_path / "portfolio/watchlist.yaml").read_text())
             paper = yaml.safe_load((run_path / "portfolio/paper-portfolio.yaml").read_text())
+            review = yaml.safe_load((run_path / "portfolio/portfolio-review.yaml").read_text())
             self.assertTrue(watchlist["items"])
             self.assertTrue(paper["actions"])
             self.assertFalse(paper["actions"][0]["real_trade_allowed"])
+            self.assertEqual(review["artifact_type"], "portfolio_review")
+            self.assertEqual(review["reviewed_actions"], 1)
+            self.assertEqual(review["real_trade_violations"], 0)
 
     def test_eval_and_evolve_can_reprocess_run(self):
         with tempfile.TemporaryDirectory() as d:
@@ -116,6 +127,8 @@ class FundosCliTests(unittest.TestCase):
             self.assertGreaterEqual(report["overall_score"], 0)
             self.assertIn("context_quality", report["dimension_scores"])
             self.assertIn("case_replay_quality", report)
+            self.assertIn("portfolio_review_quality", report)
+            self.assertIn("portfolio_review", report["accepted_outputs"])
 
             evolve_result = run_cli(["evolve", "--run", str(run_path)], tmp_path)
             self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
@@ -127,8 +140,10 @@ class FundosCliTests(unittest.TestCase):
                 self.assertTrue((run_path / "evolution" / rel).exists(), rel)
             rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]
             self.assertTrue(rows)
+            self.assertTrue(any(row["candidate_id"].startswith("portfolio_review_") for row in rows))
             self.assertIn(rows[0]["decision"], {"accept", "reject", "quarantine"})
             self.assertIn("memory_write_allowed", rows[0])
+            self.assertGreaterEqual(load_yaml(run_path / "evolution/memory-writeback-summary.yaml")["memory_writes"], 1)
 
     def test_init_materializes_agent_profiles_and_context_policies(self):
         with tempfile.TemporaryDirectory() as d:
@@ -242,6 +257,7 @@ class FundosCliTests(unittest.TestCase):
             text = report_path.read_text()
             self.assertIn("AwesomeFundOS 第一版结果报告", text)
             self.assertIn("EvolutionGate", text)
+            self.assertIn("portfolio_review_quality", text)
 
     def test_seed_library_contains_verified_practitioner_and_classics(self):
         seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"

@@ -176,7 +176,7 @@ def rationale_for(decision: str, reasons: list[str]) -> str:
 
 def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     evo_dir = run_path / "evolution"
-    candidates = read_jsonl(evo_dir / "candidates.jsonl")
+    candidates = collect_evolution_candidates(run_path)
     results = [evaluate_candidate(candidate) for candidate in candidates]
     apply_evolution_results(run_path, results)
     accepted = [row for row in results if row["decision"] == "accept"]
@@ -187,3 +187,22 @@ def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     write_jsonl(evo_dir / "quarantine.jsonl", quarantined)
     write_jsonl(evo_dir / "rejected.jsonl", rejected)
     return results
+
+
+def collect_evolution_candidates(run_path: Path) -> list[dict[str, Any]]:
+    candidates = read_jsonl(run_path / "evolution" / "candidates.jsonl")
+    candidates.extend(read_jsonl(run_path / "portfolio" / "review-candidates.jsonl"))
+    return dedupe_candidates(candidates)
+
+
+def dedupe_candidates(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for candidate in candidates:
+        candidate_id = candidate.get("candidate_id")
+        if candidate_id and candidate_id in seen:
+            continue
+        if candidate_id:
+            seen.add(candidate_id)
+        unique.append(candidate)
+    return unique

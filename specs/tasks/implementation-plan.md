@@ -169,7 +169,7 @@
 - 低质量或不可测试候选会被拒绝。
 - 被接受候选有版本记录。
 
-## 10. Phase 8: Watchlist / Paper Portfolio Stub
+## 10. Phase 8: Watchlist / Paper Portfolio Review
 
 目标：追踪后验，不做真实交易。
 
@@ -179,11 +179,14 @@
 2. 定义 PaperPortfolioAction schema。
 3. 从 DecisionMemo 写入观察池动作。
 4. 支持后续 review_date。
-5. outcome tracking 暂用手动或定时触发。
+5. 生成 Portfolio Review、Attribution JSONL 和 Review Learning Candidates。
+6. outcome tracking 暂用手动或定时触发，V1 只记录过程归因和真实行情数据缺口。
 
 验收：
 
 - simulated_long_candidate / watchlist 等结果能写入 stub。
+- `portfolio/portfolio-review.yaml`、`portfolio/attribution.jsonl`、`portfolio/review-candidates.jsonl` 能随 run / eval 生成。
+- Harness 输出 `portfolio_review_quality`。
 - 不产生真实下单指令。
 
 ## 11. 后续 V2

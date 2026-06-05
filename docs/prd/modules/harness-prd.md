@@ -65,11 +65,29 @@ Harness Evaluation 需要把回放摘要写入 `case_replay_quality`，并把 `h
 
 ### Level 3 Outcome Tracking Stub
 
-V1 只做轻量结构：
+V1 只做轻量结构，但必须形成可评测的复盘闭环：
 
 - watchlist_tracking
-- paper_portfolio_stub
+- paper_portfolio_review
+- process_attribution
+- review_learning_candidates
 - outcome_evaluation_schema
+
+Portfolio Review 产物：
+
+```text
+runs/{run_id}/portfolio/portfolio-review.yaml
+runs/{run_id}/portfolio/attribution.jsonl
+runs/{run_id}/portfolio/review-candidates.jsonl
+```
+
+复盘输入：`watchlist.yaml`、`paper-portfolio.yaml`、`portfolio-actions.jsonl`、风控约束和证据引用。
+
+复盘输出：reviewed_actions、attribution_items、learning_candidates、real_trade_violations、review_verdict、controls。
+
+核心控制：`paper_only`、`no_broker_integration`、`no_real_trade_action`、`review_before_upgrade`。
+
+V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程质量、证据数量、触发条件、风控约束和后验数据缺口；不得把 Portfolio Review 解释为真实收益归因或买卖信号。
 
 ## 3. EvaluationReport
 
@@ -79,6 +97,8 @@ V1 只做轻量结构：
 - overall_score
 - dimension_scores
 - context_quality_scores
+- portfolio_quality
+- portfolio_review_quality
 - case_replay_quality
 - agent_scores
 - collaboration_graph
@@ -119,5 +139,6 @@ V1 只做轻量结构：
 - `fundos eval --run <run>` 能生成 EvaluationReport。
 - `fundos evolve --run <run>` 能生成 EvolutionGateResult。
 - Harness 能给出维度分数和阻断项。
+- Harness 能读取 Watchlist / Paper Portfolio Review，并输出 `portfolio_review_quality`。
 - Harness 能拒绝低质量升级候选。
 - 所有评分依据能引用 artifact / evidence / context / output id。

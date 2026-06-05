@@ -1,10 +1,10 @@
 version: 0.1.0
 artifact_type: paper_portfolio
-run_id: 2026-06-05-cn-topic
+run_id: 2026-06-06-cn-topic
 actions:
-- action_id: ppa_2026-06-05-cn-topic_001
-  run_id: 2026-06-05-cn-topic
-  watchlist_id: wl_2026-06-05-cn-topic
+- action_id: ppa_2026-06-06-cn-topic_001
+  run_id: 2026-06-06-cn-topic
+  watchlist_id: wl_2026-06-06-cn-topic
   subject: 机器人产业链投资机会
   market: CN_A_SHARE
   action_type: watchlist_only

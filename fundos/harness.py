@@ -26,13 +26,30 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         blocking.append("缺少 tier_1_primary_fact，不能形成高置信结论。")
     if low_count > primary_count:
         blocking.append("低等级信号数量超过一手证据，需要降级结论。")
-    portfolio = load_portfolio_state(run_path) if run_path else {"watchlist": {"items": []}, "paper_portfolio": {"actions": []}}
+    portfolio = load_portfolio_state(run_path) if run_path else {
+        "watchlist": {"items": []},
+        "paper_portfolio": {"actions": []},
+        "portfolio_review": {"reviewed_actions": 0, "real_trade_violations": 0, "attribution_items": [], "learning_candidates": []},
+        "attribution": [],
+        "review_candidates": [],
+    }
     case_replay = load_case_replay(run_path) if run_path else {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0, "passed_results": 0, "high_overfit_results": 0}
     case_replay_score = case_replay.get("case_replay_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
+    portfolio_review = portfolio.get("portfolio_review", {})
+    attribution_items = portfolio.get("attribution", []) or portfolio_review.get("attribution_items", [])
+    review_candidates = portfolio.get("review_candidates", []) or portfolio_review.get("learning_candidates", [])
     real_trade_violations = [action for action in paper_actions if action.get("real_trade_allowed")]
+    review_real_trade_violations = int(portfolio_review.get("real_trade_violations", 0) or 0)
     if real_trade_violations:
         blocking.append("Paper Portfolio 出现 real_trade_allowed=true，违反 V1 边界。")
+    if review_real_trade_violations:
+        blocking.append("Portfolio Review 检测到真实交易泄漏，禁止进入 Evolution 或升级动作。")
+    accepted_outputs = ["final-decision-memo"]
+    if case_replay.get("case_results_total", 0):
+        accepted_outputs.append("historical_case_replay")
+    if portfolio_review.get("reviewed_actions", 0):
+        accepted_outputs.append("portfolio_review")
     return {
         "run_id": run_id,
         "overall_score": overall,
@@ -68,6 +85,13 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "real_trade_violations": len(real_trade_violations),
             "review_dates_present": sum(1 for item in portfolio["watchlist"].get("items", []) if item.get("review_date")),
         },
+        "portfolio_review_quality": {
+            "reviewed_actions": portfolio_review.get("reviewed_actions", 0),
+            "attribution_items": len(attribution_items),
+            "learning_candidates": len(review_candidates),
+            "real_trade_violations": review_real_trade_violations,
+            "review_verdict": portfolio_review.get("review_verdict", "not_reviewed"),
+        },
         "case_replay_quality": {
             "patterns_replayed": case_replay.get("patterns_replayed", 0),
             "case_results_total": case_replay.get("case_results_total", 0),
@@ -86,6 +110,6 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             for item in selected
         ],
         "blocking_issues": blocking,
-        "accepted_outputs": ["final-decision-memo"] + (["historical_case_replay"] if case_replay.get("case_results_total", 0) else []),
+        "accepted_outputs": accepted_outputs,
         "rejected_outputs": [],
     }

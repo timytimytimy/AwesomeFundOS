@@ -19,7 +19,7 @@ from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import write_run_learning_patterns
 from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
-from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts
+from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient
 from fundos.reporting import write_first_version_report
 
@@ -359,6 +359,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_yaml(run_path / "decision" / "final-decision-memo.yaml", memo)
     write_decision_markdown(run_path / "decision" / "final-decision-memo.md", memo)
     write_portfolio_artifacts(run_path, memo, evidence_pack)
+    write_portfolio_review(run_path)
 
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
@@ -379,6 +380,7 @@ def command_eval(args: argparse.Namespace) -> int:
     evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
     selected = run_doc["selected_agents"]
     run_case_replay(run_path)
+    write_portfolio_review(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")

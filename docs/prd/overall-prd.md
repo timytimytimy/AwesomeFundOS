@@ -207,7 +207,9 @@ V1 轻量设计：
 
 - Outcome Tracking Schema；
 - Watchlist Tracking；
-- Paper Portfolio Stub。
+- Paper Portfolio Review；
+- Process Attribution；
+- Review Learning Candidates。
 
 ## 14. Thread 设计
 

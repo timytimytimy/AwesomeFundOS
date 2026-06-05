@@ -1,0 +1,49 @@
+version: 0.1.0
+artifact_type: portfolio_review
+run_id: 2026-06-06-cn-topic
+reviewed_actions: 1
+watchlist_items: 1
+attribution_items:
+- action_id: ppa_2026-06-06-cn-topic_001
+  run_id: 2026-06-06-cn-topic
+  watchlist_id: wl_2026-06-06-cn-topic
+  subject: 机器人产业链投资机会
+  action_type: watchlist_only
+  target_weight: 0.0
+  review_date: '2026-07-05'
+  evidence_count: 6
+  trigger_count: 3
+  risk_control_count: 7
+  outcome_status: not_due_or_no_market_data
+  attribution_status: watchlist_only_pending_evidence
+  attribution_notes:
+  - No live price/outcome adapter in V1; attribution records process quality and review
+    readiness.
+  - Paper portfolio review is not a real trading signal.
+  real_trade_violation: false
+  broker_integration: disabled
+learning_candidates:
+- candidate_id: portfolio_review_ppa_2026-06-06-cn-topic_001
+  run_id: 2026-06-06-cn-topic
+  source_agent: review_archivist
+  target_agent: fund_manager
+  candidate_type: memory_update
+  target_scope: agent_memory
+  proposal: Paper Portfolio 复盘应记录触发条件、证据数量、风控约束和是否缺少后验行情数据。
+  source_basis:
+  - evidence_id: ppa_2026-06-06-cn-topic_001
+    source_tier: tier_2_canonical_framework
+    rationale: paper portfolio process attribution
+  required_tests:
+  - outcome_review
+  - role_drift_check
+  - evidence_quality_check
+  status: proposed
+real_trade_violations: 0
+review_verdict: paper_review_recorded
+controls:
+- paper_only
+- no_broker_integration
+- no_real_trade_action
+- review_before_upgrade
+disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。

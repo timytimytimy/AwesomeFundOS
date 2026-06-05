@@ -1,4 +1,4 @@
-run_id: 2026-06-05-cn-topic
+run_id: 2026-06-06-cn-topic
 overall_score: 77.7
 source_coverage:
   total_items: 21
@@ -28,6 +28,12 @@ portfolio_quality:
   paper_actions: 1
   real_trade_violations: 0
   review_dates_present: 1
+portfolio_review_quality:
+  reviewed_actions: 1
+  attribution_items: 1
+  learning_candidates: 1
+  real_trade_violations: 0
+  review_verdict: paper_review_recorded
 case_replay_quality:
   patterns_replayed: 3
   case_results_total: 9
@@ -102,4 +108,5 @@ blocking_issues: []
 accepted_outputs:
 - final-decision-memo
 - historical_case_replay
+- portfolio_review
 rejected_outputs: []
