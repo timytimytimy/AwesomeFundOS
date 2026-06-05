@@ -160,9 +160,13 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue((run_path / "evolution/capability-version-summary.yaml").exists())
             self.assertTrue((run_path / "evolution/capability-candidates.jsonl").exists())
             self.assertTrue((run_path / "harness/capability-regression.yaml").exists())
+            self.assertTrue((run_path / "harness/agent-performance.yaml").exists())
             regression = load_yaml(run_path / "harness/capability-regression.yaml")
+            performance = load_yaml(run_path / "harness/agent-performance.yaml")
             self.assertIn("candidate_results", regression)
             self.assertGreaterEqual(regression["candidates_total"], 1)
+            self.assertEqual(performance["artifact_type"], "agent_performance_report")
+            self.assertGreaterEqual(performance["agent_count"], 1)
             for rel in ["accepted.jsonl", "quarantine.jsonl", "rejected.jsonl"]:
                 self.assertTrue((run_path / "evolution" / rel).exists(), rel)
             rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]
@@ -227,6 +231,23 @@ class FundosCliTests(unittest.TestCase):
             applied_policy = yaml.safe_load((tmp_path / "agents" / "evaluation_harness" / "applied-capabilities.yaml").read_text())
             self.assertEqual(applied_policy["applied_capabilities"][0]["candidate_id"], "cand_" + Path(run_rel).name + "_002")
             self.assertFalse(applied_policy["applied_capabilities"][0]["real_trade_allowed"])
+
+
+    def test_performance_show_cli_reads_agent_performance_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            run_result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            evolve_result = run_cli(["evolve", "--run", str(tmp_path / run_rel)], tmp_path)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+
+            show_result = run_cli(["performance", "show", "--agent", "tech_growth_analyst"], tmp_path)
+
+            self.assertEqual(show_result.returncode, 0, show_result.stderr)
+            self.assertIn("agent_id=tech_growth_analyst", show_result.stdout)
+            self.assertIn("runs_evaluated=", show_result.stdout)
+            self.assertIn("latest_action=", show_result.stdout)
 
     def test_run_evidence_pack_uses_seed_library_source_metadata(self):
         with tempfile.TemporaryDirectory() as d:

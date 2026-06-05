@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from fundos.agent_performance import load_agent_performance
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml
 from fundos.capability_regression import load_capability_regression
 from fundos.capabilities import load_capability_summary
@@ -36,6 +37,7 @@ def build_first_version_report(run_path: Path) -> str:
     outcome_tracking = load_outcome_tracking(run_path)
     case_replay = read_optional_yaml(run_path / "harness" / "historical-case-replay.yaml", {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0})
     agent_harness = read_optional_yaml(run_path / "harness" / "agent-harness.yaml", {"agent_count": 0, "aggregate_scores": {}})
+    agent_performance = load_agent_performance(run_path)
     tool_harness = read_optional_yaml(run_path / "harness" / "tool-harness.yaml", {"overall_score": 0, "adapter_coverage": {}, "source_boundary_quality": {}})
     capability_regression = load_capability_regression(run_path)
     evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
@@ -144,6 +146,7 @@ def build_first_version_report(run_path: Path) -> str:
         "- outcome_tracking_quality：" + inline_counts(evaluation.get("outcome_tracking_quality", {})),
         "- agent_harness_quality：" + inline_counts(evaluation.get("agent_harness_quality", {})),
         "- agent_harness：agent_count=" + str(agent_harness.get("agent_count", 0)) + "，aggregate_scores=" + inline_counts(agent_harness.get("aggregate_scores", {})),
+        f"- agent_performance：agent_count={agent_performance.get('agent_count', 0)}，actions=" + inline_counts(agent_performance.get("recommended_action_counts", {})),
         "- tool_harness_quality：" + inline_counts(evaluation.get("tool_harness_quality", {})),
         "- tool_harness：overall_score=" + str(tool_harness.get("overall_score", 0)) + "，adapter_coverage=" + inline_counts(tool_harness.get("adapter_coverage", {})),
         "- case_replay_quality：" + inline_counts(evaluation.get("case_replay_quality", {})),

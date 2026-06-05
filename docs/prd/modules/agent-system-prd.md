@@ -66,6 +66,21 @@ agents/{agent_id}/performance/evaluation_history.jsonl
 agents/{agent_id}/performance/promotion_history.jsonl
 ```
 
+V1 需要由 `fundos evolve --run` 生成 run 级 performance artifact：
+
+```text
+runs/{run_id}/harness/agent-performance.yaml
+```
+
+Performance Harness 根据 `agent-harness.yaml` 和 `evaluation-report.yaml` 为每个参与 Agent 记录 context_compression、skill_invocation、role_consistency、contribution_quality、context_fit、harness_overall 和 final_score，并给出：
+
+- `promote_watch`：进入晋升观察，不改变核心权限；
+- `maintain`：保持当前职责；
+- `retrain_or_downgrade_watch`：进入复训或降权观察；
+- `needs_more_observations`：证据不足，继续观察。
+
+所有 promotion / demotion 都只是组织层建议：不得改变真实资金权限、risk_limit、tool_permission、core_profile，也不得删除长期记忆。
+
 ## 3. 默认 Agent Roster
 
 V1 默认 19 个 Agent，详见 `specs/agents/default-roster.yaml`。

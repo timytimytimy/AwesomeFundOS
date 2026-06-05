@@ -11,6 +11,7 @@ from typing import Any
 
 from fundos.agent_outputs import write_agent_output
 from fundos.agent_harness import write_agent_harness
+from fundos.agent_performance import load_performance_summary, write_agent_performance
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.case_replay import run_case_replay
 from fundos.context import context_focus, make_context_pack
@@ -423,11 +424,13 @@ def command_evolve(args: argparse.Namespace) -> int:
     if not run_path.is_absolute():
         run_path = Path.cwd() / run_path
     results = run_evolution_gate(run_path)
+    write_agent_performance(run_path)
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")
     print(f"memory_writes={memory_summary['memory_writes']}")
     print(f"memory_writeback_summary={run_path / 'evolution' / 'memory-writeback-summary.yaml'}")
+    print(f"agent_performance={run_path / 'harness' / 'agent-performance.yaml'}")
     return 0
 
 def command_inspect(args: argparse.Namespace) -> int:
@@ -510,6 +513,19 @@ def command_capabilities_apply(args: argparse.Namespace) -> int:
     print(f"real_trade_allowed={result['real_trade_allowed']}")
     return 0
 
+def command_performance_show(args: argparse.Namespace) -> int:
+    summary = load_performance_summary(Path.cwd(), args.agent)
+    print(f"agent_id={summary['agent_id']}")
+    print(f"ledger_path={summary['ledger_path']}")
+    print(f"runs_evaluated={summary['runs_evaluated']}")
+    print(f"average_score={summary['average_score']}")
+    print(f"latest_score={summary['latest_score']}")
+    print(f"latest_action={summary['latest_action']}")
+    print(f"promote_watch_count={summary['promote_watch_count']}")
+    print(f"downgrade_watch_count={summary['downgrade_watch_count']}")
+    print("real_trade_allowed=False")
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fundos")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -561,6 +577,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_caps_apply.add_argument("candidate_id")
     p_caps_apply.add_argument("--approver", default="", help="Human approver name/id required to apply a pending capability candidate")
     p_caps_apply.set_defaults(func=command_capabilities_apply)
+
+    p_perf = sub.add_parser("performance")
+    perf_sub = p_perf.add_subparsers(dest="performance_command", required=True)
+    p_perf_show = perf_sub.add_parser("show")
+    p_perf_show.add_argument("--agent", required=True)
+    p_perf_show.set_defaults(func=command_performance_show)
 
     return parser
 

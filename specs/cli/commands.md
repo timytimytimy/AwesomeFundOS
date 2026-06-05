@@ -17,6 +17,7 @@ fundos roster list
 fundos memory show --agent fund_manager
 fundos capabilities list
 fundos capabilities apply cand_2026-06-05-robotics_002 --approver human-name
+fundos performance show --agent tech_growth_analyst
 ```
 
 ## 2. `fundos init`
@@ -165,7 +166,19 @@ V1 输出包括：
 
 如果目标 Agent 尚无长期记忆，命令返回非 0，并输出 `memory_not_found: {agent_id}`。
 
-## 10. 全局合规要求
+## 10. `fundos performance show --agent`
+
+展示指定 Agent 的长期表现摘要，读取：
+
+```text
+agents/{agent_id}/performance/performance_ledger.jsonl
+agents/{agent_id}/performance/evaluation_history.jsonl
+agents/{agent_id}/performance/promotion_history.jsonl
+```
+
+输出 runs_evaluated、average_score、latest_score、latest_action、promote_watch_count、downgrade_watch_count。Performance 只影响组织观察、复训、降权或晋升建议，不改变真实资金权限、风险限额或交易权限。
+
+## 11. 全局合规要求
 
 所有 `fundos run` 输出必须包含：
 

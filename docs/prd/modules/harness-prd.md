@@ -77,6 +77,23 @@ Agent-level harness 对每个 selected agent 输出：
 
 Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，并在有有效产物时把 `agent_harness` 放入 accepted_outputs。
 
+### Agent Performance / Promotion Harness
+
+V1 需要把单次 run 的 Agent 表现沉淀为长期 ledger，用于晋升观察、降权观察和复训建议。产物：
+
+```text
+runs/{run_id}/harness/agent-performance.yaml
+agents/{agent_id}/performance/performance_ledger.jsonl
+agents/{agent_id}/performance/evaluation_history.jsonl
+agents/{agent_id}/performance/promotion_history.jsonl
+```
+
+输入：`harness/agent-harness.yaml`、`evaluations/evaluation-report.yaml`、selected_agents。
+
+输出：final_score、component_scores、recommended_action、blocking_issues。
+
+边界：promotion 不提升资金权限、不改 risk_limit、不改 tool_permission；demotion 不删除记忆，只进入复训或降权观察。
+
 ### Tool / Source Adapter Harness
 
 V1 需要把工具调用和来源质量作为一等 Harness，而不是只看最终 EvidencePack。产物：

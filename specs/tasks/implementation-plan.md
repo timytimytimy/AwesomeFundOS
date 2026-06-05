@@ -227,6 +227,6 @@ V1 增加 Learning Source Registry：
 - 更完整的历史案例库；
 - 多市场 Market Adapter；
 - 更细粒度 Skill version regression benchmark；
-- Agent promotion / demotion；
+- 更完整的 Agent promotion / demotion 审批、席位竞争和长期绩效归因；
 - 多 FundManager 风格竞争；
 - 组合级 Paper Portfolio performance attribution。
