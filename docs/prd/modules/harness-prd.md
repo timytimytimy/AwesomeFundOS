@@ -171,6 +171,27 @@ Outcome Tracking 核心控制：`paper_only`、`market_replay_is_not_trade_signa
 
 V1 没有真实成交回放 adapter；离线行情 fixture 只用于后验训练和 Harness 评分，不得把 Outcome Tracking 解释为真实收益归因或买卖信号。没有行情 fixture 时，必须记录 `missing_market_replay`，不能把缺数据当作通过。
 
+### Failure Pattern Extraction Harness
+
+Harness 需要把失败样本结构化为可回放、可审计、可用于未来复训的错误模式库。V1 产物：
+
+```text
+runs/{run_id}/learning/failure-patterns.yaml
+memory/organization/failure-pattern-library.jsonl
+```
+
+抽取输入：
+
+- `reflections/*.reflection.yaml` 中的 missed_evidence、reasoning_errors、tool_usage_errors、bias_detected；
+- `evaluations/evaluation-report.yaml` 中的 blocking_issues；
+- `portfolio/outcome-tracking.yaml` 中的 missed_opportunity_review 和 risk_control_review。
+
+Harness 输出：pattern_count、category_counts、severity_counts、patterns、controls。
+
+核心控制：`review_before_evolution`、`failure_patterns_are_not_trade_signals`、`no_real_trade_action`、`do_not_delete_historical_errors`。
+
+Failure Pattern Library 是 Evolution 的负反馈输入：后续 capability candidate 必须能解释它要降低哪类错误、如何测试该改进，以及是否会引入新的角色漂移或风险回归。
+
 ## 3. EvaluationReport
 
 每次 run 输出 EvaluationReport：
@@ -228,5 +249,6 @@ V1 没有真实成交回放 adapter；离线行情 fixture 只用于后验训练
 - Harness 能读取离线 Market Replay Outcome Tracking，并输出 `outcome_tracking_quality`。
 - Harness 能读取 per-agent Context / Skill / Role 评分，并输出 `agent_harness_quality`。
 - Harness 能读取工具和来源边界评分，并输出 `tool_harness_quality`。
+- Harness 能生成 `learning/failure-patterns.yaml` 并把组织级错误模式追加到 `memory/organization/failure-pattern-library.jsonl`。
 - Harness 能拒绝低质量升级候选。
 - 所有评分依据能引用 artifact / evidence / context / output id。

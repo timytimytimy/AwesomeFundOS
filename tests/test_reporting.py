@@ -28,6 +28,8 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("agent_harness_quality", report)
         self.assertIn("tool_harness_quality", report)
         self.assertIn("historical_case_replay", report)
+        self.assertIn("Failure Pattern Library", report)
+        self.assertIn("failure_patterns", report)
         self.assertIn("## Watchlist / Paper Portfolio", report)
         self.assertIn("portfolio/watchlist.yaml", report)
         self.assertIn("outcome_tracking_quality", report)

@@ -18,6 +18,7 @@ from fundos.context import context_focus, make_context_pack
 from fundos.decision import make_decision_memo, write_decision_markdown
 from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
+from fundos.failure_patterns import load_failure_summary, write_failure_patterns
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import build_learning_source_registry, write_run_learning_patterns, write_run_learning_source_registry
@@ -399,6 +400,7 @@ def command_run(args: argparse.Namespace) -> int:
     (run_path / "evaluations" / "evaluation-report.md").write_text(f"# Evaluation Report\n\nOverall score: {evaluation['overall_score']}\n\nBlocking issues:\n" + "\n".join(f"- {x}" for x in evaluation["blocking_issues"]), encoding="utf-8")
 
     write_reflections(run_path, selected, run_id)
+    write_failure_patterns(run_path)
     (run_path / "archive" / "run-summary.md").write_text(f"# Run Summary\n\nrun_id: {run_id}\nquery: {value}\nselected_agents: {len(selected)}\n", encoding="utf-8")
 
     print(f"run_id={run_id}")
@@ -429,12 +431,15 @@ def command_evolve(args: argparse.Namespace) -> int:
         run_path = Path.cwd() / run_path
     results = run_evolution_gate(run_path)
     write_agent_performance(run_path)
+    failure_report = write_failure_patterns(run_path)
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")
     print(f"memory_writes={memory_summary['memory_writes']}")
     print(f"memory_writeback_summary={run_path / 'evolution' / 'memory-writeback-summary.yaml'}")
     print(f"agent_performance={run_path / 'harness' / 'agent-performance.yaml'}")
+    print(f"failure_patterns={run_path / 'learning' / 'failure-patterns.yaml'}")
+    print(f"failure_pattern_count={failure_report['pattern_count']}")
     return 0
 
 def command_inspect(args: argparse.Namespace) -> int:
@@ -530,6 +535,22 @@ def command_performance_show(args: argparse.Namespace) -> int:
     print("real_trade_allowed=False")
     return 0
 
+def command_failures_summary(args: argparse.Namespace) -> int:
+    summary = load_failure_summary(Path.cwd())
+    print(f"pattern_count={summary['pattern_count']}")
+    print("category_counts=" + inline_counts(summary.get("category_counts", {})))
+    print("severity_counts=" + inline_counts(summary.get("severity_counts", {})))
+    print(f"latest_pattern_id={summary['latest_pattern_id']}")
+    print("review_before_evolution=True")
+    print("real_trade_allowed=False")
+    print("broker_integration=disabled")
+    return 0
+
+def inline_counts(counts: dict[str, Any]) -> str:
+    if not counts:
+        return "none"
+    return ",".join(f"{key}:{value}" for key, value in counts.items())
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fundos")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -588,6 +609,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_perf_show = perf_sub.add_parser("show")
     p_perf_show.add_argument("--agent", required=True)
     p_perf_show.set_defaults(func=command_performance_show)
+
+    p_failures = sub.add_parser("failures")
+    failures_sub = p_failures.add_subparsers(dest="failures_command", required=True)
+    p_failures_summary = failures_sub.add_parser("summary")
+    p_failures_summary.set_defaults(func=command_failures_summary)
 
     return parser
 

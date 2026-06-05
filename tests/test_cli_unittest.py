@@ -60,6 +60,7 @@ class FundosCliTests(unittest.TestCase):
                 "evidence/public-research-manifest.yaml",
                 "learning/source-registry.yaml",
                 "learning/patterns.yaml",
+                "learning/failure-patterns.yaml",
                 "portfolio/watchlist.yaml",
                 "portfolio/paper-portfolio.yaml",
                 "portfolio/portfolio-actions.jsonl",
@@ -165,12 +166,17 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue((run_path / "evolution/capability-candidates.jsonl").exists())
             self.assertTrue((run_path / "harness/capability-regression.yaml").exists())
             self.assertTrue((run_path / "harness/agent-performance.yaml").exists())
+            self.assertTrue((run_path / "learning/failure-patterns.yaml").exists())
+            self.assertTrue((tmp_path / "memory" / "organization" / "failure-pattern-library.jsonl").exists())
             regression = load_yaml(run_path / "harness/capability-regression.yaml")
             performance = load_yaml(run_path / "harness/agent-performance.yaml")
+            failures = load_yaml(run_path / "learning/failure-patterns.yaml")
             self.assertIn("candidate_results", regression)
             self.assertGreaterEqual(regression["candidates_total"], 1)
             self.assertEqual(performance["artifact_type"], "agent_performance_report")
             self.assertGreaterEqual(performance["agent_count"], 1)
+            self.assertEqual(failures["artifact_type"], "failure_pattern_report")
+            self.assertGreaterEqual(failures["pattern_count"], 1)
             for rel in ["accepted.jsonl", "quarantine.jsonl", "rejected.jsonl"]:
                 self.assertTrue((run_path / "evolution" / rel).exists(), rel)
             rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]
@@ -252,6 +258,23 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("agent_id=tech_growth_analyst", show_result.stdout)
             self.assertIn("runs_evaluated=", show_result.stdout)
             self.assertIn("latest_action=", show_result.stdout)
+
+
+    def test_failures_summary_cli_reads_organization_library(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            run_result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            evolve_result = run_cli(["evolve", "--run", str(tmp_path / run_rel)], tmp_path)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+
+            summary_result = run_cli(["failures", "summary"], tmp_path)
+
+            self.assertEqual(summary_result.returncode, 0, summary_result.stderr)
+            self.assertIn("pattern_count=", summary_result.stdout)
+            self.assertIn("category_counts=", summary_result.stdout)
+            self.assertIn("real_trade_allowed=False", summary_result.stdout)
 
     def test_run_evidence_pack_uses_seed_library_source_metadata(self):
         with tempfile.TemporaryDirectory() as d:

@@ -19,6 +19,7 @@ fundos memory show --agent fund_manager
 fundos capabilities list
 fundos capabilities apply cand_2026-06-05-robotics_002 --approver human-name
 fundos performance show --agent tech_growth_analyst
+fundos failures summary
 ```
 
 ## 2. `fundos init`
@@ -181,7 +182,19 @@ agents/{agent_id}/performance/promotion_history.jsonl
 
 输出 runs_evaluated、average_score、latest_score、latest_action、promote_watch_count、downgrade_watch_count。Performance 只影响组织观察、复训、降权或晋升建议，不改变真实资金权限、风险限额或交易权限。
 
-## 11. 全局合规要求
+## 11. `fundos failures summary`
+
+展示组织级 Failure Pattern Library 摘要，读取：
+
+```text
+memory/organization/failure-pattern-library.jsonl
+```
+
+输出 pattern_count、category_counts、severity_counts、latest_pattern_id、review_before_evolution、real_trade_allowed=false 和 broker_integration=disabled。
+
+Failure Pattern Library 只用于复盘、复训、能力升级候选评估和 Harness 负反馈，不得解释为交易信号，也不得触发真实交易动作。
+
+## 12. 全局合规要求
 
 所有 `fundos run` 输出必须包含：
 

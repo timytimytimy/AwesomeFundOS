@@ -8,6 +8,7 @@ from fundos.agent_performance import load_agent_performance
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml
 from fundos.capability_regression import load_capability_regression
 from fundos.capabilities import load_capability_summary
+from fundos.failure_patterns import load_run_failure_patterns
 from fundos.learning import build_learning_source_registry
 from fundos.memory import load_memory_writeback_summary
 from fundos.outcomes import load_outcome_tracking
@@ -42,6 +43,7 @@ def build_first_version_report(run_path: Path) -> str:
     agent_performance = load_agent_performance(run_path)
     tool_harness = read_optional_yaml(run_path / "harness" / "tool-harness.yaml", {"overall_score": 0, "adapter_coverage": {}, "source_boundary_quality": {}})
     capability_regression = load_capability_regression(run_path)
+    failure_patterns = load_run_failure_patterns(run_path)
     evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
     memory_writeback = load_memory_writeback_summary(run_path)
     capability_summary = load_capability_summary(run_path)
@@ -63,7 +65,7 @@ def build_first_version_report(run_path: Path) -> str:
         "",
         f"- 默认 Agent roster：{len(roster.get('agents', []))} 个独立角色。",
         f"- 本次示例动态选择 Agent：{len(selected_ids)} 个，包含 {', '.join(selected_ids)}。",
-        "- 已实现模块：CLI run/init/eval/evolve/report、Public Research Cache、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、Historical Case Replay、Watchlist/Paper Portfolio Review、Outcome Tracking、EvolutionGate、Capability Regression、Learning Pattern 蒸馏。",
+        "- 已实现模块：CLI run/init/eval/evolve/report、Public Research Cache、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、Historical Case Replay、Watchlist/Paper Portfolio Review、Outcome Tracking、Failure Pattern Library、EvolutionGate、Capability Regression、Learning Pattern 蒸馏。",
         "- V1 范围：本地优先、模拟投委会、观察池/Paper Portfolio，不接真实交易、不自动下单。",
         "",
         "## Agent Runtime Assets",
@@ -154,6 +156,7 @@ def build_first_version_report(run_path: Path) -> str:
         "- tool_harness：overall_score=" + str(tool_harness.get("overall_score", 0)) + "，adapter_coverage=" + inline_counts(tool_harness.get("adapter_coverage", {})),
         "- case_replay_quality：" + inline_counts(evaluation.get("case_replay_quality", {})),
         f"- historical_case_replay：patterns_replayed={case_replay.get('patterns_replayed', 0)}, case_results_total={case_replay.get('case_results_total', 0)}, case_replay_score={case_replay.get('case_replay_score', 0)}",
+        f"- failure_patterns：pattern_count={failure_patterns.get('pattern_count', 0)}，category_counts=" + inline_counts(failure_patterns.get("category_counts", {})) + "，severity_counts=" + inline_counts(failure_patterns.get("severity_counts", {})),
         "- capability_regression_quality：" + inline_counts(evaluation.get("capability_regression_quality", {})),
         f"- capability_regression：status={capability_regression.get('regression_status')}，candidates={capability_regression.get('candidates_total', 0)}，passed={capability_regression.get('passed_candidates', 0)}，blocked={capability_regression.get('blocked_candidates', 0)}",
         "- blocking_issues：" + ("; ".join(evaluation.get("blocking_issues", [])) if evaluation.get("blocking_issues") else "none"),

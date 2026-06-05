@@ -222,7 +222,28 @@ V1 增加 Learning Source Registry：
 - 不改写 source-controlled `agent.md` / `SKILL.md`，不改写核心 profile / risk limit / tool permission。
 - 不开启真实交易或券商集成。
 
-## 12. 后续 V2
+## 12. Phase 10: Failure Pattern Library
+
+目标：让组织不仅学习成功经验，也系统沉淀失败模式、证据缺口、工具错误、偏见和后验错失。
+
+任务：
+
+1. 从 `reflections/*.reflection.yaml` 抽取 missed_evidence、reasoning_errors、tool_usage_errors、bias_detected。
+2. 从 `evaluations/evaluation-report.yaml` 抽取 blocking_issues。
+3. 从 `portfolio/outcome-tracking.yaml` 抽取 missed_opportunity_review 和 risk_control_review。
+4. 生成 run 级 `learning/failure-patterns.yaml`。
+5. 追加组织级 `memory/organization/failure-pattern-library.jsonl`，按 pattern_id 幂等去重。
+6. 提供 `fundos failures summary` 汇总 pattern_count、category_counts、severity_counts。
+7. 在报告中展示 failure_patterns，并保持 `real_trade_allowed=false`、`broker_integration=disabled`。
+
+验收：
+
+- `fundos run` 和 `fundos evolve --run` 均能生成 `learning/failure-patterns.yaml`。
+- 组织级 failure pattern library 可重复追加且不重复写入相同 pattern_id。
+- `fundos failures summary` 能读取组织级 library。
+- Failure Pattern Library 不产生真实买卖信号，不改写核心 Profile / Risk Limit / Tool Permission。
+
+## 13. 后续 V2
 
 - 接入稳定公开数据源；
 - Codex App Server dashboard；

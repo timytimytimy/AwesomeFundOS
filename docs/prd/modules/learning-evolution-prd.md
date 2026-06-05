@@ -169,6 +169,38 @@ Regression Harness 输出：candidates_total、passed_candidates、blocked_candi
 
 每次写回必须包含：candidate_id、run_id、source_agent、target_agent、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、reversible、real_trade_allowed=false、broker_integration=disabled。
 
+### 5.5 Failure Pattern Library
+
+V1 必须把失败、证据缺口、工具错误、偏见和后验错失沉淀为独立的错误模式库，作为 EvolutionGate 和未来能力升级的负样本输入，而不是只记录成功经验。
+
+运行级产物：
+
+```text
+runs/{run_id}/learning/failure-patterns.yaml
+```
+
+组织级产物：
+
+```text
+memory/organization/failure-pattern-library.jsonl
+```
+
+输入来源：
+
+- Agent reflections：missed_evidence、reasoning_errors、tool_usage_errors、bias_detected；
+- EvaluationReport：blocking_issues；
+- Outcome Tracking：missed_opportunity_review、risk_control_review；
+- Portfolio Review 和未来 Case Replay 的负反馈。
+
+每条 failure pattern 至少包含：pattern_id、run_id、agent_id、category、description、severity、prevention_check、metadata、tags、review_before_evolution=true、real_trade_allowed=false、broker_integration=disabled。
+
+边界：
+
+- failure pattern 是复盘和训练材料，不是买卖信号；
+- 不因单次失败直接改写 Agent 核心 Profile、风险偏好或工具权限；
+- 历史错误不得删除，只能追加修正、降权或标记已处理；
+- 能力升级候选必须先说明如何避免相关 failure pattern，再进入 capability regression 或人工 apply。
+
 ## 6. Self Reflection
 
 每个 Agent 在 run 结束后生成：
@@ -210,4 +242,6 @@ V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hy
 - 被接受的 principle / skill / checklist / workflow / tool policy 候选能进入 capability registry，并保持 pending_human_apply；被 quarantine / reject 的能力候选只进入 run 级 capability-candidates 队列。
 - EvolutionGate 后必须生成 `harness/capability-regression.yaml`，并把未通过回归测试的能力候选标记为 `blocked_regression`。
 - pending_human_apply 能通过 `fundos capabilities apply ... --approver ...` 受控应用到 runtime managed block 或 applied-capabilities.yaml，并记录 capability-apply-ledger；缺少 approver 时必须拒绝。
+- 能从 reflections、evaluation blocking issues 和 outcome tracking 中生成 `learning/failure-patterns.yaml`，并追加到 `memory/organization/failure-pattern-library.jsonl`。
+- `fundos failures summary` 能汇总组织级 failure pattern 数量、category_counts 和 severity_counts。
 - 被拒绝升级保留拒绝理由，不能删除。
