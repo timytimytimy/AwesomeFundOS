@@ -1,0 +1,52 @@
+version: 0.1.0
+artifact_type: source_acquisition_spec
+purpose: >-
+  Define which external materials may enter AwesomeFundOS as learning material,
+  while keeping all trader, researcher, KOL, course, book, and case inputs in a
+  research-only quarantine flow before any Agent capability can change.
+source_categories:
+  - id: public_practitioner
+    description: Public material from verified traders, researchers, fund managers, or respected KOLs.
+    examples: [Serenity or aleabitoreddit public posts, public interviews, public fund letters]
+    allowed_uses: [research_lens, checklist, failure_pattern, market_state_taxonomy]
+    forbidden_uses: [direct_buy_signal, direct_sell_signal, real_position_instruction]
+  - id: canonical_framework
+    description: Widely cited investment frameworks with stable public references.
+    examples: [Howard Marks cycle framework, Soros reflexivity, CANSLIM summaries]
+    allowed_uses: [principle_candidate, checklist, evaluation_rubric]
+    forbidden_uses: [unverified_company_fact, copied_book_text]
+  - id: book
+    description: Books used only through metadata, short summary, and distilled non-copyrighted patterns.
+    examples: [public bibliographic metadata, user-authored notes]
+    allowed_uses: [framework_summary, principle_candidate]
+    forbidden_uses: [copied_paid_text, chapter_reproduction]
+  - id: course
+    description: Courses used only through metadata and user-owned notes; never copied proprietary text.
+    examples: [course outline, public syllabus, user-authored lesson summary]
+    allowed_uses: [skill_gap, practice_task, rubric_candidate]
+    forbidden_uses: [copied_paid_text, proprietary_strategy_dump]
+  - id: historical_case
+    description: Historical market, company, bubble, fraud, cycle, and policy-event cases.
+    examples: [public filings timeline, news chronology, post-mortem case]
+    allowed_uses: [case_replay, failure_pattern, market_state_taxonomy]
+    forbidden_uses: [future_trade_prediction_without_evidence]
+  - id: social_signal
+    description: Unverified public posts or sentiment used as weak hypothesis generators only.
+    examples: [X posts, forum discussions, social trend mentions]
+    allowed_uses: [hypothesis_seed, source_discovery]
+    forbidden_uses: [direct_buy_signal, direct_sell_signal, portfolio_action]
+global_controls:
+  - no_direct_trade_signal
+  - no_copied_paid_text
+  - primary_evidence_validation_required
+  - historical_case_replay_required
+  - social_or_kol_cannot_direct_buy_sell
+  - real_trade_forbidden
+  - broker_integration_disabled
+copyright_policy:
+  allowed: metadata, public URL, user-authored summary, short distilled pattern, citation pointer
+  forbidden: copied paid course text, copied book chapter, proprietary transcript dump
+adoption_policy:
+  default_status: quarantine
+  memory_write_allowed: false
+  capability_update_allowed: proposed_only_after_review

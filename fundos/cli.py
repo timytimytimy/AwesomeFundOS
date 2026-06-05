@@ -31,6 +31,7 @@ from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, wr
 from fundos.public_research import PublicResearchClient
 from fundos.research_cache import write_run_research_manifest
 from fundos.reporting import write_first_version_report
+from fundos.source_ingestion import ingest_source_candidates
 from fundos.tool_harness import write_tool_harness
 from fundos.tool_policies import load_tool_policy
 
@@ -553,6 +554,27 @@ def command_failures_summary(args: argparse.Namespace) -> int:
     print("broker_integration=disabled")
     return 0
 
+def command_sources_ingest(args: argparse.Namespace) -> int:
+    run_path = Path(args.run)
+    if not run_path.is_absolute():
+        run_path = Path.cwd() / run_path
+    fixture_path = Path(args.fixture)
+    if not fixture_path.is_absolute():
+        fixture_path = Path.cwd() / fixture_path
+    payload = read_yaml(fixture_path)
+    candidates = payload.get("candidates", payload) if isinstance(payload, dict) else payload
+    if not isinstance(candidates, list):
+        print("source fixture must be a YAML list or a mapping with candidates: [...]", file=sys.stderr)
+        return 2
+    report = ingest_source_candidates(run_path, candidates)
+    print(f"source_ingestion_report={run_path / 'learning' / 'source-ingestion-report.yaml'}")
+    print(f"ingested_sources={report['ingested_sources']}")
+    print(f"quarantined_sources={report['quarantined_sources']}")
+    print(f"pattern_candidates={report['pattern_candidates']}")
+    print(f"evolution_candidates={report['evolution_candidates']}")
+    print("real_trade_allowed=False")
+    return 0
+
 def inline_counts(counts: dict[str, Any]) -> str:
     if not counts:
         return "none"
@@ -621,6 +643,13 @@ def build_parser() -> argparse.ArgumentParser:
     failures_sub = p_failures.add_subparsers(dest="failures_command", required=True)
     p_failures_summary = failures_sub.add_parser("summary")
     p_failures_summary.set_defaults(func=command_failures_summary)
+
+    p_sources = sub.add_parser("sources")
+    sources_sub = p_sources.add_subparsers(dest="sources_command", required=True)
+    p_sources_ingest = sources_sub.add_parser("ingest")
+    p_sources_ingest.add_argument("--run", required=True, help="Run workspace where source-ingestion artifacts should be written")
+    p_sources_ingest.add_argument("--fixture", required=True, help="YAML fixture containing a list or candidates: [...] mapping")
+    p_sources_ingest.set_defaults(func=command_sources_ingest)
 
     return parser
 

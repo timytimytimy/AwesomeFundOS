@@ -1,0 +1,49 @@
+version: 0.1.0
+artifact_type: source_ingestion_pipeline_spec
+purpose: Convert raw learning-source candidates into quarantined pattern candidates and proposed evolution candidates.
+pipeline_stages:
+  - id: intake
+    output: learning/source-candidates.jsonl
+    rule: Capture every raw candidate with normalized metadata and requested outputs.
+  - id: classification
+    output: normalized source_type and provisional source_tier
+    rule: Identify practitioner, canonical framework, book, course, historical case, social signal, or unverified source.
+  - id: copyright_boundary_check
+    output: boundary violations
+    rule: Reject copied paid text and preserve only metadata, links, summaries, and distilled patterns.
+  - id: source_tier_assignment
+    output: source_tier
+    rule: Assign evidence hierarchy tier; KOL and social signals remain methodology or hypothesis sources.
+  - id: quarantine
+    output: learning/source-quarantine.jsonl
+    rule: Any violation or raw material remains isolated; useful sources also start in quarantine until reviewed.
+  - id: pattern_candidate_generation
+    output: learning/pattern-candidates.jsonl
+    rule: Generate reusable research patterns only from non-violating sources.
+  - id: review
+    output: review requirements and required gates
+    rule: Require primary evidence, historical case replay, role drift, evidence quality, and copyright checks.
+  - id: evolution_candidate_creation
+    output: evolution/candidates.jsonl
+    rule: Create proposed capability or memory candidates; never auto-apply.
+global_controls:
+  - no_direct_trade_signal
+  - no_copied_paid_text
+  - primary_evidence_validation_required
+  - historical_case_replay_required
+  - social_or_kol_cannot_direct_buy_sell
+  - all_sources_enter_quarantine_first
+  - evolution_candidate_is_proposed_not_applied
+required_gates:
+  default:
+    - historical_case_replay
+    - primary_evidence_check
+    - role_drift_check
+    - evidence_quality_check
+    - copyright_boundary_check
+  practitioner_extra:
+    - target_market_adaptation
+    - bear_case_review
+  social_extra:
+    - source_corroborration
+    - no_trade_signal_check

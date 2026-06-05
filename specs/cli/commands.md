@@ -20,6 +20,7 @@ fundos capabilities list
 fundos capabilities apply cand_2026-06-05-robotics_002 --approver human-name
 fundos performance show --agent tech_growth_analyst
 fundos failures summary
+fundos sources ingest --run runs/2026-06-05-robotics --fixture examples/fixtures/source-candidates.yaml
 ```
 
 ## 2. `fundos init`
@@ -194,7 +195,45 @@ memory/organization/failure-pattern-library.jsonl
 
 Failure Pattern Library 只用于复盘、复训、能力升级候选评估和 Harness 负反馈，不得解释为交易信号，也不得触发真实交易动作。
 
-## 12. 全局合规要求
+## 12. `fundos sources ingest --run --fixture`
+
+把外部学习源候选摄取到指定 run workspace，用于从知名交易员、研究员、公开大V、课程、书籍和历史案例中提炼能力，但所有材料必须先进入隔离与评测流程。
+
+输入 fixture 可以是 YAML list，也可以是：
+
+```yaml
+candidates:
+  - source_id: serenity_x_thread_robotics
+    display_name: Serenity robotics X thread
+    source_type: public_practitioner
+    url: https://x.com/aleabitoreddit/status/123
+    author: Serenity
+    summary: 机器人产业链瓶颈研究思路
+    claims:
+      - 先从系统架构找瓶颈，再映射公司
+    requested_outputs: [research_lens, checklist]
+    target_agents: [tech_growth_analyst]
+```
+
+输出：
+
+```text
+runs/{run_id}/learning/source-ingestion-report.yaml
+runs/{run_id}/learning/source-candidates.jsonl
+runs/{run_id}/learning/source-quarantine.jsonl
+runs/{run_id}/learning/pattern-candidates.jsonl
+runs/{run_id}/evolution/candidates.jsonl
+```
+
+约束：
+
+- 所有 pattern candidate 初始状态必须是 `quarantine`；
+- KOL / social / practitioner 来源只能作为研究 lens、checklist、hypothesis 或 failure pattern，不能形成直接买卖信号；
+- 课程和书籍只能保留 metadata、URL、用户自写摘要和抽象模式，不能复制付费文本；
+- 进入 Evolution 的候选只能是 `status=proposed`，必须包含 historical case replay、primary evidence check、role drift check、evidence quality check 等 gates；
+- 不开启真实交易，不接券商，不自动下单。
+
+## 13. 全局合规要求
 
 所有 `fundos run` 输出必须包含：
 

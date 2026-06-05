@@ -9,6 +9,7 @@ from fundos.capability_regression import load_capability_regression
 from fundos.committee import load_collaboration_harness
 from fundos.outcomes import load_outcome_tracking
 from fundos.portfolio import load_portfolio_state
+from fundos.source_ingestion import load_ingestion_report
 from fundos.tool_harness import load_tool_harness
 
 
@@ -42,6 +43,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     agent_harness = load_agent_harness(run_path)
     collaboration_harness = load_collaboration_harness(run_path)
     tool_harness = load_tool_harness(run_path)
+    source_ingestion = load_ingestion_report(run_path)
     outcome_tracking = load_outcome_tracking(run_path)
     capability_regression = load_capability_regression(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
@@ -67,6 +69,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("collaboration_harness")
     if tool_harness.get("high_confidence_allowed"):
         accepted_outputs.append("tool_harness")
+    if source_ingestion.get("ingested_sources", 0) > 0:
+        accepted_outputs.append("source_ingestion")
     if outcome_tracking.get("actions_evaluated", 0) > 0:
         accepted_outputs.append("outcome_tracking")
     if capability_regression.get("candidates_total", 0) > 0:
@@ -77,6 +81,10 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     for issue in collaboration_harness.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_collaboration_harness":
             blocking.append(issue)
+    if source_ingestion.get("real_trade_allowed"):
+        blocking.append("Source Ingestion 出现 real_trade_allowed=true，违反学习源边界。")
+    if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
+        blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
     tool_harness_adapter = tool_harness.get("adapter_coverage", {})
     return {
@@ -131,6 +139,17 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "low_tier_public_items": tool_harness_adapter.get("low_tier_public_items", 0),
             "high_confidence_allowed": tool_harness.get("high_confidence_allowed", False),
             "blocking_issues": tool_harness.get("blocking_issues", []),
+        },
+        "source_ingestion_quality": {
+            "status": source_ingestion.get("status", "present"),
+            "ingested_sources": source_ingestion.get("ingested_sources", 0),
+            "quarantined_sources": source_ingestion.get("quarantined_sources", 0),
+            "pattern_candidates": source_ingestion.get("pattern_candidates", 0),
+            "evolution_candidates": source_ingestion.get("evolution_candidates", 0),
+            "direct_trade_signal_blocked": source_ingestion.get("direct_trade_signal_blocked", False),
+            "copyright_violation_blocked": source_ingestion.get("copyright_violation_blocked", False),
+            "all_patterns_start_quarantined": source_ingestion.get("all_patterns_start_quarantined", False),
+            "real_trade_allowed": source_ingestion.get("real_trade_allowed", False),
         },
         "portfolio_quality": {
             "watchlist_items": len(portfolio["watchlist"].get("items", [])),

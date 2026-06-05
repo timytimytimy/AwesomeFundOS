@@ -1,0 +1,35 @@
+version: 0.1.0
+artifact_type: source_review_protocol
+purpose: Review quarantined learning material before it can become Agent memory, Skill changes, or workflow changes.
+reviewers:
+  primary: learning_curator
+  required_challengers: [evaluation_harness, bear_debater, risk_manager]
+  optional_domain_reviewers:
+    - tech_growth_analyst
+    - advanced_manufacturing_analyst
+    - consumer_healthcare_analyst
+    - cyclical_macro_analyst
+    - policy_event_analyst
+mandatory_controls:
+  - no_direct_trade_signal
+  - no_copied_paid_text
+  - primary_evidence_validation_required
+  - historical_case_replay_required
+  - social_or_kol_cannot_direct_buy_sell
+  - no_real_order_or_broker_action
+  - no_unverified_company_fact
+review_questions:
+  - Is the source being used as method, lens, or checklist rather than as a buy/sell signal?
+  - Are company-specific claims independently checked against filings, announcements, or reliable public records?
+  - Is the distilled pattern generic enough to avoid copying paid or copyrighted expression?
+  - Has the pattern survived at least one historical case replay or falsification attempt?
+  - Would adopting the lesson cause role drift, risk-limit drift, or overfitting to one market regime?
+decisions:
+  - id: reject
+    meaning: Violates safety, copyright, evidence, or investment-boundary rules.
+  - id: quarantine
+    meaning: Potentially useful but still missing validation gates.
+  - id: propose_evolution
+    meaning: May enter EvolutionGate as a proposed capability or memory candidate.
+  - id: accept_after_gate
+    meaning: Only possible after EvolutionGate, regression checks, and human approval where required.

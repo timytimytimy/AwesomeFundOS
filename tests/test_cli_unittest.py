@@ -259,6 +259,45 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("runs_evaluated=", show_result.stdout)
             self.assertIn("latest_action=", show_result.stdout)
 
+    def test_sources_ingest_cli_materializes_quarantined_learning_pipeline(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            run_path = tmp_path / "runs" / "manual-source-run"
+            fixture = tmp_path / "source-candidates.yaml"
+            fixture.write_text(yaml.safe_dump({
+                "candidates": [
+                    {
+                        "source_id": "serenity_x_thread_robotics",
+                        "display_name": "Serenity robotics X thread",
+                        "source_type": "public_practitioner",
+                        "url": "https://x.com/aleabitoreddit/status/123",
+                        "author": "Serenity",
+                        "summary": "机器人产业链瓶颈研究思路",
+                        "claims": ["先从系统架构找瓶颈，再映射公司"],
+                        "requested_outputs": ["research_lens", "checklist"],
+                        "target_agents": ["tech_growth_analyst"],
+                    },
+                    {
+                        "source_id": "unknown_hot_tip",
+                        "source_type": "social_signal",
+                        "summary": "直接买入某股票",
+                        "claims": ["直接买入"],
+                        "requested_outputs": ["direct_buy_signal"],
+                    },
+                ]
+            }, allow_unicode=True), encoding="utf-8")
+
+            result = run_cli(["sources", "ingest", "--run", str(run_path), "--fixture", str(fixture)], tmp_path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("source_ingestion_report=", result.stdout)
+            self.assertIn("pattern_candidates=1", result.stdout)
+            report = yaml.safe_load((run_path / "learning" / "source-ingestion-report.yaml").read_text())
+            self.assertEqual(report["artifact_type"], "source_ingestion_report")
+            self.assertEqual(report["ingested_sources"], 2)
+            self.assertEqual(report["quarantined_sources"], 1)
+            self.assertFalse(report["real_trade_allowed"])
+
 
     def test_failures_summary_cli_reads_organization_library(self):
         with tempfile.TemporaryDirectory() as d:
