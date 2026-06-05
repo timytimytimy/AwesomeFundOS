@@ -34,6 +34,8 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("overall_score", report)
         self.assertIn("## EvolutionGate", report)
         self.assertIn("memory_writes", report)
+        self.assertIn("capability_approved_candidates", report)
+        self.assertIn("pending_human_apply", report)
         self.assertIn("approval_mode", report)
         self.assertIn("quarantine", report)
         self.assertIn("研究分析，不构成投资建议", report)

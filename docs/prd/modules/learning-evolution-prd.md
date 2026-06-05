@@ -114,6 +114,21 @@ V1 禁止自动写回：
 - risk limits；
 - organization structure。
 
+### 5.2 Capability Versioning / Approval Queue
+
+Principle、Skill、Checklist、Workflow、Tool Policy 类候选即使被 EvolutionGate 接受，也不能直接改写 source-controlled `agent.md`、`SKILL.md`、Profile、Tool Permission 或 Risk Limit。V1 必须把它们写入可审计的能力候选注册表：
+
+```text
+memory/agents/{agent_id}/capabilities/{principle|skill|checklist|workflow|tool_policy}.jsonl
+memory/organization/capability-ledger.jsonl
+runs/{run_id}/evolution/capability-candidates.jsonl
+runs/{run_id}/evolution/capability-version-summary.yaml
+```
+
+能力版本记录必须包含 candidate_id、run_id、source_agent、target_agent、capability_kind、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、application_status、reversible、mutated_agent_card=false、mutated_runtime_skill=false、real_trade_allowed=false、broker_integration=disabled。
+
+默认 `application_status=pending_human_apply`。只有后续人工或更高等级审批流才能把候选合并进 Agent Card / Skill / Workflow；V1 自动流程只登记候选和 ledger，不直接修改运行时技能文件。
+
 每次写回必须包含：candidate_id、run_id、source_agent、target_agent、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、reversible、real_trade_allowed=false、broker_integration=disabled。
 
 ## 6. Self Reflection
@@ -154,4 +169,5 @@ V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hy
 - EvolutionGate 能读取 source registry gates；缺少必要 gates 的升级候选必须 quarantine，不能直接写入长期记忆。
 - 能通过 EvolutionGate 输出 accept / reject / quarantine / needs_more_evidence。
 - 被接受升级能版本化写入对应 Agent 的 memory 与 evolution-ledger；principles / skillset 的直接改写必须进入后续审批流。
+- 被接受的 principle / skill / checklist / workflow / tool policy 候选能进入 capability registry，并保持 pending_human_apply；被 quarantine / reject 的能力候选只进入 run 级 capability-candidates 队列。
 - 被拒绝升级保留拒绝理由，不能删除。

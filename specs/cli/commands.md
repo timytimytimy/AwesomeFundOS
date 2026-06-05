@@ -96,6 +96,7 @@ runs/{date}-{slug}/
 - quarantined candidates；
 - required follow-up tests。
 - memory-writeback-summary。
+- capability-candidates / capability-version-summary。
 
 默认不直接改写核心 Profile。V1 中仅当候选被 EvolutionGate 判定为 `accept`，且 target_scope / candidate_type 不涉及 core_profile、org_structure、tool_permission、risk_limit 等受保护范围时，才允许写入受控长期记忆：
 
@@ -107,6 +108,17 @@ runs/{run_id}/evolution/memory-writeback-summary.yaml
 ```
 
 写回必须记录 candidate_id、run_id、source_agent、target_agent、source_basis、required_tests、scores、controls、approval_mode，并保持可审计、可回滚、不触发真实交易。
+
+Principle / skill / checklist / workflow / tool policy 升级候选不直接改写 `agent.md` 或 `SKILL.md`。被接受候选进入：
+
+```text
+memory/agents/{agent_id}/capabilities/{kind}.jsonl
+memory/organization/capability-ledger.jsonl
+runs/{run_id}/evolution/capability-candidates.jsonl
+runs/{run_id}/evolution/capability-version-summary.yaml
+```
+
+默认 `application_status=pending_human_apply`。
 
 ## 6. `fundos inspect --run`
 

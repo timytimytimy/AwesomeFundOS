@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml
+from fundos.capabilities import load_capability_summary
 from fundos.learning import build_learning_source_registry
 from fundos.memory import load_memory_writeback_summary
 
@@ -35,6 +36,7 @@ def build_first_version_report(run_path: Path) -> str:
     tool_harness = read_optional_yaml(run_path / "harness" / "tool-harness.yaml", {"overall_score": 0, "adapter_coverage": {}, "source_boundary_quality": {}})
     evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
     memory_writeback = load_memory_writeback_summary(run_path)
+    capability_summary = load_capability_summary(run_path)
     agent_outputs = load_agent_outputs(run_path)
 
     source_counts = count_by(evidence["evidence_items"], "source_type")
@@ -146,6 +148,9 @@ def build_first_version_report(run_path: Path) -> str:
         "",
         "- decision counts：" + inline_counts(evolution_counts),
         f"- memory_writes：{memory_writeback.get('memory_writes', 0)}",
+        f"- capability_approved_candidates：{capability_summary.get('approved_candidates', 0)}",
+        f"- capability_pending_human_apply：{capability_summary.get('pending_human_apply', 0)}",
+        "- capability_agent_versions：" + inline_counts(capability_summary.get("agent_versions", {})),
         f"- approval_mode：{memory_writeback.get('approval_mode')}",
         "- agent_writes：" + inline_counts(memory_writeback.get("agent_writes", {})),
         "- written_paths：" + ("; ".join(memory_writeback.get("written_paths", [])) if memory_writeback.get("written_paths") else "none"),

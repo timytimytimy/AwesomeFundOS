@@ -1,11 +1,14 @@
-memory_writes: 1
+memory_writes: 2
 agent_writes:
+  evaluation_harness: 1
   fund_manager: 1
 skipped_non_accepted: 1
 skipped_unsafe: 0
 skipped_existing: 0
 approval_mode: evolution_gate_v1_auto_controlled
 written_paths:
+- memory/agents/evaluation_harness/evolution-ledger.jsonl
+- memory/agents/evaluation_harness/semantic_memory.md
 - memory/agents/fund_manager/evolution-ledger.jsonl
 - memory/agents/fund_manager/semantic_memory.md
 - memory/organization/evolution-ledger.jsonl

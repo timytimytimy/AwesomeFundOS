@@ -25,6 +25,7 @@ V1 聚焦 A 股主观投资研究场景，用户只输入投资议题、股票�
   -> ReviewArchive / Watchlist / Paper Portfolio Review / Attribution
   -> Memory / Principles / Skill 升级候选
   -> EvolutionGate
+  -> Capability Versioning / Approval Queue
   -> Agent 长期能力版本更新
 ```
 

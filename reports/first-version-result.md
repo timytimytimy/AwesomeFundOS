@@ -105,12 +105,16 @@
 
 ## EvolutionGate
 
-- decision counts：quarantine=1, accept=1
-- memory_writes：1
+- decision counts：quarantine=1, accept=2
+- memory_writes：2
+- capability_approved_candidates：1
+- capability_pending_human_apply：1
+- capability_agent_versions：evaluation_harness=1
 - approval_mode：evolution_gate_v1_auto_controlled
-- agent_writes：fund_manager=1
-- written_paths：memory/agents/fund_manager/evolution-ledger.jsonl; memory/agents/fund_manager/semantic_memory.md; memory/organization/evolution-ledger.jsonl
+- agent_writes：evaluation_harness=1, fund_manager=1
+- written_paths：memory/agents/evaluation_harness/evolution-ledger.jsonl; memory/agents/evaluation_harness/semantic_memory.md; memory/agents/fund_manager/evolution-ledger.jsonl; memory/agents/fund_manager/semantic_memory.md; memory/organization/evolution-ledger.jsonl
 - cand_2026-06-06-cn-topic_001：quarantine，scores=source_quality=75, testability=95, overfitting_risk=25, role_drift_risk=20, expected_value=80，memory_write_allowed=False
+- cand_2026-06-06-cn-topic_002：accept，scores=source_quality=95, testability=95, overfitting_risk=25, role_drift_risk=20, expected_value=70，memory_write_allowed=True
 - portfolio_review_ppa_2026-06-06-cn-topic_001：accept，scores=source_quality=85, testability=95, overfitting_risk=40, role_drift_risk=20, expected_value=65，memory_write_allowed=True
 
 ## V2 Gaps

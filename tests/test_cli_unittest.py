@@ -151,6 +151,8 @@ class FundosCliTests(unittest.TestCase):
             gate_path = run_path / "evolution/evolution-gate-results.jsonl"
             self.assertTrue(gate_path.exists())
             self.assertTrue((run_path / "evolution/memory-writeback-summary.yaml").exists())
+            self.assertTrue((run_path / "evolution/capability-version-summary.yaml").exists())
+            self.assertTrue((run_path / "evolution/capability-candidates.jsonl").exists())
             for rel in ["accepted.jsonl", "quarantine.jsonl", "rejected.jsonl"]:
                 self.assertTrue((run_path / "evolution" / rel).exists(), rel)
             rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]
@@ -159,6 +161,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn(rows[0]["decision"], {"accept", "reject", "quarantine"})
             self.assertIn("memory_write_allowed", rows[0])
             self.assertGreaterEqual(load_yaml(run_path / "evolution/memory-writeback-summary.yaml")["memory_writes"], 1)
+            cap_summary = load_yaml(run_path / "evolution/capability-version-summary.yaml")
+            self.assertGreaterEqual(cap_summary["approved_candidates"], 1)
+            self.assertGreaterEqual(cap_summary["pending_human_apply"], 1)
 
     def test_init_materializes_agent_profiles_and_context_policies(self):
         with tempfile.TemporaryDirectory() as d:

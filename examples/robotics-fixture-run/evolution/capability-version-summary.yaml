@@ -1,0 +1,11 @@
+approved_candidates: 1
+quarantined_candidates: 1
+rejected_candidates: 0
+pending_human_apply: 1
+skipped_existing: 0
+agent_versions:
+  evaluation_harness: 1
+written_paths:
+- memory/agents/evaluation_harness/capabilities/workflow.jsonl
+- memory/organization/capability-ledger.jsonl
+approval_mode: evolution_gate_v1_capability_candidate
