@@ -59,6 +59,7 @@ def default_report() -> dict[str, Any]:
         "aggregate_scores": {
             "context_compression": 0,
             "context_policy": 0,
+            "memory_policy": 0,
             "tool_policy": 0,
             "skill_invocation": 0,
             "role_consistency": 0,
@@ -72,20 +73,22 @@ def default_report() -> dict[str, Any]:
 def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
     context_quality = evaluate_context_compression(context, output)
     context_policy_quality = evaluate_context_policy(context)
+    memory_policy_quality = evaluate_memory_policy(context, output)
     tool_policy_quality = evaluate_tool_policy(context, output)
     skill_quality = evaluate_skill_invocation(context, output)
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + context_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 5, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 6, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
         "overall_score": overall,
         "context_compression_quality": context_quality,
         "context_policy_quality": context_policy_quality,
+        "memory_policy_quality": memory_policy_quality,
         "tool_policy_quality": tool_policy_quality,
         "skill_invocation_quality": skill_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, context_policy_quality, tool_policy_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
     }
 
 
@@ -243,6 +246,59 @@ def evaluate_tool_policy(context: dict[str, Any], output: dict[str, Any]) -> dic
     }
 
 
+def evaluate_memory_policy(context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
+    policy = context.get("memory_policy", {})
+    retrieval = policy.get("retrieval_contract", {})
+    writeback = policy.get("writeback_rules", {})
+    forbidden = set(policy.get("forbidden_memory_writes", []))
+    output_policy = output.get("memory_policy", {})
+    output_namespaces = output.get("memory_namespaces", {})
+    output_retrieval = output.get("memory_retrieval_contract", {})
+    output_writeback = output.get("memory_writeback_rules", {})
+    output_forbidden = set(output.get("forbidden_memory_writes", []))
+    checks = output.get("memory_permission_checks", {})
+    memory_policy_available = bool(policy.get("available")) and output_policy.get("source_path") == policy.get("source_path")
+    retrieval_contract_declared = bool(retrieval.get("max_memory_items")) and output_retrieval.get("max_memory_items") == retrieval.get("max_memory_items")
+    namespaces_aligned = set(policy.get("read_namespaces", [])) <= set(output_namespaces.get("read", [])) and set(policy.get("write_namespaces", [])) <= set(output_namespaces.get("write", []))
+    evolution_gate_required = writeback.get("requires_evolution_gate") is True and output_writeback.get("requires_evolution_gate") is True and checks.get("evolution_gate_required") is True
+    reversible_ledger_required = writeback.get("requires_reversible_ledger") is True and output_writeback.get("requires_reversible_ledger") is True
+    forbidden_memory_writes_respected = {"core_profile", "tool_permissions", "risk_limits"} <= forbidden and forbidden <= output_forbidden
+    real_trade_disabled = policy.get("real_trade_allowed") is False and checks.get("real_trade_allowed") is False
+    broker_integration_disabled = policy.get("broker_integration") is False and checks.get("broker_integration") is False
+    score = 20
+    if memory_policy_available:
+        score += 15
+    if retrieval_contract_declared:
+        score += 15
+    if namespaces_aligned:
+        score += 10
+    if evolution_gate_required:
+        score += 15
+    if reversible_ledger_required:
+        score += 8
+    if forbidden_memory_writes_respected:
+        score += 12
+    if real_trade_disabled:
+        score += 5
+    if broker_integration_disabled:
+        score += 5
+    return {
+        "score": min(100, score),
+        "memory_policy_available": memory_policy_available,
+        "retrieval_contract_declared": retrieval_contract_declared,
+        "namespaces_aligned": namespaces_aligned,
+        "evolution_gate_required": evolution_gate_required,
+        "reversible_ledger_required": reversible_ledger_required,
+        "forbidden_memory_writes_respected": forbidden_memory_writes_respected,
+        "real_trade_disabled": real_trade_disabled,
+        "broker_integration_disabled": broker_integration_disabled,
+        "harness_checks_present": sorted(policy.get("harness_checks", [])),
+        "read_namespaces": sorted(policy.get("read_namespaces", [])),
+        "write_namespaces": sorted(policy.get("write_namespaces", [])),
+        "max_memory_items": retrieval.get("max_memory_items", 0),
+    }
+
+
 def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
     card = context.get("agent_card", {})
     runtime = output.get("agent_runtime", {})
@@ -276,19 +332,21 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
+    memory_score = avg(row["memory_policy_quality"]["score"] for row in agent_results)
     tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
     role_score = avg(row["role_consistency_quality"]["score"] for row in agent_results)
     return {
         "context_compression": context_score,
         "context_policy": policy_score,
+        "memory_policy": memory_score,
         "tool_policy": tool_score,
         "skill_invocation": skill_score,
         "role_consistency": role_score,
-        "overall": round((context_score + policy_score + tool_score + skill_score + role_score) / 5, 1),
+        "overall": round((context_score + policy_score + memory_score + tool_score + skill_score + role_score) / 6, 1),
     }
 
 

@@ -1,0 +1,73 @@
+version: 0.1.0
+agent_id: fund_manager
+role: FundManagerAgent
+memory_policy_id: fund_manager_memory_policy
+role_family: fund_manager
+read_namespaces:
+- memory/agents/fund_manager
+- memory/organization/failure-pattern-library
+- memory/organization/evolution-ledger
+- memory/organization
+write_namespaces:
+- memory/agents/fund_manager
+retrieval_contract:
+  max_memory_items: 8
+  max_age_days: 365
+  retrieval_tags:
+  - committee
+  - decision_quality
+  - risk_reward
+  - weakest_link
+  - kill_criteria
+  require_source_basis: true
+  require_evidence_or_candidate_id: true
+  stale_memory_action: mark_stale_and_route_to_review
+  contradiction_action: preserve_both_and_create_review_task
+writeback_rules:
+  requires_evolution_gate: true
+  requires_reversible_ledger: true
+  requires_source_basis: true
+  requires_regression_or_replay: true
+  allow_direct_profile_mutation: false
+  allow_direct_skill_mutation: false
+  allow_direct_tool_permission_mutation: false
+forbidden_memory_writes:
+- core_profile
+- tool_permissions
+- risk_limits
+- broker_credentials
+- personal_financial_advice
+- unverified_facts_as_memory
+staleness_policy:
+  default_max_age_days: 365
+  market_state_memory_max_age_days: 60
+  requires_refresh_when_regime_changes: true
+  stale_label: stale_requires_revalidation
+context_compression:
+  style: committee_lesson_brief
+  must_preserve:
+  - candidate_id
+  - run_id
+  - source_basis
+  - decision
+  - failure_pattern
+  - contradictions
+  drop_rules:
+  - drop_prose_without_evidence_id
+  - drop_duplicate_low_value_lessons
+personality_stability_guards:
+- Do not change name, role, mandate, investment style, or risk preference through
+  memory writes.
+- Use memory to add lessons, failure patterns, and retrieval hints; never mutate profile
+  identity.
+- Contradictory lessons must be preserved and routed to review instead of overwritten.
+harness_checks:
+- memory_policy_loaded
+- retrieval_contract_declared
+- evolution_gate_required
+- reversible_ledger_required
+- forbidden_memory_writes_respected
+- no_real_trade_action
+- broker_integration_disabled
+real_trade_allowed: false
+broker_integration: false

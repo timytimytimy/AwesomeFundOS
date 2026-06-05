@@ -75,10 +75,12 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     learning_patterns = [compact_pattern(pattern) for pattern in patterns_for_agent(agent["id"], context_focus_tags(context))]
     agent_card = context.get("agent_card", {})
     skill_contract = context.get("skill_contract", {})
+    memory_policy = context.get("memory_policy", {})
     tool_policy = context.get("tool_policy", {})
     missing_tool_calls = missing_required_tool_calls(tool_policy)
     forbidden_tool_actions = forbidden_tool_actions_for(tool_policy)
     tool_permission_checks = tool_permission_checks_for(agent_card, tool_policy, missing_tool_calls, forbidden_tool_actions)
+    memory_permission_checks = memory_permission_checks_for(memory_policy)
     return {
         "run_id": context["run_id"],
         "agent_id": agent["id"],
@@ -100,6 +102,15 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "skill_evidence_rules": skill_contract.get("evidence_rules", [])[:8],
         "agent_declared_skills": agent_card.get("declared_skills", []),
         "agent_declared_tools": agent_card.get("declared_tools", []),
+        "memory_policy": compact_memory_policy(memory_policy),
+        "memory_namespaces": {
+            "read": memory_policy.get("read_namespaces", []),
+            "write": memory_policy.get("write_namespaces", []),
+        },
+        "memory_retrieval_contract": memory_policy.get("retrieval_contract", {}),
+        "memory_writeback_rules": memory_policy.get("writeback_rules", {}),
+        "memory_permission_checks": memory_permission_checks,
+        "forbidden_memory_writes": memory_policy.get("forbidden_memory_writes", []),
         "tool_policy": compact_tool_policy(tool_policy),
         "allowed_tools": tool_policy.get("allowed_tools", []),
         "required_tools": tool_policy.get("required_tools", []),
@@ -117,6 +128,33 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "forbidden_actions_checked": context.get("forbidden_focus", []),
         "disclaimer": DISCLAIMER,
 }
+
+
+def compact_memory_policy(policy: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "source_path": policy.get("source_path"),
+        "available": bool(policy.get("available", False)),
+        "memory_policy_id": policy.get("memory_policy_id"),
+        "role_family": policy.get("role_family"),
+        "real_trade_allowed": policy.get("real_trade_allowed"),
+        "broker_integration": policy.get("broker_integration"),
+    }
+
+
+def memory_permission_checks_for(policy: dict[str, Any]) -> dict[str, Any]:
+    writeback = policy.get("writeback_rules", {})
+    forbidden = set(policy.get("forbidden_memory_writes", []))
+    retrieval = policy.get("retrieval_contract", {})
+    return {
+        "memory_policy_available": bool(policy.get("available")),
+        "retrieval_contract_declared": bool(retrieval.get("max_memory_items")) and bool(retrieval.get("retrieval_tags")),
+        "evolution_gate_required": writeback.get("requires_evolution_gate") is True,
+        "reversible_ledger_required": writeback.get("requires_reversible_ledger") is True,
+        "forbidden_memory_writes_declared": {"core_profile", "tool_permissions", "risk_limits"} <= forbidden,
+        "direct_profile_mutation_disabled": writeback.get("allow_direct_profile_mutation") is False,
+        "real_trade_allowed": bool(policy.get("real_trade_allowed")),
+        "broker_integration": bool(policy.get("broker_integration")),
+    }
 
 
 def compact_tool_policy(policy: dict[str, Any]) -> dict[str, Any]:
@@ -250,6 +288,10 @@ def write_agent_output(path: Path, agent: dict[str, Any], context: dict[str, Any
     text += "\n".join(f"- {tier}: {count}" for tier, count in structured["evidence_coverage"].items())
     text += "\n\n## Agent Card / Skill 已加载\n\n" + "\n".join(runtime_lines(structured))
     text += "\n\n## Skill 角色检查清单\n\n" + "\n".join(f"- {item}" for item in structured.get("role_checklist_applied", []))
+    text += "\n\n## Memory Policy 已加载\n\n"
+    text += f"- memory_policy: {structured.get('memory_policy', {}).get('source_path')}\n"
+    text += "- read_namespaces: " + ", ".join(structured.get("memory_namespaces", {}).get("read", [])) + "\n"
+    text += "- writeback_requires_evolution_gate: " + str(structured.get("memory_writeback_rules", {}).get("requires_evolution_gate")) + "\n"
     text += "\n\n## Tool Policy 已加载\n\n"
     text += f"- tool_policy: {structured.get('tool_policy', {}).get('source_path')}\n"
     text += "- allowed_tools: " + ", ".join(structured.get("allowed_tools", [])) + "\n"

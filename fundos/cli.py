@@ -24,6 +24,7 @@ from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import build_learning_source_registry, write_run_learning_patterns, write_run_learning_source_registry
 from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
+from fundos.memory_policies import load_memory_policy
 from fundos.outcomes import run_outcome_tracking
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient
@@ -73,6 +74,7 @@ def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
         memory_dir.mkdir(parents=True, exist_ok=True)
         profile_path = agent_dir / "profile.yaml"
         context_path = agent_dir / "context-policy.yaml"
+        memory_policy_path = agent_dir / "memory-policy.yaml"
         tool_path = agent_dir / "tool-policy.yaml"
         model_path = agent_dir / "model-policy.yaml"
         agent_md_path = agent_dir / "agent.md"
@@ -81,9 +83,10 @@ def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
         memory_path = memory_dir / "semantic_memory.md"
         profile = build_agent_profile(agent)
         context_policy = build_context_policy(agent)
+        memory_policy = build_memory_policy(agent)
         tool_policy = build_tool_policy(agent)
         model_policy = build_model_policy(agent)
-        for path, data in [(profile_path, profile), (context_path, context_policy), (tool_path, tool_policy), (model_path, model_policy)]:
+        for path, data in [(profile_path, profile), (context_path, context_policy), (memory_policy_path, memory_policy), (tool_path, tool_policy), (model_path, model_policy)]:
             if not path.exists():
                 write_yaml(path, data)
         source_agent_md = REPO_ROOT / "specs" / "agents" / "agent-cards" / agent["id"] / "agent.md"
@@ -165,6 +168,11 @@ def build_context_policy(agent: dict[str, Any]) -> dict[str, Any]:
     policy = load_context_policy(agent)
     policy["id"] = policy.get("context_policy_id")
     policy["max_token_budget"] = policy.get("token_budget")
+    return policy
+
+def build_memory_policy(agent: dict[str, Any]) -> dict[str, Any]:
+    policy = load_memory_policy(agent)
+    policy["id"] = policy.get("memory_policy_id")
     return policy
 
 def build_tool_policy(agent: dict[str, Any]) -> dict[str, Any]:
