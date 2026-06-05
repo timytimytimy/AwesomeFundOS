@@ -1,0 +1,55 @@
+version: 0.1.0
+type: object
+required:
+  - id
+  - name
+  - role
+  - mandate
+  - investment_style
+  - risk_preference
+  - time_horizon
+  - personality
+  - decision_principles
+  - capability_boundaries
+  - biases
+  - weaknesses
+  - skills
+  - tools
+  - context_policy_id
+  - model_policy_id
+  - memory_namespace
+properties:
+  id: {type: string}
+  name: {type: string}
+  role: {type: string}
+  mandate: {type: string}
+  investment_style: {type: string}
+  risk_preference: {type: string}
+  time_horizon: {type: string}
+  personality:
+    type: array
+    items: {type: string}
+  decision_principles:
+    type: array
+    items: {type: string}
+  capability_boundaries:
+    type: array
+    items: {type: string}
+  biases:
+    type: array
+    items: {type: string}
+  weaknesses:
+    type: array
+    items: {type: string}
+  skills:
+    type: array
+    items: {type: string}
+  tools:
+    type: array
+    items: {type: string}
+  context_policy_id: {type: string}
+  model_policy_id: {type: string}
+  memory_namespace: {type: string}
+  performance_metrics:
+    type: array
+    items: {type: string}

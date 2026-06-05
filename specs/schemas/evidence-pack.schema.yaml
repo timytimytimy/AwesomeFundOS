@@ -1,0 +1,54 @@
+version: 0.1.0
+type: object
+required: [run_id, market, query, retrieved_at, evidence_items]
+properties:
+  run_id: {type: string}
+  market: {type: string}
+  query: {type: string}
+  retrieved_at: {type: string}
+  retrieval_plan:
+    type: array
+    items: {type: string}
+  evidence_items:
+    type: array
+    items:
+      type: object
+      required: [id, source_type, source_tier, title, retrieved_at, summary, claims]
+      properties:
+        id: {type: string}
+        source_type:
+          enum: [announcement, financial_report, news, market_data, policy, web, case, memory, practitioner_source, book_summary, course_summary]
+        source_tier:
+          enum: [tier_1_primary_fact, tier_2_canonical_framework, tier_3_verified_public_practitioner, tier_4_expert_opinion, tier_5_social_signal, tier_6_unverified]
+        title: {type: string}
+        url: {type: string}
+        published_at: {type: string}
+        retrieved_at: {type: string}
+        raw_excerpt: {type: string}
+        summary: {type: string}
+        confidence:
+          enum: [high, medium, low]
+        claims:
+          type: array
+          items:
+            type: object
+            required: [claim_id, claim_text, claim_type, confidence]
+            properties:
+              claim_id: {type: string}
+              claim_text: {type: string}
+              claim_type:
+                enum: [fact, opinion, inference, hypothesis]
+              confidence:
+                enum: [high, medium, low]
+              relevant_to:
+                type: array
+                items: {type: string}
+              supports:
+                type: array
+                items: {type: string}
+              contradicts:
+                type: array
+                items: {type: string}
+  unresolved_gaps:
+    type: array
+    items: {type: string}

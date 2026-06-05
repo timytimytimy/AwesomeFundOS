@@ -1,0 +1,25 @@
+version: 0.1.0
+type: object
+required: [candidate_id, run_id, source_agent, candidate_type, proposal, status]
+properties:
+  candidate_id: {type: string}
+  run_id: {type: string}
+  source_agent: {type: string}
+  candidate_type:
+    enum: [memory_update, principle_update, skill_update, checklist_update, workflow_update, tool_policy_update]
+  proposal: {type: string}
+  source_basis:
+    type: array
+    items:
+      type: object
+      properties:
+        evidence_id: {type: string}
+        source_tier: {type: string}
+        rationale: {type: string}
+  expected_benefit: {type: string}
+  risk_notes: {type: string}
+  required_tests:
+    type: array
+    items: {type: string}
+  status:
+    enum: [proposed, accepted, rejected, quarantined, needs_more_evidence]

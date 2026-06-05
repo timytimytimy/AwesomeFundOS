@@ -1,0 +1,48 @@
+version: 0.1.0
+type: object
+required: [run_id, memo_type, disclaimer, final_decision, evidence_references]
+properties:
+  run_id: {type: string}
+  memo_type:
+    enum: [simulated_investment_committee_memo]
+  disclaimer: {type: string}
+  final_decision:
+    type: object
+    properties:
+      label:
+        enum: [reject, watchlist, continue_research, upgrade_research_priority, simulated_long_candidate, simulated_reduce_or_avoid, needs_more_evidence]
+      stance:
+        enum: [constructive, neutral, cautious, avoid]
+      conviction:
+        enum: [low, medium, high]
+      hypothetical_position_range: {type: string}
+  thesis: {type: string}
+  bull_case: {type: string}
+  bear_case: {type: string}
+  risk_review: {type: string}
+  trading_plan:
+    type: object
+    properties:
+      entry_conditions:
+        type: array
+        items: {type: string}
+      add_conditions:
+        type: array
+        items: {type: string}
+      reduce_conditions:
+        type: array
+        items: {type: string}
+      exit_conditions:
+        type: array
+        items: {type: string}
+  kill_criteria:
+    type: array
+    items: {type: string}
+  evidence_references:
+    type: array
+    items:
+      type: object
+      properties:
+        evidence_id: {type: string}
+        claim_id: {type: string}
+        usage: {type: string}

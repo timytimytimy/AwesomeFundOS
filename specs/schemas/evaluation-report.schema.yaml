@@ -1,0 +1,48 @@
+version: 0.1.0
+type: object
+required: [run_id, overall_score, dimension_scores, agent_scores, blocking_issues]
+properties:
+  run_id: {type: string}
+  overall_score: {type: number}
+  dimension_scores:
+    type: object
+    properties:
+      evidence_quality: {type: number}
+      reasoning_quality: {type: number}
+      role_consistency: {type: number}
+      decision_quality: {type: number}
+      collaboration_quality: {type: number}
+      tool_usage_quality: {type: number}
+      context_quality: {type: number}
+  context_quality_scores:
+    type: object
+    properties:
+      relevance: {type: number}
+      compression_fidelity: {type: number}
+      evidence_traceability: {type: number}
+      role_specificity: {type: number}
+      information_sufficiency: {type: number}
+      noise_control: {type: number}
+      leakage_control: {type: number}
+      contradiction_preservation: {type: number}
+  agent_scores:
+    type: array
+    items:
+      type: object
+      properties:
+        agent_id: {type: string}
+        role_consistency: {type: number}
+        contribution_quality: {type: number}
+        context_fit: {type: number}
+        improvement_suggestions:
+          type: array
+          items: {type: string}
+  blocking_issues:
+    type: array
+    items: {type: string}
+  accepted_outputs:
+    type: array
+    items: {type: string}
+  rejected_outputs:
+    type: array
+    items: {type: string}

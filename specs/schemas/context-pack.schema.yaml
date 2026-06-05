@@ -1,0 +1,51 @@
+version: 0.1.0
+type: object
+required: [context_pack_id, run_id, agent_id, role, task_stage, context_budget_tokens, included_evidence, output_schema]
+properties:
+  context_pack_id: {type: string}
+  run_id: {type: string}
+  agent_id: {type: string}
+  role: {type: string}
+  task_stage: {type: string}
+  context_budget_tokens: {type: integer}
+  included_evidence:
+    type: array
+    items:
+      type: object
+      required: [evidence_id, reason, compressed_summary]
+      properties:
+        evidence_id: {type: string}
+        reason: {type: string}
+        compressed_summary: {type: string}
+        allowed_claims:
+          type: array
+          items: {type: string}
+  contradiction_table:
+    type: array
+    items:
+      type: object
+      properties:
+        issue: {type: string}
+        supporting_claims:
+          type: array
+          items: {type: string}
+        opposing_claims:
+          type: array
+          items: {type: string}
+  missing_evidence:
+    type: array
+    items: {type: string}
+  excluded_evidence_summary:
+    type: array
+    items:
+      type: object
+      properties:
+        category: {type: string}
+        reason: {type: string}
+  required_focus:
+    type: array
+    items: {type: string}
+  forbidden_focus:
+    type: array
+    items: {type: string}
+  output_schema: {type: string}

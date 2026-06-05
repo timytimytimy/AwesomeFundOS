@@ -1,0 +1,118 @@
+# AwesomeFundOS CLI Spec
+
+## 1. 命令概览
+
+V1 CLI 名称建议为 `fundos`。
+
+```bash
+fundos init
+fundos run --topic "机器人产业链投资机会"
+fundos run --stock 300750
+fundos run --question "当前 A 股低空经济是否值得进入观察池？"
+fundos eval --run runs/2026-06-05-robotics
+fundos evolve --run runs/2026-06-05-robotics
+fundos inspect --run runs/2026-06-05-robotics
+fundos roster list
+fundos memory show --agent fund_manager
+```
+
+## 2. `fundos init`
+
+初始化本地目录：
+
+```text
+agents/
+configs/
+harness/
+memory/
+runs/
+skills/
+tools/
+```
+
+要求：
+
+- 不覆盖已有用户文件；
+- 如目录已存在，输出 skipped；
+- 加载 `specs/agents/default-roster.yaml`。
+
+## 3. `fundos run`
+
+### 3.1 输入形式
+
+```bash
+fundos run --topic <topic>
+fundos run --stock <stock_code>
+fundos run --question <question>
+```
+
+### 3.2 默认行为
+
+1. 创建 run workspace；
+2. ChiefOfStaff 解析任务；
+3. Agent Staffing；
+4. 自主检索并生成 EvidencePack；
+5. 生成 Agent-specific ContextPack；
+6. 多 Agent 分析和辩论；
+7. FundManager 输出模拟投委会备忘录；
+8. Harness 评估；
+9. ReviewArchivist 归档。
+
+### 3.3 输出目录
+
+```text
+runs/{date}-{slug}/
+  run.yaml
+  task-brief.md
+  selected-agents.yaml
+  evidence/evidence-pack.yaml
+  context/{agent_id}.context-pack.yaml
+  agent_work/{agent_id}.md
+  debate/
+  risk/
+  decision/
+  evaluations/
+  archive/
+  reflections/
+  evolution/
+```
+
+## 4. `fundos eval --run`
+
+重新运行 Harness，生成：
+
+- EvaluationReport；
+- Context Quality scores；
+- Agent scores；
+- Blocking issues。
+
+## 5. `fundos evolve --run`
+
+读取 reflections 和 candidates，运行 EvolutionGate，输出：
+
+- accepted candidates；
+- rejected candidates；
+- quarantined candidates；
+- required follow-up tests。
+
+默认不直接改写核心 Profile。
+
+## 6. `fundos inspect --run`
+
+展示 run 状态、artifact 索引、Agent 参与情况、评分摘要和阻断项。
+
+## 7. `fundos roster list`
+
+列出默认 Agent、角色、能力、ContextPolicy、ModelPolicy。
+
+## 8. `fundos memory show --agent`
+
+展示指定 Agent 的已接受长期记忆摘要、错误模式和能力版本历史。
+
+## 9. 全局合规要求
+
+所有 `fundos run` 输出必须包含：
+
+```text
+研究分析，不构成投资建议；不接真实交易，不自动下单。
+```

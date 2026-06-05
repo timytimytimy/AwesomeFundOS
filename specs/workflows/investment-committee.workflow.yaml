@@ -1,0 +1,146 @@
+version: 0.1.0
+name: investment_committee_v1
+market: CN_A_SHARE
+purpose: 多 Agent 模拟投委会研究决策闭环。
+stages:
+  - id: intake
+    owner: chief_of_staff
+    outputs:
+      - run.yaml
+      - task_brief.md
+    gates:
+      - user_input_is_topic_stock_or_question
+      - disclaimer_boundary_loaded
+
+  - id: staffing
+    owner: chief_of_staff
+    outputs:
+      - selected_agents.yaml
+    rules:
+      mandatory_agents:
+        - chief_of_staff
+        - fund_manager
+        - risk_manager
+        - bear_debater
+        - evaluation_harness
+        - review_archivist
+      max_agents_per_run: 10
+      include_learning_curator_when:
+        - task_type_is_learning
+        - evolution_stage
+        - source_distillation_required
+
+  - id: evidence_collection
+    owner: chief_of_staff
+    supporting_tools:
+      - web_search
+      - announcement_search
+      - financial_report_parser
+      - news_search
+      - market_data_query
+      - case_library_reader
+      - source_registry
+    outputs:
+      - evidence/evidence-pack.yaml
+    gates:
+      - evidence_items_have_source_tier
+      - high_impact_claims_have_source
+      - unresolved_gaps_recorded
+
+  - id: context_routing
+    owner: chief_of_staff
+    supporting_tools:
+      - context_manager
+    outputs:
+      - context/{agent_id}.context-pack.yaml
+    gates:
+      - every_selected_agent_has_context_pack
+      - context_pack_references_evidence_ids
+      - contradictions_preserved
+      - role_specific_policy_applied
+
+  - id: specialist_analysis
+    owner: selected_agents
+    parallelizable: true
+    outputs:
+      - agent_work/{agent_id}.md
+      - agent_work/{agent_id}.structured.yaml
+    gates:
+      - output_matches_agent_role
+      - claims_reference_context_or_evidence
+      - forbidden_real_trade_language_absent
+
+  - id: adversarial_review
+    owner: bear_debater
+    inputs:
+      - specialist_analysis_outputs
+      - evidence_pack
+      - risk_context
+    outputs:
+      - debate/bear-case.md
+      - debate/issue-table.yaml
+    gates:
+      - core_assumptions_attacked
+      - evidence_gaps_listed
+      - alternative_explanations_included
+
+  - id: risk_review
+    owner: risk_manager
+    outputs:
+      - risk/risk-review.md
+      - risk/position-risk.yaml
+    gates:
+      - downside_scenarios_included
+      - hypothetical_position_boundaries_only
+      - liquidity_and_valuation_risks_checked
+
+  - id: final_decision
+    owner: fund_manager
+    inputs:
+      - specialist_analysis_outputs
+      - bear_case
+      - risk_review
+      - issue_table
+    outputs:
+      - decision/final-decision-memo.md
+      - decision/final-decision-memo.yaml
+    gates:
+      - key_disputes_answered
+      - kill_criteria_included
+      - decision_label_valid
+      - disclaimer_included
+
+  - id: runtime_evaluation
+    owner: evaluation_harness
+    outputs:
+      - evaluations/evaluation-report.yaml
+      - evaluations/evaluation-report.md
+    gates:
+      - evidence_quality_scored
+      - context_quality_scored
+      - role_consistency_scored
+      - blocking_issues_recorded
+
+  - id: archive_and_reflect
+    owner: review_archivist
+    outputs:
+      - archive/run-summary.md
+      - reflections/{agent_id}.reflection.yaml
+      - evolution/candidates.jsonl
+    gates:
+      - artifacts_indexed
+      - memory_candidates_separated_from_accepted_memory
+      - errors_and_gaps_preserved
+
+  - id: evolution_gate
+    owner: evaluation_harness
+    optional: true
+    triggered_by:
+      - fundos evolve --run
+    outputs:
+      - evolution/evolution-gate-results.jsonl
+    gates:
+      - no_candidate_auto_accepted_without_tests
+      - overfitting_checked
+      - role_drift_checked
+      - rejected_candidates_preserved

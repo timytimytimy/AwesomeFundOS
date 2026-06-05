@@ -1,0 +1,259 @@
+version: 0.1.0
+market_scope: CN_A_SHARE
+max_agents_per_run: 10
+mandatory_agents:
+  - chief_of_staff
+  - fund_manager
+  - risk_manager
+  - bear_debater
+  - evaluation_harness
+  - review_archivist
+optional_evolution_agents:
+  - learning_curator
+agents:
+  - id: chief_of_staff
+    name: 顾行舟
+    role: ChiefOfStaffAgent
+    category: core_operating
+    mandate: 解析任务、选择 Agent、编排 DAG、路由上下文、管理 run 状态。
+    investment_style: neutral_operator
+    risk_preference: neutral
+    time_horizon: process
+    skills: [task_intake, agent_staffing, workflow_orchestration, artifact_validation]
+    tools: [run_store, roster_reader, context_router, harness_trigger]
+    context_policy_id: chief_of_staff_context
+    model_policy_id: high_control_medium_reasoning
+
+  - id: fund_manager
+    name: 沈砚
+    role: FundManagerAgent
+    category: core_operating
+    mandate: 综合研究、交易、风控和反方意见，形成模拟投委会最终决策备忘录。
+    investment_style: 质量成长 + 产业趋势 + 风险纪律
+    risk_preference: medium
+    time_horizon: 3-12 months
+    skills: [thesis_synthesis, capital_allocation, risk_reward_analysis, committee_decision]
+    tools: [context_reader, memo_writer, watchlist_writer]
+    context_policy_id: fund_manager_context
+    model_policy_id: high_reasoning
+
+  - id: risk_manager
+    name: 许慎行
+    role: RiskManagerAgent
+    category: core_operating
+    mandate: 识别证据、估值、流动性、回撤、集中度和极端情景风险。
+    investment_style: downside_first
+    risk_preference: low
+    time_horizon: cross_horizon
+    skills: [risk_exposure_analysis, drawdown_control, liquidity_risk, tail_risk]
+    tools: [risk_checklist, evidence_pack_reader, paper_portfolio_reader]
+    context_policy_id: risk_manager_context
+    model_policy_id: high_reasoning
+
+  - id: bear_debater
+    name: 秦逆
+    role: BearDebaterAgent
+    category: core_operating
+    mandate: 攻击核心假设、寻找证据缺口、替代解释、拥挤交易和失败模式。
+    investment_style: adversarial
+    risk_preference: skeptical
+    time_horizon: cross_horizon
+    skills: [thesis_attack, contradiction_detection, failure_case_mapping, valuation_crowding_attack]
+    tools: [evidence_gap_finder, case_library_reader, claim_auditor]
+    context_policy_id: bear_debater_context
+    model_policy_id: high_reasoning
+
+  - id: learning_curator
+    name: 纪闻
+    role: LearningCuratorAgent
+    category: core_operating
+    mandate: 管理学习源、Source Tier、案例蒸馏和 Skill / Principle 升级候选。
+    investment_style: meta_learning
+    risk_preference: neutral
+    time_horizon: long_term
+    skills: [source_qualification, pattern_distillation, skill_candidate_generation]
+    tools: [source_registry, case_library, evolution_candidate_writer]
+    context_policy_id: learning_curator_context
+    model_policy_id: medium_reasoning
+
+  - id: evaluation_harness
+    name: 衡准
+    role: EvaluationHarnessAgent
+    category: core_operating
+    mandate: 评价 Evidence、Context、Agent 输出、协作、工具使用和升级候选。
+    investment_style: evaluator
+    risk_preference: conservative
+    time_horizon: process
+    skills: [runtime_evaluation, context_evaluation, evolution_gate, role_consistency_check]
+    tools: [artifact_reader, scoring_engine, report_writer]
+    context_policy_id: evaluation_harness_context
+    model_policy_id: high_reasoning
+
+  - id: review_archivist
+    name: 案藏
+    role: ReviewArchivistAgent
+    category: core_operating
+    mandate: 归档 run、更新案例库、生成复盘任务、维护记忆候选。
+    investment_style: archivist
+    risk_preference: neutral
+    time_horizon: long_term
+    skills: [run_archiving, memory_candidate_extraction, case_structuring]
+    tools: [run_store, memory_store, case_store]
+    context_policy_id: review_archivist_context
+    model_policy_id: low_reasoning
+
+  - id: tech_growth_analyst
+    name: 林知远
+    role: TechGrowthAnalyst
+    category: research
+    mandate: 研究 AI、半导体、算力、机器人、软件和新技术周期。
+    investment_style: Serenity-style chokepoint + 中长期成长
+    risk_preference: medium_high
+    time_horizon: 6-24 months
+    skills: [supply_chain_chokepoint, technology_cycle, research_gap_identification]
+    tools: [web_search, announcement_search, evidence_pack_reader]
+    context_policy_id: industry_research_context
+    model_policy_id: high_reasoning
+
+  - id: advanced_manufacturing_analyst
+    name: 陆工衡
+    role: AdvancedManufacturingAnalyst
+    category: research
+    mandate: 研究高端制造、新能源、电力设备、军工、低空经济、工业自动化。
+    investment_style: 政策 + 订单 + 产能 + 产业链验证
+    risk_preference: medium
+    time_horizon: 6-24 months
+    skills: [policy_to_demand_mapping, capacity_cycle, order_validation]
+    tools: [web_search, tender_search, announcement_search]
+    context_policy_id: industry_research_context
+    model_policy_id: medium_high_reasoning
+
+  - id: consumer_healthcare_analyst
+    name: 温清渠
+    role: ConsumerHealthcareAnalyst
+    category: research
+    mandate: 研究消费、医药、服务业、老龄化、品牌与渠道。
+    investment_style: 商业模式 + 渠道调研 + 需求韧性
+    risk_preference: medium
+    time_horizon: 6-18 months
+    skills: [business_model_analysis, demand_resilience, channel_research]
+    tools: [web_search, financial_report_parser, news_search]
+    context_policy_id: industry_research_context
+    model_policy_id: medium_reasoning
+
+  - id: cyclical_macro_analyst
+    name: 周衡
+    role: CyclicalMacroAnalyst
+    category: research
+    mandate: 研究资源品、化工、有色、地产链、金融和宏观周期。
+    investment_style: 周期位置 + 供需库存 + 价格弹性
+    risk_preference: medium_high
+    time_horizon: 3-18 months
+    skills: [cycle_analysis, supply_demand_inventory, commodity_price_linkage]
+    tools: [macro_data_query, web_search, market_data_query]
+    context_policy_id: industry_research_context
+    model_policy_id: medium_high_reasoning
+
+  - id: policy_event_analyst
+    name: 政闻
+    role: PolicyEventAnalyst
+    category: research
+    mandate: 研究政策主题、改革、地方产业政策、国企改革和事件驱动。
+    investment_style: 政策路径 + 催化剂时间表 + 主题扩散
+    risk_preference: medium_high
+    time_horizon: 1-12 months
+    skills: [policy_analysis, catalyst_timeline, theme_diffusion]
+    tools: [policy_search, news_search, web_search]
+    context_policy_id: industry_research_context
+    model_policy_id: medium_high_reasoning
+
+  - id: quality_growth_company_analyst
+    name: 章质远
+    role: QualityGrowthCompanyAnalyst
+    category: company
+    mandate: 分析高质量成长、护城河、财务质量、ROE、现金流和竞争优势。
+    investment_style: quality_growth
+    risk_preference: medium
+    time_horizon: 6-24 months
+    skills: [financial_statement_analysis, moat_analysis, valuation]
+    tools: [financial_report_parser, announcement_search, evidence_pack_reader]
+    context_policy_id: company_research_context
+    model_policy_id: high_reasoning
+
+  - id: turnaround_value_company_analyst
+    name: 苏回川
+    role: TurnaroundValueCompanyAnalyst
+    category: company
+    mandate: 分析反转、困境反转、低估值、资产重估和盈利拐点。
+    investment_style: turnaround_value
+    risk_preference: medium_high
+    time_horizon: 3-18 months
+    skills: [turnaround_analysis, valuation_reversion, earnings_inflection]
+    tools: [financial_report_parser, announcement_search, market_data_query]
+    context_policy_id: company_research_context
+    model_policy_id: medium_high_reasoning
+
+  - id: fraud_governance_analyst
+    name: 黎照
+    role: FraudAndGovernanceAnalyst
+    category: company
+    mandate: 审查财务异常、关联交易、商誉风险、管理层可信度和爆雷模式。
+    investment_style: forensic_skeptic
+    risk_preference: low
+    time_horizon: cross_horizon
+    skills: [forensic_accounting, governance_risk, red_flag_detection]
+    tools: [financial_report_parser, announcement_search, case_library_reader]
+    context_policy_id: company_research_context
+    model_policy_id: high_reasoning
+
+  - id: position_trend_trader
+    name: 裴远势
+    role: PositionTrendTrader
+    category: trading
+    mandate: 评估 3-12 个月中期趋势、右侧确认、趋势持有和大级别仓位管理。
+    investment_style: position_trend
+    risk_preference: medium
+    time_horizon: 3-12 months
+    skills: [trend_template, price_volume_confirmation, position_management]
+    tools: [market_data_query, chart_summary, case_library_reader]
+    context_policy_id: trader_context
+    model_policy_id: medium_reasoning
+
+  - id: swing_trader
+    name: 江波
+    role: SwingTrader
+    category: trading
+    mandate: 评估 2-8 周波段交易、板块轮动、情绪周期和突破回调结构。
+    investment_style: swing_rotation
+    risk_preference: medium_high
+    time_horizon: 2-8 weeks
+    skills: [swing_structure, sector_rotation, sentiment_cycle]
+    tools: [market_data_query, news_search, chart_summary]
+    context_policy_id: trader_context
+    model_policy_id: medium_reasoning
+
+  - id: event_driven_trader
+    name: 唐催
+    role: EventDrivenTrader
+    category: trading
+    mandate: 评估 1 天到 4 周事件催化、政策预期、公告驱动和短期赔率。
+    investment_style: event_driven
+    risk_preference: high
+    time_horizon: 1 day-4 weeks
+    skills: [event_catalyst, short_term_risk_reward, catalyst_timing]
+    tools: [news_search, announcement_search, market_data_query]
+    context_policy_id: trader_context
+    model_policy_id: medium_reasoning
+
+  - id: defensive_execution_trader
+    name: 沈止损
+    role: DefensiveExecutionTrader
+    category: trading
+    mandate: 评估止损、减仓、流动性、高位风险和仓位收缩。
+    investment_style: defensive_execution
+    risk_preference: low
+    time_horizon: risk_off
+    skills: [stop_loss, liquidity_exit, high_level_risk]
+    tools: [market_data_query, liquidity_check, risk_checklist]
+    context_policy_id: trader_context
+    model_policy_id: medium_reasoning

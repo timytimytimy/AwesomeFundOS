@@ -1,0 +1,108 @@
+# Evidence System PRD
+
+## 1. 模块目标
+
+Evidence System 负责从公开来源自主检索、抽取、分级、缓存和结构化证据，为多 Agent 投资决策提供可追溯事实基础。
+
+## 2. 数据策略
+
+V1 用户不提供材料。系统必须自主检索：
+
+- 公司公告；
+- 财报；
+- 交易所信息；
+- 官方政策；
+- 新闻；
+- 行业资料；
+- 价格和成交摘要；
+- 历史案例；
+- 学习源和方法论源。
+
+V1 不要求：
+
+- 实时 tick；
+- 盘口十档；
+- 付费金融终端；
+- 自动交易。
+
+## 3. EvidencePack
+
+EvidencePack 是一次 run 的全量证据仓。
+
+核心字段：
+
+- run_id
+- market
+- query
+- retrieval_plan
+- evidence_items
+- claim_index
+- source_coverage
+- unresolved_gaps
+
+## 4. Source Quality Tier
+
+```yaml
+tier_1_primary_fact:
+  use: factual_claim, case_reconstruction, final_decision_evidence
+
+tier_2_canonical_framework:
+  use: framework_learning, principle_candidate, skill_candidate
+
+tier_3_verified_public_practitioner:
+  use: research_lens, pattern_distillation, case_selection, skill_candidate
+
+tier_4_expert_opinion:
+  use: hypothesis_generation, framework_comparison
+
+tier_5_social_signal:
+  use: sentiment_mapping, narrative_tracking, early_signal_discovery
+
+tier_6_unverified:
+  use: weak_signal_only
+```
+
+## 5. Verified Public Practitioner
+
+高质量大 V 或公开实践者不是普通社媒信号。系统应支持 Source Promotion：
+
+- identity_traceability
+- methodology_clarity
+- historical_case_quality
+- market_validation
+- falsification_attitude
+- transferability
+- source_integrity
+
+通过后可标记为 `tier_3_verified_public_practitioner`。
+
+Serenity / aleabitoreddit 在 V1 默认属于该层级，可作为方法论源，但不能直接作为事实或买卖依据。
+
+## 6. Claim 抽取
+
+每个证据项应抽取 Claim：
+
+- claim_id
+- claim_text
+- claim_type: fact | opinion | inference | hypothesis
+- source_id
+- confidence
+- relevant_to
+- contradicts
+- supports
+
+## 7. 证据使用约束
+
+- 无来源不得形成高置信结论。
+- KOL 或社媒不得作为财务事实依据。
+- 高影响结论必须优先使用 tier_1 或多源交叉验证。
+- 低等级证据可作为线索，但必须被标注。
+- 所有重要结论必须能回链到 Evidence ID / Claim ID。
+
+## 8. 验收标准
+
+- 给定 topic / stock / question，系统能生成 EvidencePack。
+- EvidencePack 中每个 evidence item 有 source tier、timestamp、summary、claims。
+- 至少支持 source coverage report。
+- 能识别证据缺口和冲突。
+- 能为 Context Manager 提供按 Agent 过滤的证据索引。
