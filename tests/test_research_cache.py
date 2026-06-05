@@ -56,6 +56,22 @@ class ResearchCacheTests(unittest.TestCase):
             loaded = load_research_manifest(run_path)
             self.assertEqual(loaded["result_count"], 2)
 
+    def test_write_run_research_manifest_records_research_plan_coverage(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "run-cache"
+            results = [
+                {"title": "公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告", "source_type": "announcement", "source_tier": "tier_1_primary_fact", "retrieval_id": "pr_001", "cache_status": "stored", "research_category": "announcement", "research_plan_id": "rq_001"},
+                {"title": "政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策", "source_type": "policy", "source_tier": "tier_1_primary_fact", "retrieval_id": "pr_002", "cache_status": "stored", "research_category": "policy", "research_plan_id": "rq_002"},
+            ]
+
+            manifest = write_run_research_manifest(run_path, query="机器人产业链", results=results, adapter_name="fixture", cache_root=root / "cache" / "research")
+
+            self.assertEqual(manifest["research_plan_coverage"]["categories_covered"], 2)
+            self.assertEqual(manifest["research_plan_coverage"]["category_counts"]["announcement"], 1)
+            self.assertEqual(manifest["results"][0]["research_category"], "announcement")
+            self.assertEqual(manifest["results"][0]["research_plan_id"], "rq_001")
+
     def test_public_research_cache_key_separates_query_and_adapter(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

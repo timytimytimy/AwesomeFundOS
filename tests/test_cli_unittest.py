@@ -112,6 +112,8 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(evidence["claim_index"][first_claim["claim_id"]]["evidence_id"], evidence["evidence_items"][0]["id"])
             self.assertEqual(research_manifest["artifact_type"], "public_research_manifest")
             self.assertIn("cache_is_audit_trail_not_truth_source", research_manifest["boundary_controls"])
+            self.assertIn("research_plan_coverage", research_manifest)
+            self.assertGreaterEqual(research_manifest["research_plan_coverage"]["planned_categories"], 5)
             self.assertTrue(any(item["source_tier"] == "tier_3_verified_public_practitioner" for item in evidence["evidence_items"]))
             self.assertTrue(any(item.get("source_type") == "learning_pattern" for item in evidence["evidence_items"]))
             learning = yaml.safe_load((run_path / "learning/patterns.yaml").read_text())
@@ -427,6 +429,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("public_research", evidence["retrieval_plan"])
             self.assertEqual(manifest["result_count"], 2)
             self.assertEqual(manifest["cache_status_counts"]["hit"], 2)
+            self.assertEqual(manifest["research_plan_coverage"]["categories_covered"], 2)
+            self.assertEqual(manifest["research_plan_coverage"]["category_counts"]["announcement"], 1)
+            self.assertEqual(manifest["research_plan_coverage"]["category_counts"]["policy"], 1)
 
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:

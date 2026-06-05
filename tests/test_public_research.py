@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from fundos.public_research import PublicResearchClient, classify_source, tool_result_to_evidence
+from fundos.public_research import PublicResearchClient, build_research_plan, classify_source, tool_result_to_evidence
 from fundos.evidence import make_evidence_pack, validate_evidence_pack
 
 
@@ -54,6 +54,37 @@ class PublicResearchTests(unittest.TestCase):
             results = client.search("机器人产业链")
             self.assertEqual(len(results), 2)
             self.assertEqual(results[0]["source_type"], "announcement")
+
+    def test_build_research_plan_expands_topic_into_source_specific_queries(self):
+        plan = build_research_plan("机器人产业链投资机会", input_type="topic")
+
+        self.assertGreaterEqual(len(plan), 5)
+        categories = {step["category"] for step in plan}
+        self.assertTrue({"announcement", "policy", "news", "market_data", "social_signal"}.issubset(categories))
+        self.assertTrue(all("query" in step and "required_source_tier" in step for step in plan))
+        announcement = next(step for step in plan if step["category"] == "announcement")
+        self.assertIn("公告", announcement["query"])
+        self.assertEqual(announcement["required_source_tier"], "tier_1_primary_fact")
+
+    def test_search_plan_uses_fixture_by_category_and_deduplicates_results(self):
+        with tempfile.TemporaryDirectory() as d:
+            fixture = Path(d) / "fixture.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证订单。", "fixture_category": "announcement"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人。", "fixture_category": "policy"},
+                {"title": "机器人新闻", "url": "https://example.com/news", "snippet": "新闻关注机器人。", "fixture_category": "news"},
+                {"title": "机器人热度", "url": "https://x.com/example/status/1", "snippet": "社媒热度。", "fixture_category": "social_signal"},
+                {"title": "机器人公告重复", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "重复。", "fixture_category": "announcement"},
+            ], ensure_ascii=False), encoding="utf-8")
+            client = PublicResearchClient(fixture_path=fixture, cache_root=Path(d) / "cache", adapter_name="fixture")
+
+            results = client.search_plan("机器人产业链投资机会", input_type="topic", per_step_limit=2)
+
+            categories = {row["research_category"] for row in results}
+            self.assertTrue({"announcement", "policy", "news", "social_signal"}.issubset(categories))
+            self.assertEqual(len({row["url"] for row in results}), len(results))
+            self.assertTrue(all(row.get("research_plan_id") for row in results))
+            self.assertTrue(all(row.get("research_query") for row in results))
 
     def test_public_research_client_network_failure_degrades_to_empty_results(self):
         class FailingClient(PublicResearchClient):

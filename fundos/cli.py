@@ -36,7 +36,7 @@ from fundos.memory_policies import load_memory_policy
 from fundos.outcomes import run_outcome_tracking
 from fundos.pm_competition import write_pm_competition
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
-from fundos.public_research import PublicResearchClient
+from fundos.public_research import PublicResearchClient, build_research_plan
 from fundos.research_cache import write_run_research_manifest
 from fundos.reporting import write_first_version_report
 from fundos.skill_benchmark import run_skill_benchmark
@@ -369,7 +369,8 @@ def command_run(args: argparse.Namespace) -> int:
     market_replay_path = Path(args.market_replay_fixture) if getattr(args, "market_replay_fixture", None) else None
     research_cache_root = Path(args.research_cache) if getattr(args, "research_cache", None) else Path.cwd() / "cache" / "research"
     research_client = PublicResearchClient(fixture_path=fixture_path, cache_root=research_cache_root, adapter_name="fixture" if fixture_path else "duckduckgo")
-    public_results = research_client.search(value)
+    research_plan = build_research_plan(value, input_type=input_type)
+    public_results = research_client.search_plan(value, input_type=input_type)
     evidence_pack = make_evidence_pack(run_id, input_type, value, public_results=public_results)
 
     run_doc = {
@@ -397,7 +398,7 @@ def command_run(args: argparse.Namespace) -> int:
     (run_path / "task-brief.md").write_text(f"# Task Brief\n\n{DISCLAIMER}\n\n- input_type: {input_type}\n- value: {value}\n", encoding="utf-8")
     write_yaml(run_path / "selected-agents.yaml", {"selected_agents": selected})
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
-    write_run_research_manifest(run_path, value, public_results, research_client.adapter_name, research_cache_root)
+    write_run_research_manifest(run_path, value, public_results, research_client.adapter_name, research_cache_root, research_plan=research_plan)
     write_tool_adapter_manifest(run_path, roster)
     run_fixture_tool_runtime(run_path, selected, evidence_pack)
     write_tool_harness(run_path, evidence_pack)

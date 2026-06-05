@@ -84,13 +84,15 @@ def cache_path(cache_root: Path, query: str, adapter_name: str, limit: int) -> P
     return cache_root / f"{cache_key(query, adapter_name, limit)}.json"
 
 
-def write_run_research_manifest(run_path: Path, query: str, results: list[dict[str, Any]], adapter_name: str, cache_root: Path | None = None) -> dict[str, Any]:
-    manifest = build_research_manifest(query, results, adapter_name, cache_root)
+def write_run_research_manifest(run_path: Path, query: str, results: list[dict[str, Any]], adapter_name: str, cache_root: Path | None = None, research_plan: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    manifest = build_research_manifest(query, results, adapter_name, cache_root, research_plan=research_plan)
     write_yaml(run_path / "evidence" / "public-research-manifest.yaml", manifest)
     return manifest
 
 
-def build_research_manifest(query: str, results: list[dict[str, Any]], adapter_name: str, cache_root: Path | None = None) -> dict[str, Any]:
+def build_research_manifest(query: str, results: list[dict[str, Any]], adapter_name: str, cache_root: Path | None = None, research_plan: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    plan_categories = {row.get("category") for row in research_plan or [] if row.get("category")}
+    covered_categories = {row.get("research_category") for row in results if row.get("research_category")}
     return {
         "version": RESEARCH_CACHE_VERSION,
         "artifact_type": "public_research_manifest",
@@ -101,6 +103,14 @@ def build_research_manifest(query: str, results: list[dict[str, Any]], adapter_n
         "cache_status_counts": count_by(results, "cache_status"),
         "source_tier_counts": count_by(results, "source_tier"),
         "source_type_counts": count_by(results, "source_type"),
+        "research_plan_coverage": {
+            "planned_categories": len(plan_categories),
+            "categories_covered": len(covered_categories),
+            "missing_categories": sorted(plan_categories - covered_categories),
+            "category_counts": count_by([row for row in results if row.get("research_category")], "research_category"),
+            "plan_step_count": len(research_plan or []) or len({row.get("research_plan_id") for row in results if row.get("research_plan_id")}),
+        },
+        "research_plan": research_plan or [],
         "results": [
             {
                 "retrieval_id": row.get("retrieval_id"),
@@ -110,6 +120,9 @@ def build_research_manifest(query: str, results: list[dict[str, Any]], adapter_n
                 "source_tier": row.get("source_tier"),
                 "source_hash": row.get("source_hash"),
                 "cache_status": row.get("cache_status", "uncached"),
+                "research_plan_id": row.get("research_plan_id"),
+                "research_category": row.get("research_category"),
+                "research_query": row.get("research_query"),
             }
             for row in results
         ],
@@ -140,6 +153,7 @@ def default_manifest() -> dict[str, Any]:
         "cache_status_counts": {},
         "source_tier_counts": {},
         "source_type_counts": {},
+        "research_plan_coverage": {"categories_covered": 0, "category_counts": {}, "plan_step_count": 0},
         "results": [],
         "boundary_controls": default_boundary_controls(),
     }
