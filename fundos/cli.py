@@ -650,7 +650,8 @@ def command_run(args: argparse.Namespace) -> int:
     roster = load_roster()
     selected = select_agents(input_type, value, roster)
     agents_by_id = {agent["id"]: agent for agent in roster["agents"]}
-    public_results = PublicResearchClient().search(value)
+    fixture_path = Path(args.research_fixture) if getattr(args, "research_fixture", None) else None
+    public_results = PublicResearchClient(fixture_path=fixture_path).search(value)
     evidence_pack = make_evidence_pack(run_id, input_type, value, public_results=public_results)
 
     run_doc = {
@@ -749,6 +750,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--topic")
     p_run.add_argument("--stock")
     p_run.add_argument("--question")
+    p_run.add_argument("--research-fixture", help="Path to a JSON array of public research results for deterministic offline runs")
     p_run.set_defaults(func=command_run)
 
     p_eval = sub.add_parser("eval")

@@ -144,6 +144,23 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("direct_a_share_buy_signal", serenity_item["not_allowed_outputs"])
             self.assertTrue(serenity_item["source_url"])
 
+    def test_run_accepts_research_fixture_cli_argument(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人产业。"}
+            ], ensure_ascii=False))
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            evidence = yaml.safe_load((tmp_path / run_rel / "evidence" / "evidence-pack.yaml").read_text())
+            public_items = [item for item in evidence["evidence_items"] if item.get("source_id") == "public_research"]
+            self.assertEqual(len(public_items), 2)
+            self.assertTrue(all(item["source_tier"] == "tier_1_primary_fact" for item in public_items))
+            self.assertIn("public_research", evidence["retrieval_plan"])
+
     def test_seed_library_contains_verified_practitioner_and_classics(self):
         seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"
         self.assertTrue(seed_path.exists())

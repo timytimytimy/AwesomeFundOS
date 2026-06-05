@@ -1,0 +1,21 @@
+run_id: 2026-06-05-cn-topic
+agent_id: fund_manager
+what_i_believed: 需要先建立证据追溯再形成判断。
+what_i_got_right: 保持了模拟研究和真实投资建议的边界。
+what_i_got_wrong: 真实数据工具尚未接入，证据密度不足。
+missed_evidence:
+- 真实公告
+- 实时新闻
+- 行情摘要
+reasoning_errors: []
+tool_usage_errors:
+- tool interface is stub
+bias_detected:
+- 可能高估 seed methodology 的可迁移性
+proposed_memory_updates:
+- 方法论源必须回到一手事实验证。
+proposed_skill_updates:
+- 增加真实公告检索工具适配器。
+proposed_principle_updates:
+- 没有一手证据时不得升级为高置信结论。
+confidence: medium

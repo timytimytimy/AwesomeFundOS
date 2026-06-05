@@ -96,13 +96,33 @@ def related_topic_to_result(topic: dict[str, Any]) -> dict[str, Any] | None:
     )
 
 
+def classify_source(title: str, url: str) -> dict[str, str]:
+    text = f"{title} {url}".lower()
+    if any(domain in text for domain in ["cninfo.com.cn", "sse.com.cn", "szse.cn", "bse.cn"]):
+        return {"source_type": "announcement", "source_tier": "tier_1_primary_fact"}
+    if any(domain in text for domain in ["gov.cn", "ndrc.gov.cn", "miit.gov.cn", "mofcom.gov.cn", "pbc.gov.cn"]):
+        return {"source_type": "policy", "source_tier": "tier_1_primary_fact"}
+    if any(domain in text for domain in ["x.com", "twitter.com", "weibo.com", "xueqiu.com"]):
+        return {"source_type": "web", "source_tier": "tier_5_social_signal"}
+    if any(word in text for word in ["公告", "年报", "季报", "招股", "disclosure", "announcement"]):
+        return {"source_type": "announcement", "source_tier": "tier_1_primary_fact"}
+    if any(word in text for word in ["政策", "规划", "意见", "通知"]):
+        return {"source_type": "policy", "source_tier": "tier_1_primary_fact"}
+    if any(word in text for word in ["研报", "研究", "analysis", "insight"]):
+        return {"source_type": "web", "source_tier": "tier_4_expert_opinion"}
+    return {"source_type": "web", "source_tier": "tier_4_expert_opinion"}
+
+
 def normalize_result(result: dict[str, Any]) -> dict[str, Any]:
+    title = str(result.get("title") or "Untitled public research result")
+    url = str(result.get("url") or "")
+    classified = classify_source(title, url)
     return {
-        "title": str(result.get("title") or "Untitled public research result"),
-        "url": str(result.get("url") or ""),
+        "title": title,
+        "url": url,
         "snippet": str(result.get("snippet") or result.get("summary") or ""),
-        "source_type": str(result.get("source_type") or "web"),
-        "source_tier": str(result.get("source_tier") or "tier_4_expert_opinion"),
+        "source_type": str(result.get("source_type") or classified["source_type"]),
+        "source_tier": str(result.get("source_tier") or classified["source_tier"]),
         "published_at": str(result.get("published_at") or ""),
     }
 

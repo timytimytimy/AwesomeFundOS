@@ -5,11 +5,28 @@ from pathlib import Path
 
 import yaml
 
-from fundos.public_research import PublicResearchClient, tool_result_to_evidence
+from fundos.public_research import PublicResearchClient, classify_source, tool_result_to_evidence
 from fundos.cli import make_evidence_pack
 
 
 class PublicResearchTests(unittest.TestCase):
+    def test_classify_source_promotes_a_share_primary_and_policy_urls(self):
+        announcement = classify_source("关于机器人业务的公司公告", "https://www.cninfo.com.cn/new/disclosure/detail")
+        self.assertEqual(announcement["source_type"], "announcement")
+        self.assertEqual(announcement["source_tier"], "tier_1_primary_fact")
+
+        exchange = classify_source("上市公司公告", "https://www.sse.com.cn/disclosure/listedinfo/announcement/")
+        self.assertEqual(exchange["source_type"], "announcement")
+        self.assertEqual(exchange["source_tier"], "tier_1_primary_fact")
+
+        policy = classify_source("机器人产业政策", "https://www.gov.cn/zhengce/content/test.htm")
+        self.assertEqual(policy["source_type"], "policy")
+        self.assertEqual(policy["source_tier"], "tier_1_primary_fact")
+
+        social = classify_source("热门大V观点", "https://x.com/example/status/1")
+        self.assertEqual(social["source_type"], "web")
+        self.assertEqual(social["source_tier"], "tier_5_social_signal")
+
     def test_tool_result_to_evidence_preserves_url_source_tier_and_claim(self):
         result = {
             "title": "工业机器人政策新闻",
