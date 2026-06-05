@@ -20,6 +20,7 @@ from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import build_learning_source_registry, write_run_learning_patterns, write_run_learning_source_registry
 from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
+from fundos.outcomes import run_outcome_tracking
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient
 from fundos.reporting import write_first_version_report
@@ -335,6 +336,7 @@ def command_run(args: argparse.Namespace) -> int:
     selected = select_agents(input_type, value, roster)
     agents_by_id = {agent["id"]: agent for agent in roster["agents"]}
     fixture_path = Path(args.research_fixture) if getattr(args, "research_fixture", None) else None
+    market_replay_path = Path(args.market_replay_fixture) if getattr(args, "market_replay_fixture", None) else None
     public_results = PublicResearchClient(fixture_path=fixture_path).search(value)
     evidence_pack = make_evidence_pack(run_id, input_type, value, public_results=public_results)
 
@@ -383,6 +385,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_yaml(run_path / "decision" / "final-decision-memo.yaml", memo)
     write_decision_markdown(run_path / "decision" / "final-decision-memo.md", memo)
     write_portfolio_artifacts(run_path, memo, evidence_pack)
+    run_outcome_tracking(run_path, market_replay_path)
     write_portfolio_review(run_path)
 
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
@@ -406,6 +409,7 @@ def command_eval(args: argparse.Namespace) -> int:
     run_case_replay(run_path)
     write_tool_harness(run_path, evidence)
     write_run_learning_source_registry(run_path)
+    run_outcome_tracking(run_path)
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
@@ -487,6 +491,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--stock")
     p_run.add_argument("--question")
     p_run.add_argument("--research-fixture", help="Path to a JSON array of public research results for deterministic offline runs")
+    p_run.add_argument("--market-replay-fixture", help="Path to a YAML market replay fixture for deterministic offline outcome tracking")
     p_run.set_defaults(func=command_run)
 
     p_eval = sub.add_parser("eval")

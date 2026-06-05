@@ -190,13 +190,14 @@ V1 增加 Learning Source Registry：
 3. 从 DecisionMemo 写入观察池动作。
 4. 支持后续 review_date。
 5. 生成 Portfolio Review、Attribution JSONL 和 Review Learning Candidates。
-6. outcome tracking 暂用手动或定时触发，V1 只记录过程归因和真实行情数据缺口。
+6. outcome tracking 支持离线 market replay fixture，V1 记录 return、drawdown、MFE/MAE、missed opportunity / risk review，不接真实交易。
 
 验收：
 
 - simulated_long_candidate / watchlist 等结果能写入 stub。
 - `portfolio/portfolio-review.yaml`、`portfolio/attribution.jsonl`、`portfolio/review-candidates.jsonl` 能随 run / eval 生成。
 - Harness 输出 `portfolio_review_quality`。
+- Harness 输出 `outcome_tracking_quality`。
 - 不产生真实下单指令。
 
 ## 11. 后续 V2

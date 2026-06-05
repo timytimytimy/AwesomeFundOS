@@ -9,6 +9,7 @@ fundos init
 fundos run --topic "机器人产业链投资机会"
 fundos run --stock 300750
 fundos run --question "当前 A 股低空经济是否值得进入观察池？"
+fundos run --topic "机器人产业链投资机会" --research-fixture examples/fixtures/robotics-public-research.json --market-replay-fixture examples/fixtures/robotics-market-replay.yaml
 fundos eval --run runs/2026-06-05-robotics
 fundos evolve --run runs/2026-06-05-robotics
 fundos inspect --run runs/2026-06-05-robotics
@@ -55,8 +56,9 @@ fundos run --question <question>
 5. 生成 Agent-specific ContextPack；
 6. 多 Agent 分析和辩论；
 7. FundManager 输出模拟投委会备忘录；
-8. Harness 评估；
-9. ReviewArchivist 归档。
+8. Watchlist / Paper Portfolio / Outcome Tracking；
+9. Harness 评估；
+10. ReviewArchivist 归档。
 
 ### 3.3 输出目录
 

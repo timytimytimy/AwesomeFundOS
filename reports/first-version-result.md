@@ -76,6 +76,7 @@
 - attribution_items：1
 - review_learning_candidates：1
 - review_verdict：paper_review_recorded
+- outcome_tracking：status=evaluated_with_market_replay，actions_evaluated=1，score=88
 - real_trade_allowed：False
 - artifact_paths：portfolio/watchlist.yaml；portfolio/paper-portfolio.yaml；portfolio/portfolio-actions.jsonl；portfolio/portfolio-review.yaml；portfolio/attribution.jsonl；portfolio/review-candidates.jsonl
 
@@ -91,10 +92,11 @@
 ## Harness / Evaluation
 
 - overall_score：77.7
-- dimension_scores：evidence_quality=95, reasoning_quality=70, role_consistency=82, decision_quality=72, collaboration_quality=75, tool_usage_quality=70, context_quality=80, historical_case_replay=74.8
+- dimension_scores：evidence_quality=95, reasoning_quality=70, role_consistency=82, decision_quality=72, collaboration_quality=75, tool_usage_quality=70, context_quality=80, historical_case_replay=74.8, outcome_tracking=88
 - context_quality_scores：relevance=82, compression_fidelity=100.0, evidence_traceability=86, role_specificity=100.0, information_sufficiency=70, noise_control=84, leakage_control=85, contradiction_preservation=80
 - portfolio_quality：watchlist_items=1, paper_actions=1, real_trade_violations=0, review_dates_present=1
 - portfolio_review_quality：reviewed_actions=1, attribution_items=1, learning_candidates=1, real_trade_violations=0, review_verdict=paper_review_recorded
+- outcome_tracking_quality：outcome_status=evaluated_with_market_replay, actions_evaluated=1, actions_missing_market_replay=0, market_replay_items=1, outcome_quality_score=88
 - agent_harness_quality：agent_count=9, context_compression=100.0, skill_invocation=100.0, role_consistency=100.0, overall=100.0
 - agent_harness：agent_count=9，aggregate_scores=context_compression=100.0, skill_invocation=100.0, role_consistency=100.0, overall=100.0
 - tool_harness_quality：overall_score=95.0, public_research_items=4, primary_public_items=2, low_tier_public_items=1, high_confidence_allowed=True, blocking_issues=[]

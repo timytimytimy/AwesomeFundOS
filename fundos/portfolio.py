@@ -127,11 +127,15 @@ def write_portfolio_artifacts(run_path: Path, memo: dict[str, Any], evidence_pac
 
 
 def build_portfolio_review(run_path: Path) -> dict[str, Any]:
+    from fundos.outcomes import load_outcome_tracking
+
     state = load_portfolio_state(run_path)
+    outcome = load_outcome_tracking(run_path)
     watch_items = state["watchlist"].get("items", [])
     actions = state["paper_portfolio"].get("actions", [])
     constraints = state["paper_portfolio"].get("constraints", {})
-    attribution_items = [build_attribution_item(action, watch_items, constraints) for action in actions]
+    outcome_by_action = {row.get("action_id"): row for row in outcome.get("results", [])}
+    attribution_items = [build_attribution_item(action, watch_items, constraints, outcome_by_action.get(action.get("action_id"))) for action in actions]
     real_trade_violations = sum(1 for item in attribution_items if item.get("real_trade_violation"))
     learning_candidates = [build_review_candidate(item) for item in attribution_items]
     return {
@@ -142,6 +146,12 @@ def build_portfolio_review(run_path: Path) -> dict[str, Any]:
         "watchlist_items": len(watch_items),
         "attribution_items": attribution_items,
         "learning_candidates": learning_candidates,
+        "outcome_tracking": {
+            "status": outcome.get("outcome_status", "missing_market_replay"),
+            "results_evaluated": outcome.get("actions_evaluated", 0),
+            "missing_market_replay": outcome.get("actions_missing_market_replay", 0),
+            "outcome_quality_score": outcome.get("outcome_quality_score", 0),
+        },
         "real_trade_violations": real_trade_violations,
         "review_verdict": "blocked_real_trade_violation" if real_trade_violations else "paper_review_recorded",
         "controls": ["paper_only", "no_broker_integration", "no_real_trade_action", "review_before_upgrade"],
@@ -149,7 +159,7 @@ def build_portfolio_review(run_path: Path) -> dict[str, Any]:
     }
 
 
-def build_attribution_item(action: dict[str, Any], watch_items: list[dict[str, Any]], constraints: dict[str, Any]) -> dict[str, Any]:
+def build_attribution_item(action: dict[str, Any], watch_items: list[dict[str, Any]], constraints: dict[str, Any], outcome_row: dict[str, Any] | None = None) -> dict[str, Any]:
     watch = next((item for item in watch_items if item.get("watchlist_id") == action.get("watchlist_id")), {})
     evidence_refs = action.get("evidence_references", [])
     target_weight = float(action.get("target_weight", 0) or 0)
@@ -160,7 +170,7 @@ def build_attribution_item(action: dict[str, Any], watch_items: list[dict[str, A
         status = "watchlist_only_pending_evidence"
     else:
         status = "paper_position_pending_outcome"
-    return {
+    item = {
         "action_id": action.get("action_id"),
         "run_id": action.get("run_id"),
         "watchlist_id": action.get("watchlist_id"),
@@ -171,7 +181,7 @@ def build_attribution_item(action: dict[str, Any], watch_items: list[dict[str, A
         "evidence_count": len(evidence_refs),
         "trigger_count": len(watch.get("triggers", [])),
         "risk_control_count": len(action.get("risk_controls", [])),
-        "outcome_status": "not_due_or_no_market_data",
+        "outcome_status": outcome_row.get("outcome_status") if outcome_row else "not_due_or_no_market_data",
         "attribution_status": status,
         "attribution_notes": [
             "No live price/outcome adapter in V1; attribution records process quality and review readiness.",
@@ -180,6 +190,15 @@ def build_attribution_item(action: dict[str, Any], watch_items: list[dict[str, A
         "real_trade_violation": real_trade_violation,
         "broker_integration": constraints.get("broker_integration", "disabled"),
     }
+    if outcome_row and outcome_row.get("outcome_status") == "evaluated_with_market_replay":
+        item.update({
+            "return_pct": outcome_row.get("return_pct"),
+            "max_drawdown_pct": outcome_row.get("max_drawdown_pct"),
+            "max_favorable_excursion_pct": outcome_row.get("max_favorable_excursion_pct"),
+            "max_adverse_excursion_pct": outcome_row.get("max_adverse_excursion_pct"),
+            "outcome_review_verdict": outcome_row.get("review_verdict"),
+        })
+    return item
 
 
 def build_review_candidate(item: dict[str, Any]) -> dict[str, Any]:

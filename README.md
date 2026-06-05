@@ -23,6 +23,7 @@ V1 聚焦 A 股主观投资研究场景，用户只输入投资议题、股票�
   -> FundManager 模拟投委会决策备忘录
   -> Runtime / Context / Evolution Harness
   -> ReviewArchive / Watchlist / Paper Portfolio Review / Attribution
+  -> Outcome Tracking / Market Replay
   -> Memory / Principles / Skill 升级候选
   -> EvolutionGate
   -> Capability Versioning / Approval Queue
@@ -43,4 +44,4 @@ V1 聚焦 A 股主观投资研究场景，用户只输入投资议题、股票�
 
 V1 输出为模拟投委会研究决策备忘录、观察池动作和模拟组合观点，不构成投资建议，不接真实交易，不自动下单。
 
-Portfolio Review 仅复盘观察池和 Paper Portfolio 的过程质量、证据引用、风控约束和后验数据缺口；它不是收益承诺、真实交易归因或买卖信号。
+Portfolio Review 和 Outcome Tracking 仅复盘观察池和 Paper Portfolio 的过程质量、证据引用、风控约束、离线行情 fixture 结果和后验数据缺口；它不是收益承诺、真实交易归因或买卖信号。

@@ -5,6 +5,7 @@ from typing import Any
 
 from fundos.agent_harness import load_agent_harness
 from fundos.case_replay import load_case_replay
+from fundos.outcomes import load_outcome_tracking
 from fundos.portfolio import load_portfolio_state
 from fundos.tool_harness import load_tool_harness
 
@@ -38,7 +39,9 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     case_replay = load_case_replay(run_path) if run_path else {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0, "passed_results": 0, "high_overfit_results": 0}
     agent_harness = load_agent_harness(run_path)
     tool_harness = load_tool_harness(run_path)
+    outcome_tracking = load_outcome_tracking(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
+    outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
     portfolio_review = portfolio.get("portfolio_review", {})
     attribution_items = portfolio.get("attribution", []) or portfolio_review.get("attribution_items", [])
@@ -58,6 +61,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("agent_harness")
     if tool_harness.get("high_confidence_allowed"):
         accepted_outputs.append("tool_harness")
+    if outcome_tracking.get("actions_evaluated", 0) > 0:
+        accepted_outputs.append("outcome_tracking")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -81,6 +86,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "tool_usage_quality": tool_usage_quality,
             "context_quality": 80,
             "historical_case_replay": case_replay_score,
+            "outcome_tracking": outcome_score,
         },
         "context_quality_scores": {
             "relevance": 82,
@@ -119,6 +125,13 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "learning_candidates": len(review_candidates),
             "real_trade_violations": review_real_trade_violations,
             "review_verdict": portfolio_review.get("review_verdict", "not_reviewed"),
+        },
+        "outcome_tracking_quality": {
+            "outcome_status": outcome_tracking.get("outcome_status", "missing_market_replay"),
+            "actions_evaluated": outcome_tracking.get("actions_evaluated", 0),
+            "actions_missing_market_replay": outcome_tracking.get("actions_missing_market_replay", 0),
+            "market_replay_items": outcome_tracking.get("market_replay_items", 0),
+            "outcome_quality_score": outcome_score,
         },
         "case_replay_quality": {
             "patterns_replayed": case_replay.get("patterns_replayed", 0),

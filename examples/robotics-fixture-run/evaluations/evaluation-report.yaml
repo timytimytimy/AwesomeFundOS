@@ -14,6 +14,7 @@ dimension_scores:
   tool_usage_quality: 70
   context_quality: 80
   historical_case_replay: 74.8
+  outcome_tracking: 88
 context_quality_scores:
   relevance: 82
   compression_fidelity: 100.0
@@ -47,6 +48,12 @@ portfolio_review_quality:
   learning_candidates: 1
   real_trade_violations: 0
   review_verdict: paper_review_recorded
+outcome_tracking_quality:
+  outcome_status: evaluated_with_market_replay
+  actions_evaluated: 1
+  actions_missing_market_replay: 0
+  market_replay_items: 1
+  outcome_quality_score: 88
 case_replay_quality:
   patterns_replayed: 3
   case_results_total: 9
@@ -124,4 +131,5 @@ accepted_outputs:
 - portfolio_review
 - agent_harness
 - tool_harness
+- outcome_tracking
 rejected_outputs: []

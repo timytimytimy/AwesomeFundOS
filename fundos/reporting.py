@@ -8,6 +8,7 @@ from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml
 from fundos.capabilities import load_capability_summary
 from fundos.learning import build_learning_source_registry
 from fundos.memory import load_memory_writeback_summary
+from fundos.outcomes import load_outcome_tracking
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -31,6 +32,7 @@ def build_first_version_report(run_path: Path) -> str:
     watchlist = read_optional_yaml(run_path / "portfolio" / "watchlist.yaml", {"items": []})
     paper_portfolio = read_optional_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {"actions": []})
     portfolio_review = read_optional_yaml(run_path / "portfolio" / "portfolio-review.yaml", {"reviewed_actions": 0, "attribution_items": [], "learning_candidates": []})
+    outcome_tracking = load_outcome_tracking(run_path)
     case_replay = read_optional_yaml(run_path / "harness" / "historical-case-replay.yaml", {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0})
     agent_harness = read_optional_yaml(run_path / "harness" / "agent-harness.yaml", {"agent_count": 0, "aggregate_scores": {}})
     tool_harness = read_optional_yaml(run_path / "harness" / "tool-harness.yaml", {"overall_score": 0, "adapter_coverage": {}, "source_boundary_quality": {}})
@@ -117,6 +119,7 @@ def build_first_version_report(run_path: Path) -> str:
         f"- attribution_items：{len(portfolio_review.get('attribution_items', []))}",
         f"- review_learning_candidates：{len(portfolio_review.get('learning_candidates', []))}",
         f"- review_verdict：{portfolio_review.get('review_verdict', 'not_reviewed')}",
+        f"- outcome_tracking：status={outcome_tracking.get('outcome_status')}，actions_evaluated={outcome_tracking.get('actions_evaluated', 0)}，score={outcome_tracking.get('outcome_quality_score', 0)}",
         f"- real_trade_allowed：{any(action.get('real_trade_allowed') for action in paper_portfolio.get('actions', []))}",
         "- artifact_paths：portfolio/watchlist.yaml；portfolio/paper-portfolio.yaml；portfolio/portfolio-actions.jsonl；portfolio/portfolio-review.yaml；portfolio/attribution.jsonl；portfolio/review-candidates.jsonl",
         "",
@@ -136,6 +139,7 @@ def build_first_version_report(run_path: Path) -> str:
         "- context_quality_scores：" + inline_counts(evaluation.get("context_quality_scores", {})),
         "- portfolio_quality：" + inline_counts(evaluation.get("portfolio_quality", {})),
         "- portfolio_review_quality：" + inline_counts(evaluation.get("portfolio_review_quality", {})),
+        "- outcome_tracking_quality：" + inline_counts(evaluation.get("outcome_tracking_quality", {})),
         "- agent_harness_quality：" + inline_counts(evaluation.get("agent_harness_quality", {})),
         "- agent_harness：agent_count=" + str(agent_harness.get("agent_count", 0)) + "，aggregate_scores=" + inline_counts(agent_harness.get("aggregate_scores", {})),
         "- tool_harness_quality：" + inline_counts(evaluation.get("tool_harness_quality", {})),

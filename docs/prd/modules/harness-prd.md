@@ -98,9 +98,9 @@ runs/{run_id}/harness/historical-case-replay.yaml
 
 Harness Evaluation 需要把回放摘要写入 `case_replay_quality`，并把 `historical_case_replay` 放入 dimension_scores。
 
-### Level 3 Outcome Tracking Stub
+### Level 3 Outcome Tracking / Market Replay Harness
 
-V1 只做轻量结构，但必须形成可评测的复盘闭环：
+V1 只做轻量结构，但必须形成可评测的复盘闭环。支持离线 market replay fixture，不接实时行情、不接券商、不生成真实交易动作：
 
 - watchlist_tracking
 - paper_portfolio_review
@@ -116,13 +116,24 @@ runs/{run_id}/portfolio/attribution.jsonl
 runs/{run_id}/portfolio/review-candidates.jsonl
 ```
 
+Outcome Tracking 产物：
+
+```text
+runs/{run_id}/portfolio/outcome-tracking.yaml
+runs/{run_id}/portfolio/outcome-attribution.jsonl
+```
+
 复盘输入：`watchlist.yaml`、`paper-portfolio.yaml`、`portfolio-actions.jsonl`、风控约束和证据引用。
 
 复盘输出：reviewed_actions、attribution_items、learning_candidates、real_trade_violations、review_verdict、controls。
 
+Outcome Tracking 输出：actions_evaluated、actions_missing_market_replay、market_replay_items、return_pct、max_drawdown_pct、max_favorable_excursion_pct、max_adverse_excursion_pct、review_verdict、outcome_quality_score。
+
 核心控制：`paper_only`、`no_broker_integration`、`no_real_trade_action`、`review_before_upgrade`。
 
-V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程质量、证据数量、触发条件、风控约束和后验数据缺口；不得把 Portfolio Review 解释为真实收益归因或买卖信号。
+Outcome Tracking 核心控制：`paper_only`、`market_replay_is_not_trade_signal`、`no_real_trade_action`、`no_broker_integration`、`outcome_tracking_requires_fixture_or_adapter`。
+
+V1 没有真实成交回放 adapter；离线行情 fixture 只用于后验训练和 Harness 评分，不得把 Outcome Tracking 解释为真实收益归因或买卖信号。没有行情 fixture 时，必须记录 `missing_market_replay`，不能把缺数据当作通过。
 
 ## 3. EvaluationReport
 
@@ -134,6 +145,7 @@ V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程�
 - context_quality_scores
 - portfolio_quality
 - portfolio_review_quality
+- outcome_tracking_quality
 - agent_harness_quality
 - tool_harness_quality
 - case_replay_quality
@@ -177,6 +189,7 @@ V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程�
 - `fundos evolve --run <run>` 能生成 EvolutionGateResult。
 - Harness 能给出维度分数和阻断项。
 - Harness 能读取 Watchlist / Paper Portfolio Review，并输出 `portfolio_review_quality`。
+- Harness 能读取离线 Market Replay Outcome Tracking，并输出 `outcome_tracking_quality`。
 - Harness 能读取 per-agent Context / Skill / Role 评分，并输出 `agent_harness_quality`。
 - Harness 能读取工具和来源边界评分，并输出 `tool_harness_quality`。
 - Harness 能拒绝低质量升级候选。

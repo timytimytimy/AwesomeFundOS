@@ -14,7 +14,7 @@ attribution_items:
   evidence_count: 6
   trigger_count: 3
   risk_control_count: 7
-  outcome_status: not_due_or_no_market_data
+  outcome_status: evaluated_with_market_replay
   attribution_status: watchlist_only_pending_evidence
   attribution_notes:
   - No live price/outcome adapter in V1; attribution records process quality and review
@@ -22,6 +22,11 @@ attribution_items:
   - Paper portfolio review is not a real trading signal.
   real_trade_violation: false
   broker_integration: disabled
+  return_pct: 12.0
+  max_drawdown_pct: -2.83
+  max_favorable_excursion_pct: 12.0
+  max_adverse_excursion_pct: 0.0
+  outcome_review_verdict: missed_opportunity_review
 learning_candidates:
 - candidate_id: portfolio_review_ppa_2026-06-06-cn-topic_001
   run_id: 2026-06-06-cn-topic
@@ -39,6 +44,11 @@ learning_candidates:
   - role_drift_check
   - evidence_quality_check
   status: proposed
+outcome_tracking:
+  status: evaluated_with_market_replay
+  results_evaluated: 1
+  missing_market_replay: 0
+  outcome_quality_score: 88
 real_trade_violations: 0
 review_verdict: paper_review_recorded
 controls:

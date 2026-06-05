@@ -1,0 +1,15 @@
+version: 0.1.0
+market_replay:
+  机器人产业链投资机会:
+    - date: '2026-06-01'
+      close: 100.0
+      volume: 1000
+    - date: '2026-06-02'
+      close: 106.0
+      volume: 1500
+    - date: '2026-06-03'
+      close: 103.0
+      volume: 1300
+    - date: '2026-06-04'
+      close: 112.0
+      volume: 1800

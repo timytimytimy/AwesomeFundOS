@@ -1,0 +1,36 @@
+version: 0.1.0
+artifact_type: portfolio_outcome_tracking
+run_id: 2026-06-06-cn-topic
+outcome_status: evaluated_with_market_replay
+actions_evaluated: 1
+actions_missing_market_replay: 0
+market_replay_items: 1
+outcome_quality_score: 88
+results:
+- action_id: ppa_2026-06-06-cn-topic_001
+  run_id: 2026-06-06-cn-topic
+  watchlist_id: wl_2026-06-06-cn-topic
+  subject: 机器人产业链投资机会
+  action_type: watchlist_only
+  target_weight: 0.0
+  real_trade_allowed: false
+  broker_integration: disabled
+  disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。
+  outcome_status: evaluated_with_market_replay
+  start_date: '2026-06-01'
+  end_date: '2026-06-04'
+  start_close: 100.0
+  end_close: 112.0
+  bars: 4
+  return_pct: 12.0
+  max_drawdown_pct: -2.83
+  max_favorable_excursion_pct: 12.0
+  max_adverse_excursion_pct: 0.0
+  review_verdict: missed_opportunity_review
+controls:
+- paper_only
+- market_replay_is_not_trade_signal
+- no_real_trade_action
+- no_broker_integration
+- outcome_tracking_requires_fixture_or_adapter
+disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。

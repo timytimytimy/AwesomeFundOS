@@ -65,6 +65,8 @@ class FundosCliTests(unittest.TestCase):
                 "portfolio/portfolio-review.yaml",
                 "portfolio/attribution.jsonl",
                 "portfolio/review-candidates.jsonl",
+                "portfolio/outcome-tracking.yaml",
+                "portfolio/outcome-attribution.jsonl",
                 "harness/historical-case-replay.yaml",
                 "harness/agent-harness.yaml",
                 "harness/tool-harness.yaml",
@@ -118,12 +120,15 @@ class FundosCliTests(unittest.TestCase):
             watchlist = yaml.safe_load((run_path / "portfolio/watchlist.yaml").read_text())
             paper = yaml.safe_load((run_path / "portfolio/paper-portfolio.yaml").read_text())
             review = yaml.safe_load((run_path / "portfolio/portfolio-review.yaml").read_text())
+            outcome = yaml.safe_load((run_path / "portfolio/outcome-tracking.yaml").read_text())
             self.assertTrue(watchlist["items"])
             self.assertTrue(paper["actions"])
             self.assertFalse(paper["actions"][0]["real_trade_allowed"])
             self.assertEqual(review["artifact_type"], "portfolio_review")
             self.assertEqual(review["reviewed_actions"], 1)
             self.assertEqual(review["real_trade_violations"], 0)
+            self.assertEqual(outcome["artifact_type"], "portfolio_outcome_tracking")
+            self.assertIn("outcome_tracking", review)
 
     def test_eval_and_evolve_can_reprocess_run(self):
         with tempfile.TemporaryDirectory() as d:
@@ -140,6 +145,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("context_quality", report["dimension_scores"])
             self.assertIn("case_replay_quality", report)
             self.assertIn("portfolio_review_quality", report)
+            self.assertIn("outcome_tracking_quality", report)
             self.assertIn("agent_harness_quality", report)
             self.assertIn("tool_harness_quality", report)
             self.assertIn("portfolio_review", report["accepted_outputs"])
@@ -282,6 +288,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("portfolio_review_quality", text)
             self.assertIn("agent_harness_quality", text)
             self.assertIn("tool_harness_quality", text)
+            self.assertIn("outcome_tracking_quality", text)
 
     def test_seed_library_contains_verified_practitioner_and_classics(self):
         seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"
