@@ -1,0 +1,59 @@
+version: 0.1.0
+agent_id: cyclical_macro_analyst
+role: CyclicalMacroAnalyst
+context_policy_id: industry_research_context
+role_family: industry
+token_budget: 7600
+max_context_items: 8
+preferred_context_tags:
+- industry
+- company
+preferred_source_tiers:
+- tier_1_primary_fact
+- tier_2_canonical_framework
+- tier_3_verified_public_practitioner
+preferred_claim_types:
+- fact
+- inference
+- hypothesis
+- opinion
+must_preserve:
+- evidence_ids
+- claim_ids
+- contradictions
+- missing_evidence
+- source_tiers
+- low_confidence_claims
+compression_style:
+- supply_chain_map
+- chokepoint_table
+- research_gap_table
+priority_lenses:
+- industry_structure
+- supply_chain_chokepoint
+- policy_to_demand
+- adoption_stage
+- primary_validation
+required_focus:
+- 产业链
+- chokepoint
+- 需求验证
+exclusion_rules:
+- real_trade_orders
+- personal_financial_advice
+- uncited_high_confidence_claims
+- brokerage_instructions
+evidence_selection:
+  match_mode: claim_relevance_tag_overlap
+  include_governance_agents_all_claims: false
+  prefer_primary_sources: true
+  cap_low_tier_confidence: true
+  kol_and_books_as_methodology_only: true
+harness_checks:
+- source_policy_match
+- context_budget_respected
+- must_preserve_satisfied
+- role_focus_alignment
+- no_real_trade_action
+real_trade_allowed: false
+broker_integration: false

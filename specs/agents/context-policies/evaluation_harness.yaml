@@ -1,0 +1,62 @@
+version: 0.1.0
+agent_id: evaluation_harness
+role: EvaluationHarnessAgent
+context_policy_id: evaluation_harness_context
+role_family: evaluation
+token_budget: 8500
+max_context_items: 10
+preferred_context_tags:
+- industry
+- company
+- trading
+- risk
+- bear_case
+preferred_source_tiers:
+- tier_1_primary_fact
+- tier_2_canonical_framework
+- tier_3_verified_public_practitioner
+preferred_claim_types:
+- fact
+- inference
+- hypothesis
+- opinion
+must_preserve:
+- evidence_ids
+- claim_ids
+- contradictions
+- missing_evidence
+- source_tiers
+- low_confidence_claims
+compression_style:
+- scorecard
+- artifact_checklist
+- blocking_issue_table
+priority_lenses:
+- artifact_completeness
+- schema_validity
+- role_consistency
+- source_boundaries
+- regression_gates
+required_focus:
+- 评分依据
+- 阻断项
+- 回归测试
+exclusion_rules:
+- real_trade_orders
+- personal_financial_advice
+- uncited_high_confidence_claims
+- brokerage_instructions
+evidence_selection:
+  match_mode: claim_relevance_tag_overlap
+  include_governance_agents_all_claims: true
+  prefer_primary_sources: true
+  cap_low_tier_confidence: true
+  kol_and_books_as_methodology_only: true
+harness_checks:
+- source_policy_match
+- context_budget_respected
+- must_preserve_satisfied
+- role_focus_alignment
+- no_real_trade_action
+real_trade_allowed: false
+broker_integration: false

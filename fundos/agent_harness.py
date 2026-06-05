@@ -58,6 +58,7 @@ def default_report() -> dict[str, Any]:
         "agent_count": 0,
         "aggregate_scores": {
             "context_compression": 0,
+            "context_policy": 0,
             "skill_invocation": 0,
             "role_consistency": 0,
             "overall": 0,
@@ -69,17 +70,19 @@ def default_report() -> dict[str, Any]:
 
 def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
     context_quality = evaluate_context_compression(context, output)
+    context_policy_quality = evaluate_context_policy(context)
     skill_quality = evaluate_skill_invocation(context, output)
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + skill_quality["score"] + role_quality["score"]) / 3, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 4, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
         "overall_score": overall,
         "context_compression_quality": context_quality,
+        "context_policy_quality": context_policy_quality,
         "skill_invocation_quality": skill_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, skill_quality, role_quality),
     }
 
 
@@ -117,6 +120,46 @@ def evaluate_context_compression(context: dict[str, Any], output: dict[str, Any]
         "contradiction_preserved": bool(contradictions),
         "missing_evidence_preserved": bool(missing),
         "noise_control_present": bool(context.get("excluded_evidence_summary")),
+    }
+
+
+def evaluate_context_policy(context: dict[str, Any]) -> dict[str, Any]:
+    policy = context.get("context_policy", {})
+    included = context.get("included_evidence", [])
+    must_preserve = set(policy.get("must_preserve", []))
+    harness_checks = set(policy.get("harness_checks", []))
+    matched_tags = {tag for item in included for tag in item.get("policy_matched_tags", [])}
+    preferred_tags = set(policy.get("preferred_context_tags", []))
+    max_items = int(policy.get("max_context_items", 0) or 0)
+    source_policy_match = bool(policy.get("available", True)) and bool(policy.get("source_path"))
+    budget_respected = not max_items or len(included) <= max_items
+    must_preserve_satisfied = {"evidence_ids", "claim_ids", "contradictions", "missing_evidence"} <= must_preserve and bool(context.get("contradiction_table")) and bool(context.get("missing_evidence"))
+    role_focus_alignment = not included or bool(matched_tags & preferred_tags) or bool(policy.get("evidence_selection", {}).get("include_governance_agents_all_claims"))
+    no_real_trade_action = policy.get("real_trade_allowed") is False and policy.get("broker_integration") is False
+    score = 30
+    if source_policy_match:
+        score += 15
+    if budget_respected:
+        score += 15
+    if must_preserve_satisfied:
+        score += 20
+    if role_focus_alignment:
+        score += 10
+    if no_real_trade_action:
+        score += 10
+    return {
+        "score": min(100, score),
+        "policy_available": bool(policy.get("available", True)),
+        "source_policy_match": source_policy_match,
+        "context_budget_respected": budget_respected,
+        "must_preserve_satisfied": must_preserve_satisfied,
+        "role_focus_alignment": role_focus_alignment,
+        "no_real_trade_action": no_real_trade_action,
+        "harness_checks_present": sorted(harness_checks),
+        "preferred_context_tags": sorted(preferred_tags),
+        "matched_context_tags": sorted(matched_tags),
+        "max_context_items": max_items,
+        "included_evidence": len(included),
     }
 
 
@@ -184,15 +227,17 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
+    policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
     role_score = avg(row["role_consistency_quality"]["score"] for row in agent_results)
     return {
         "context_compression": context_score,
+        "context_policy": policy_score,
         "skill_invocation": skill_score,
         "role_consistency": role_score,
-        "overall": round((context_score + skill_score + role_score) / 3, 1),
+        "overall": round((context_score + policy_score + skill_score + role_score) / 4, 1),
     }
 
 

@@ -1,0 +1,62 @@
+version: 0.1.0
+agent_id: review_archivist
+role: ReviewArchivistAgent
+context_policy_id: review_archivist_context
+role_family: archivist
+token_budget: 7000
+max_context_items: 10
+preferred_context_tags:
+- industry
+- company
+- trading
+- risk
+- bear_case
+preferred_source_tiers:
+- tier_1_primary_fact
+- tier_2_canonical_framework
+- tier_3_verified_public_practitioner
+preferred_claim_types:
+- fact
+- inference
+- hypothesis
+- opinion
+must_preserve:
+- evidence_ids
+- claim_ids
+- contradictions
+- missing_evidence
+- source_tiers
+- low_confidence_claims
+compression_style:
+- case_card
+- lineage_table
+- review_task_list
+priority_lenses:
+- run_lineage
+- artifact_paths
+- failure_patterns
+- review_tasks
+- case_replay
+required_focus:
+- 归档路径
+- 复盘任务
+- 案例复现
+exclusion_rules:
+- real_trade_orders
+- personal_financial_advice
+- uncited_high_confidence_claims
+- brokerage_instructions
+evidence_selection:
+  match_mode: claim_relevance_tag_overlap
+  include_governance_agents_all_claims: true
+  prefer_primary_sources: true
+  cap_low_tier_confidence: true
+  kol_and_books_as_methodology_only: true
+harness_checks:
+- source_policy_match
+- context_budget_respected
+- must_preserve_satisfied
+- role_focus_alignment
+- no_real_trade_action
+real_trade_allowed: false
+broker_integration: false

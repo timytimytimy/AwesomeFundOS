@@ -1,0 +1,62 @@
+version: 0.1.0
+agent_id: swing_trader
+role: SwingTrader
+context_policy_id: trader_context
+role_family: trader
+token_budget: 6500
+max_context_items: 6
+preferred_context_tags:
+- trading
+- risk
+preferred_source_tiers:
+- tier_1_primary_fact
+- tier_2_canonical_framework
+- tier_3_verified_public_practitioner
+preferred_claim_types:
+- fact
+- inference
+- hypothesis
+- opinion
+must_preserve:
+- evidence_ids
+- claim_ids
+- contradictions
+- missing_evidence
+- source_tiers
+- low_confidence_claims
+compression_style:
+- trigger_table
+- price_volume_summary
+- risk_boundary_table
+priority_lenses:
+- market_state
+- price_volume
+- trigger
+- invalidation
+- liquidity
+- position_sizing
+required_focus:
+- 量价结构
+- 买卖触发条件
+- 仓位纪律
+exclusion_rules:
+- real_trade_orders
+- personal_financial_advice
+- uncited_high_confidence_claims
+- brokerage_instructions
+- company_list_without_trigger
+- theme_story_without_price_volume
+evidence_selection:
+  match_mode: claim_relevance_tag_overlap
+  include_governance_agents_all_claims: false
+  prefer_primary_sources: true
+  cap_low_tier_confidence: true
+  kol_and_books_as_methodology_only: true
+harness_checks:
+- source_policy_match
+- context_budget_respected
+- must_preserve_satisfied
+- role_focus_alignment
+- no_real_trade_action
+real_trade_allowed: false
+broker_integration: false

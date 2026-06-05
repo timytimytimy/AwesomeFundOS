@@ -4,25 +4,35 @@ import re
 from typing import Any
 
 from fundos.io import REPO_ROOT
+from fundos.context_policies import load_context_policy
 
 
 def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
     role = agent["role"]
     agent_id = agent["id"]
-    focus = context_focus(agent_id, role)
-    included = []
+    policy = load_context_policy(agent)
+    focus = context_focus(agent_id, role, policy)
+    candidates = []
+    max_items = int(policy.get("max_context_items", 10))
+    include_all_claims = policy.get("evidence_selection", {}).get("include_governance_agents_all_claims", False)
     for item in evidence_pack["evidence_items"]:
         claims = item.get("claims", [])
+        matched_tags = sorted({tag for c in claims for tag in c.get("relevant_to", []) if tag in set(focus["tags"])})
         allowed = [c["claim_id"] for c in claims if set(c.get("relevant_to", [])) & set(focus["tags"])]
-        if allowed or agent_id in {"chief_of_staff", "fund_manager", "evaluation_harness", "review_archivist"}:
-            included.append(
+        if allowed or include_all_claims:
+            candidates.append(
                 {
                     "evidence_id": item["id"],
-                    "reason": f"relevant to {role}",
+                    "source_id": item.get("source_id", ""),
+                    "source_tier": item.get("source_tier", ""),
+                    "source_type": item.get("source_type", ""),
+                    "reason": f"matched context policy {policy.get('context_policy_id')} for {role}",
                     "compressed_summary": item["summary"],
                     "allowed_claims": allowed or [c["claim_id"] for c in claims],
+                    "policy_matched_tags": matched_tags or focus["tags"],
                 }
             )
+    included = sorted(candidates, key=context_candidate_rank)[:max_items]
     return {
         "context_pack_id": f"ctx_{agent_id}",
         "run_id": run_id,
@@ -30,8 +40,9 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "role": role,
         "agent_card": load_agent_card(agent_id),
         "skill_contract": load_skill_contract(agent_id),
+        "context_policy": policy,
         "task_stage": "specialist_analysis",
-        "context_budget_tokens": 8000,
+        "context_budget_tokens": policy.get("token_budget", 8000),
         "included_evidence": included,
         "contradiction_table": [
             {
@@ -45,9 +56,26 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
             {"category": "irrelevant noise", "reason": "V1 context router excludes non-role evidence by relevance tags"}
         ],
         "required_focus": focus["required"],
-        "forbidden_focus": ["不要输出真实交易指令", "不要把低等级来源当作一手事实"],
+        "forbidden_focus": policy.get("exclusion_rules", []) + ["不要输出真实交易指令", "不要把低等级来源当作一手事实"],
+        "context_quality_controls": policy.get("harness_checks", []),
         "output_schema": f"{role}Output",
     }
+
+
+def context_candidate_rank(item: dict[str, Any]) -> tuple[int, int, str]:
+    tier_rank = {
+        "tier_1_primary_fact": 0,
+        "tier_2_canonical_framework": 1,
+        "tier_3_verified_public_practitioner": 2,
+        "tier_4_expert_opinion": 3,
+        "tier_5_social_signal": 4,
+        "tier_6_unverified": 5,
+    }.get(item.get("source_tier", ""), 6)
+    # Run-specific public retrieval should not be starved by static seed patterns;
+    # social public results are still low confidence, but must be visible so the
+    # agent can label them as sentiment rather than silently dropping them.
+    source_rank = 0 if item.get("source_id") == "public_research" else 1
+    return (source_rank, tier_rank, item.get("evidence_id", ""))
 
 
 def load_agent_card(agent_id: str) -> dict[str, Any]:
@@ -157,7 +185,9 @@ def compact_section(text: str, heading: str, max_lines: int) -> str:
     return "\n".join(lines[:max_lines])
 
 
-def context_focus(agent_id: str, role: str) -> dict[str, Any]:
+def context_focus(agent_id: str, role: str, policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    if policy:
+        return {"tags": policy.get("preferred_context_tags", []), "required": policy.get("required_focus", [])}
     if "Trader" in role:
         return {"tags": ["trading", "risk"], "required": ["量价结构", "买卖触发条件", "仓位纪律"]}
     if "Risk" in role:

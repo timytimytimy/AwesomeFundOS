@@ -1,0 +1,60 @@
+version: 0.1.0
+agent_id: quality_growth_company_analyst
+role: QualityGrowthCompanyAnalyst
+context_policy_id: company_research_context
+role_family: company
+token_budget: 7600
+max_context_items: 8
+preferred_context_tags:
+- company
+- risk
+preferred_source_tiers:
+- tier_1_primary_fact
+- tier_2_canonical_framework
+- tier_3_verified_public_practitioner
+preferred_claim_types:
+- fact
+- inference
+- hypothesis
+- opinion
+must_preserve:
+- evidence_ids
+- claim_ids
+- contradictions
+- missing_evidence
+- source_tiers
+- low_confidence_claims
+compression_style:
+- company_evidence_table
+- financial_quality_table
+- valuation_sensitivity_table
+priority_lenses:
+- filings
+- financial_quality
+- revenue_exposure
+- customer_evidence
+- governance
+- valuation
+required_focus:
+- 财报公告
+- 产品和订单
+- 治理风险
+exclusion_rules:
+- real_trade_orders
+- personal_financial_advice
+- uncited_high_confidence_claims
+- brokerage_instructions
+evidence_selection:
+  match_mode: claim_relevance_tag_overlap
+  include_governance_agents_all_claims: false
+  prefer_primary_sources: true
+  cap_low_tier_confidence: true
+  kol_and_books_as_methodology_only: true
+harness_checks:
+- source_policy_match
+- context_budget_respected
+- must_preserve_satisfied
+- role_focus_alignment
+- no_real_trade_action
+real_trade_allowed: false
+broker_integration: false

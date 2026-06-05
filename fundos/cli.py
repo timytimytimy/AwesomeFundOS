@@ -15,6 +15,7 @@ from fundos.agent_performance import load_performance_summary, write_agent_perfo
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.case_replay import run_case_replay
 from fundos.context import context_focus, make_context_pack
+from fundos.context_policies import load_context_policy
 from fundos.decision import make_decision_memo, write_decision_markdown
 from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
@@ -158,19 +159,10 @@ def biases_for(agent: dict[str, Any]) -> list[str]:
     return ["May overweight well-structured team inputs."]
 
 def build_context_policy(agent: dict[str, Any]) -> dict[str, Any]:
-    focus = context_focus(agent["id"], agent["role"])
-    return {
-        "id": agent.get("context_policy_id"),
-        "agent_id": agent["id"],
-        "preferred_context_tags": focus["tags"],
-        "preferred_evidence_tiers": ["tier_1_primary_fact", "tier_2_canonical_framework", "tier_3_verified_public_practitioner"],
-        "preferred_claim_types": ["fact", "inference", "hypothesis", "opinion"],
-        "max_token_budget": 8000,
-        "compression_style": ["claim_table", "bullet_summary", "contradiction_table"],
-        "must_preserve": ["evidence_ids", "claim_ids", "contradictions", "low_confidence_claims", "missing_evidence"],
-        "required_focus": focus["required"],
-        "forbidden_focus": ["real_trade_orders", "personal_financial_advice", "uncited_high_confidence_claims"],
-    }
+    policy = load_context_policy(agent)
+    policy["id"] = policy.get("context_policy_id")
+    policy["max_token_budget"] = policy.get("token_budget")
+    return policy
 
 def build_model_policy(agent: dict[str, Any]) -> dict[str, Any]:
     role = agent.get("role", "")
