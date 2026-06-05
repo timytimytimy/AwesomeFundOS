@@ -58,6 +58,26 @@ Agent-level harness 对每个 selected agent 输出：
 
 Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，并在有有效产物时把 `agent_harness` 放入 accepted_outputs。
 
+### Tool / Source Adapter Harness
+
+V1 需要把工具调用和来源质量作为一等 Harness，而不是只看最终 EvidencePack。产物：
+
+```text
+runs/{run_id}/harness/tool-harness.yaml
+```
+
+Tool Harness 评估：
+
+- adapter_coverage：public research 是否接入、是否取得一手公告/政策/行情类来源、低等级公开来源是否占主导；
+- source_boundary_quality：KOL / 大V / 书籍 / 课程 / 历史案例是否被正确标记为 methodology / hypothesis，而非直接事实或买卖信号；
+- source_tier_counts 与 source_type_counts；
+- high_confidence_allowed：只有公开检索中存在一手来源且低等级来源未主导时才允许高置信升级；
+- blocking_issues：缺 public research、公开检索无一手来源、社媒来源主导、KOL 降权边界缺失等。
+
+核心控制：`primary_source_required_for_high_confidence`、`kol_is_hypothesis_not_trade_signal`、`book_and_case_are_methodology_only`、`social_signal_never_direct_buy`。
+
+Harness Evaluation 需要把该摘要写入 `tool_harness_quality`。如果 `high_confidence_allowed=false`，最终结论必须维持证据不足或低置信状态。
+
 ### Historical Case Replay Harness
 
 Harness 必须把学习 pattern 放入历史案例回放，而不是让 Agent 直接套用案例结论。V1 回放产物：
@@ -115,6 +135,7 @@ V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程�
 - portfolio_quality
 - portfolio_review_quality
 - agent_harness_quality
+- tool_harness_quality
 - case_replay_quality
 - agent_scores
 - collaboration_graph
@@ -157,5 +178,6 @@ V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程�
 - Harness 能给出维度分数和阻断项。
 - Harness 能读取 Watchlist / Paper Portfolio Review，并输出 `portfolio_review_quality`。
 - Harness 能读取 per-agent Context / Skill / Role 评分，并输出 `agent_harness_quality`。
+- Harness 能读取工具和来源边界评分，并输出 `tool_harness_quality`。
 - Harness 能拒绝低质量升级候选。
 - 所有评分依据能引用 artifact / evidence / context / output id。

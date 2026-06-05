@@ -15,6 +15,7 @@ V1 聚焦 A 股主观投资研究场景，用户只输入投资议题、股票�
   -> ChiefOfStaff 编排与选人
   -> 自主检索公开资料
   -> EvidencePack
+  -> Tool / Source Adapter Harness
   -> Agent-specific ContextPack
   -> 多 Agent 分工研究与辩论
   -> Agent-level Harness / Context & Skill Quality

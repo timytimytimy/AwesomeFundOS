@@ -95,6 +95,8 @@
 - portfolio_review_quality：reviewed_actions=1, attribution_items=1, learning_candidates=1, real_trade_violations=0, review_verdict=paper_review_recorded
 - agent_harness_quality：agent_count=9, context_compression=100.0, skill_invocation=100.0, role_consistency=100.0, overall=100.0
 - agent_harness：agent_count=9，aggregate_scores=context_compression=100.0, skill_invocation=100.0, role_consistency=100.0, overall=100.0
+- tool_harness_quality：overall_score=95.0, public_research_items=4, primary_public_items=2, low_tier_public_items=1, high_confidence_allowed=True, blocking_issues=[]
+- tool_harness：overall_score=95.0，adapter_coverage=retrieval_plan_steps=5, public_research_items=4, primary_public_items=2, low_tier_public_items=1, announcement_items=1, policy_items=2, market_data_items=1
 - case_replay_quality：patterns_replayed=3, case_results_total=9, passed_results=8, high_overfit_results=1, case_replay_score=74.8
 - historical_case_replay：patterns_replayed=3, case_results_total=9, case_replay_score=74.8
 - blocking_issues：none

@@ -135,6 +135,7 @@
 1. 实现 EvaluationReport schema validator。
 2. 实现规则型检查：
    - source coverage
+   - tool / source adapter coverage
    - missing evidence
    - role consistency keywords / schema checks
    - forbidden investment advice language
@@ -146,6 +147,7 @@
 验收：
 
 - `fundos eval --run` 可生成评分报告。
+- `harness/tool-harness.yaml` 能评估 public research、一手来源覆盖、KOL/社媒边界和高置信阻断。
 - 缺来源、缺反方、缺风控、真实交易指令等问题会被阻断。
 
 ## 9. Phase 7: Reflection and EvolutionGate

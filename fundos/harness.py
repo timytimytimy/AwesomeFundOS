@@ -6,6 +6,7 @@ from typing import Any
 from fundos.agent_harness import load_agent_harness
 from fundos.case_replay import load_case_replay
 from fundos.portfolio import load_portfolio_state
+from fundos.tool_harness import load_tool_harness
 
 
 def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
@@ -36,6 +37,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     }
     case_replay = load_case_replay(run_path) if run_path else {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0, "passed_results": 0, "high_overfit_results": 0}
     agent_harness = load_agent_harness(run_path)
+    tool_harness = load_tool_harness(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
     portfolio_review = portfolio.get("portfolio_review", {})
@@ -54,7 +56,13 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("portfolio_review")
     if agent_harness.get("agent_count", 0):
         accepted_outputs.append("agent_harness")
+    if tool_harness.get("high_confidence_allowed"):
+        accepted_outputs.append("tool_harness")
+    for issue in tool_harness.get("blocking_issues", []):
+        if issue not in blocking:
+            blocking.append(issue)
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
+    tool_harness_adapter = tool_harness.get("adapter_coverage", {})
     return {
         "run_id": run_id,
         "overall_score": overall,
@@ -90,6 +98,14 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "skill_invocation": agent_harness_scores.get("skill_invocation", 0),
             "role_consistency": agent_harness_scores.get("role_consistency", 0),
             "overall": agent_harness_scores.get("overall", 0),
+        },
+        "tool_harness_quality": {
+            "overall_score": tool_harness.get("overall_score", 0),
+            "public_research_items": tool_harness_adapter.get("public_research_items", 0),
+            "primary_public_items": tool_harness_adapter.get("primary_public_items", 0),
+            "low_tier_public_items": tool_harness_adapter.get("low_tier_public_items", 0),
+            "high_confidence_allowed": tool_harness.get("high_confidence_allowed", False),
+            "blocking_issues": tool_harness.get("blocking_issues", []),
         },
         "portfolio_quality": {
             "watchlist_items": len(portfolio["watchlist"].get("items", [])),

@@ -23,6 +23,7 @@ from fundos.memory import load_agent_memory_summary, load_memory_writeback_summa
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient
 from fundos.reporting import write_first_version_report
+from fundos.tool_harness import write_tool_harness
 
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
 
@@ -341,6 +342,7 @@ def command_run(args: argparse.Namespace) -> int:
     (run_path / "task-brief.md").write_text(f"# Task Brief\n\n{DISCLAIMER}\n\n- input_type: {input_type}\n- value: {value}\n", encoding="utf-8")
     write_yaml(run_path / "selected-agents.yaml", {"selected_agents": selected})
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
+    write_tool_harness(run_path, evidence_pack)
     write_run_learning_patterns(run_path, [item["agent_id"] for item in selected])
     run_case_replay(run_path)
 
@@ -382,6 +384,7 @@ def command_eval(args: argparse.Namespace) -> int:
     evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
     selected = run_doc["selected_agents"]
     run_case_replay(run_path)
+    write_tool_harness(run_path, evidence)
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)

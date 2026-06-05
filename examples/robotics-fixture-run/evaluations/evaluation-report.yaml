@@ -29,6 +29,13 @@ agent_harness_quality:
   skill_invocation: 100.0
   role_consistency: 100.0
   overall: 100.0
+tool_harness_quality:
+  overall_score: 95.0
+  public_research_items: 4
+  primary_public_items: 2
+  low_tier_public_items: 1
+  high_confidence_allowed: true
+  blocking_issues: []
 portfolio_quality:
   watchlist_items: 1
   paper_actions: 1
@@ -116,4 +123,5 @@ accepted_outputs:
 - historical_case_replay
 - portfolio_review
 - agent_harness
+- tool_harness
 rejected_outputs: []

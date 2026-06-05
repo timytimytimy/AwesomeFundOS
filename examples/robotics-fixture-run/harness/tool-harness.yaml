@@ -1,0 +1,48 @@
+version: 0.1.0
+artifact_type: tool_harness_report
+run_id: 2026-06-06-cn-topic
+overall_score: 95.0
+adapter_coverage:
+  retrieval_plan_steps: 5
+  public_research_items: 4
+  primary_public_items: 2
+  low_tier_public_items: 1
+  announcement_items: 1
+  policy_items: 2
+  market_data_items: 1
+source_tier_counts:
+  tier_1_primary_fact: 5
+  tier_3_verified_public_practitioner: 4
+  tier_2_canonical_framework: 10
+  tier_4_expert_opinion: 1
+  tier_5_social_signal: 1
+source_type_counts:
+  policy: 2
+  financial_report: 1
+  market_data: 1
+  practitioner_source: 2
+  book_summary: 5
+  learning_pattern: 6
+  announcement: 1
+  web: 2
+  case: 1
+source_boundary_quality:
+  score: 95
+  methodology_items: 14
+  kol_items: 4
+  social_items: 1
+  kol_sources_downgraded: true
+  methodology_not_allowed_outputs_present: true
+  social_claims_low_confidence: true
+  controls:
+  - direct_buy_signal_forbidden
+  - methodology_requires_primary_validation
+  - social_signal_hypothesis_only
+blocking_issues: []
+high_confidence_allowed: true
+controls:
+- primary_source_required_for_high_confidence
+- kol_is_hypothesis_not_trade_signal
+- book_and_case_are_methodology_only
+- social_signal_never_direct_buy
+- real_trade_action_forbidden

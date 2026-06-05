@@ -66,6 +66,7 @@ class FundosCliTests(unittest.TestCase):
                 "portfolio/review-candidates.jsonl",
                 "harness/historical-case-replay.yaml",
                 "harness/agent-harness.yaml",
+                "harness/tool-harness.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
                 "evaluations/evaluation-report.yaml",
@@ -98,6 +99,9 @@ class FundosCliTests(unittest.TestCase):
             agent_harness = yaml.safe_load((run_path / "harness/agent-harness.yaml").read_text())
             self.assertEqual(agent_harness["agent_count"], len(run_doc["selected_agents"]))
             self.assertIn("skill_invocation", agent_harness["aggregate_scores"])
+            tool_harness = yaml.safe_load((run_path / "harness/tool-harness.yaml").read_text())
+            self.assertIn("adapter_coverage", tool_harness)
+            self.assertIn("source_boundary_quality", tool_harness)
 
             for agent_id in ids:
                 self.assertTrue((run_path / "context" / f"{agent_id}.context-pack.yaml").exists(), agent_id)
@@ -133,6 +137,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("case_replay_quality", report)
             self.assertIn("portfolio_review_quality", report)
             self.assertIn("agent_harness_quality", report)
+            self.assertIn("tool_harness_quality", report)
             self.assertIn("portfolio_review", report["accepted_outputs"])
             self.assertIn("agent_harness", report["accepted_outputs"])
 
@@ -265,6 +270,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("EvolutionGate", text)
             self.assertIn("portfolio_review_quality", text)
             self.assertIn("agent_harness_quality", text)
+            self.assertIn("tool_harness_quality", text)
 
     def test_seed_library_contains_verified_practitioner_and_classics(self):
         seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"

@@ -99,10 +99,29 @@ Serenity / aleabitoreddit 在 V1 默认属于该层级，可作为方法论源�
 - 低等级证据可作为线索，但必须被标注。
 - 所有重要结论必须能回链到 Evidence ID / Claim ID。
 
-## 8. 验收标准
+## 8. Tool / Source Adapter Harness
+
+Evidence System 必须向 Harness 暴露工具和来源质量，而不是只输出扁平证据列表。V1 产物：
+
+```text
+runs/{run_id}/harness/tool-harness.yaml
+```
+
+该产物至少包含：
+
+- adapter_coverage：public research items、primary public items、low-tier public items；
+- source_tier_counts / source_type_counts；
+- source_boundary_quality：KOL / 书籍 / 案例 / 社媒是否按证据等级正确降权；
+- blocking_issues；
+- high_confidence_allowed。
+
+Serenity、知名大 V、交易课程和经典书籍可以贡献方法论、checklist、假设和案例选择，但 Tool Harness 必须阻止它们绕过一手公告、财报、政策或行情证据直接生成买卖结论。
+
+## 9. 验收标准
 
 - 给定 topic / stock / question，系统能生成 EvidencePack。
 - EvidencePack 中每个 evidence item 有 source tier、timestamp、summary、claims。
 - 至少支持 source coverage report。
 - 能识别证据缺口和冲突。
 - 能为 Context Manager 提供按 Agent 过滤的证据索引。
+- Tool Harness 能检查 adapter 覆盖、来源等级、KOL/社媒边界和高置信阻断。
