@@ -30,6 +30,52 @@ def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rows.append(json.loads(line))
+    return rows
+
+
+def load_agent_memory_summary(root: Path, agent_id: str) -> dict[str, Any]:
+    memory_dir = root / "memory" / "agents" / agent_id
+    semantic_path = memory_dir / "semantic_memory.md"
+    ledger_path = memory_dir / "evolution-ledger.jsonl"
+    if not semantic_path.exists() and not ledger_path.exists():
+        raise FileNotFoundError(f"memory_not_found: {agent_id}")
+    semantic_text = semantic_path.read_text(encoding="utf-8") if semantic_path.exists() else ""
+    ledger_rows = read_jsonl(ledger_path)
+    latest = ledger_rows[-1] if ledger_rows else {}
+    return {
+        "agent_id": agent_id,
+        "semantic_memory_path": semantic_path,
+        "ledger_path": ledger_path,
+        "semantic_memory_exists": semantic_path.exists(),
+        "ledger_exists": ledger_path.exists(),
+        "accepted_lessons": semantic_text.count("## Accepted Evolution Lesson:"),
+        "ledger_entries": len(ledger_rows),
+        "latest_candidate": latest.get("candidate_id", "none"),
+        "latest_run_id": latest.get("run_id", "none"),
+        "latest_candidate_type": latest.get("candidate_type", "none"),
+        "approval_mode": latest.get("approval_mode", "none"),
+        "reversible": latest.get("reversible", "none"),
+        "real_trade_allowed": latest.get("real_trade_allowed", False),
+        "broker_integration": latest.get("broker_integration", "disabled"),
+        "latest_proposal": latest.get("proposal", ""),
+        "semantic_preview": semantic_preview(semantic_text),
+    }
+
+
+def semantic_preview(text: str, max_lines: int = 12) -> str:
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        return "none"
+    return "\n".join(lines[:max_lines])
+
+
 def load_memory_writeback_summary(run_path: Path) -> dict[str, Any]:
     path = run_path / "evolution" / "memory-writeback-summary.yaml"
     if not path.exists():

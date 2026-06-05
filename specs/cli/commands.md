@@ -119,6 +119,21 @@ runs/{run_id}/evolution/memory-writeback-summary.yaml
 
 展示指定 Agent 的已接受长期记忆摘要、错误模式和能力版本历史。
 
+V1 输出包括：
+
+- semantic memory 路径；
+- evolution ledger 路径；
+- accepted lesson 数量；
+- ledger entry 数量；
+- latest candidate / run / candidate_type；
+- approval_mode；
+- reversible；
+- real_trade_allowed；
+- broker_integration；
+- semantic memory preview。
+
+如果目标 Agent 尚无长期记忆，命令返回非 0，并输出 `memory_not_found: {agent_id}`。
+
 ## 9. 全局合规要求
 
 所有 `fundos run` 输出必须包含：

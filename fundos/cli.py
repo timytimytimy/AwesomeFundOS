@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 import shutil
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -16,7 +17,7 @@ from fundos.evolution import run_evolution_gate
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import write_run_learning_patterns
-from fundos.memory import load_memory_writeback_summary
+from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts
 from fundos.public_research import PublicResearchClient
 from fundos.reporting import write_first_version_report
@@ -418,6 +419,30 @@ def command_report(args: argparse.Namespace) -> int:
     print(f"report_path={written}")
     return 0
 
+def command_memory_show(args: argparse.Namespace) -> int:
+    try:
+        summary = load_agent_memory_summary(Path.cwd(), args.agent)
+    except FileNotFoundError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"agent_id={summary['agent_id']}")
+    print(f"semantic_memory_path={summary['semantic_memory_path']}")
+    print(f"ledger_path={summary['ledger_path']}")
+    print(f"accepted_lessons={summary['accepted_lessons']}")
+    print(f"ledger_entries={summary['ledger_entries']}")
+    print(f"latest_candidate={summary['latest_candidate']}")
+    print(f"latest_run_id={summary['latest_run_id']}")
+    print(f"latest_candidate_type={summary['latest_candidate_type']}")
+    print(f"approval_mode={summary['approval_mode']}")
+    print(f"reversible={summary['reversible']}")
+    print(f"real_trade_allowed={summary['real_trade_allowed']}")
+    print(f"broker_integration={summary['broker_integration']}")
+    if summary["latest_proposal"]:
+        print(f"latest_proposal={summary['latest_proposal']}")
+    print("semantic_preview:")
+    print(summary["semantic_preview"])
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fundos")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -453,6 +478,12 @@ def build_parser() -> argparse.ArgumentParser:
     roster_sub = p_roster.add_subparsers(dest="roster_command", required=True)
     p_roster_list = roster_sub.add_parser("list")
     p_roster_list.set_defaults(func=command_roster_list)
+
+    p_memory = sub.add_parser("memory")
+    memory_sub = p_memory.add_subparsers(dest="memory_command", required=True)
+    p_memory_show = memory_sub.add_parser("show")
+    p_memory_show.add_argument("--agent", required=True)
+    p_memory_show.set_defaults(func=command_memory_show)
 
     return parser
 
