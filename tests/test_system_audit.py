@@ -86,6 +86,40 @@ class SystemAuditTests(unittest.TestCase):
             self.assertGreaterEqual(report['overall_coverage_score'], 90)
             self.assertFalse(report['real_trade_allowed'])
 
+    def test_system_audit_strict_mode_checks_run_artifacts_and_fails_stub_runs(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会'], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            self.assertIn('runtime.run_has_public_research_primary_evidence', {row['requirement_id'] for row in report['requirements']})
+            self.assertGreater(report['failed_requirements'], 0)
+            self.assertIn('runtime.run_has_public_research_primary_evidence', '\n'.join(report['blocking_issues']))
+
+    def test_system_audit_strict_mode_passes_fixture_backed_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('[{"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"}]', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            self.assertEqual(report['failed_requirements'], 0)
+            self.assertEqual(Path(report['runtime_run_path']).resolve(), (cwd / run_rel).resolve())
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.run_has_public_research_primary_evidence']['status'], 'pass')
+            self.assertEqual(by_id['runtime.run_has_no_stub_blocking_issues']['status'], 'pass')
+
 
 if __name__ == '__main__':
     unittest.main()

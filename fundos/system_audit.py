@@ -8,11 +8,14 @@ from fundos.io import DISCLAIMER, read_yaml, write_yaml
 AUDIT_VERSION = "0.1.0"
 
 
-def run_system_audit(repo_root: Path, out_dir: Path | None = None) -> dict[str, Any]:
+def run_system_audit(repo_root: Path, out_dir: Path | None = None, run_path: Path | None = None) -> dict[str, Any]:
     root = repo_root.resolve()
+    runtime_run_path = run_path.resolve() if run_path else None
     roster = load_yaml(root / "specs" / "agents" / "default-roster.yaml", {})
     agents = roster.get("agents", []) if isinstance(roster, dict) else []
     requirements = build_requirements(root, agents)
+    if runtime_run_path:
+        requirements.extend(build_runtime_requirements(runtime_run_path))
     passed = sum(1 for row in requirements if row["status"] == "pass")
     score = round(passed / len(requirements) * 100, 1) if requirements else 0
     report = {
@@ -28,6 +31,7 @@ def run_system_audit(repo_root: Path, out_dir: Path | None = None) -> dict[str, 
         "status_counts": count_by(requirements, "status"),
         "requirements": requirements,
         "blocking_issues": [issue for row in requirements for issue in row.get("blocking_issues", [])],
+        "runtime_run_path": str(runtime_run_path) if runtime_run_path else "",
         "controls": [
             "requirement_coverage_is_evidence_based",
             "agent_assets_must_match_roster",
@@ -43,6 +47,84 @@ def run_system_audit(repo_root: Path, out_dir: Path | None = None) -> dict[str, 
     if out_dir:
         write_outputs(report, out_dir)
     return report
+
+
+def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
+    evidence = load_yaml(run_path / "evidence" / "evidence-pack.yaml", {})
+    evaluation = load_yaml(run_path / "evaluations" / "evaluation-report.yaml", {})
+    tool_harness = load_yaml(run_path / "harness" / "tool-harness.yaml", {})
+    agent_tool_use = load_yaml(run_path / "harness" / "agent-tool-use.yaml", {})
+    claim_graph = load_yaml(run_path / "harness" / "claim-graph.yaml", {})
+    run_doc = load_yaml(run_path / "run.yaml", {})
+    items = evidence.get("evidence_items", []) if isinstance(evidence, dict) else []
+    public_items = [item for item in items if item.get("source_id") == "public_research"]
+    primary_public_items = [item for item in public_items if item.get("source_tier") == "tier_1_primary_fact"]
+    unresolved_gaps = evidence.get("unresolved_gaps", []) if isinstance(evidence, dict) else []
+    blocking = evaluation.get("blocking_issues", []) if isinstance(evaluation, dict) else []
+    selected = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) else []
+    return [
+        requirement(
+            "runtime.run_core_artifacts_exist",
+            "runtime_operability",
+            "Run contains core evidence, context, agent work, decision, evaluation, harness, and portfolio artifacts.",
+            [run_path / p for p in [
+                "run.yaml",
+                "evidence/evidence-pack.yaml",
+                "decision/final-decision-memo.yaml",
+                "evaluations/evaluation-report.yaml",
+                "harness/tool-harness.yaml",
+                "harness/agent-tool-use.yaml",
+                "harness/claim-graph.yaml",
+                "portfolio/paper-portfolio.yaml",
+            ]],
+            all((run_path / p).exists() for p in [
+                "run.yaml",
+                "evidence/evidence-pack.yaml",
+                "decision/final-decision-memo.yaml",
+                "evaluations/evaluation-report.yaml",
+                "harness/tool-harness.yaml",
+                "harness/agent-tool-use.yaml",
+                "harness/claim-graph.yaml",
+                "portfolio/paper-portfolio.yaml",
+            ]),
+        ),
+        requirement(
+            "runtime.run_has_public_research_primary_evidence",
+            "runtime_evidence",
+            "Run evidence contains at least one public_research item backed by tier_1_primary_fact evidence.",
+            [run_path / "evidence/evidence-pack.yaml", run_path / "evidence/public-research-manifest.yaml"],
+            len(public_items) >= 1 and len(primary_public_items) >= 1,
+            details={"public_research_items": len(public_items), "primary_public_items": len(primary_public_items)},
+        ),
+        requirement(
+            "runtime.run_has_no_stub_blocking_issues",
+            "runtime_evidence",
+            "Run evaluation and evidence gaps do not contain unresolved public retrieval stub blockers.",
+            [run_path / "evidence/evidence-pack.yaml", run_path / "evaluations/evaluation-report.yaml"],
+            not contains_stub_gap(unresolved_gaps + blocking),
+            details={"unresolved_gaps": unresolved_gaps, "blocking_issues": blocking},
+        ),
+        requirement(
+            "runtime.run_harness_accepts_tool_claim_agent_outputs",
+            "runtime_harness",
+            "Runtime harness accepts tool usage, claim graph, and public research quality without blocking issues.",
+            [run_path / "harness/tool-harness.yaml", run_path / "harness/agent-tool-use.yaml", run_path / "harness/claim-graph.yaml"],
+            tool_harness_ok(tool_harness) and agent_tool_use_ok(agent_tool_use) and claim_graph_ok(claim_graph),
+            details={
+                "tool_harness_blocking_issues": tool_harness.get("blocking_issues", []) if isinstance(tool_harness, dict) else [],
+                "agent_tool_use_blocking_issues": agent_tool_use.get("blocking_issues", []) if isinstance(agent_tool_use, dict) else [],
+                "claim_graph_blocking_issues": claim_graph.get("blocking_issues", []) if isinstance(claim_graph, dict) else [],
+            },
+        ),
+        requirement(
+            "runtime.selected_agents_have_context_and_outputs",
+            "runtime_agent_outputs",
+            "Every selected agent has a ContextPack plus markdown and structured YAML output.",
+            [run_path / "selected-agents.yaml", run_path / "context", run_path / "agent_work"],
+            all(selected_agent_artifacts_exist(run_path, row.get("agent_id", "")) for row in selected),
+            details={"missing": missing_selected_agent_artifacts(run_path, [row.get("agent_id", "") for row in selected])},
+        ),
+    ]
 
 
 def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -296,6 +378,64 @@ def safety_boundary_present(root: Path) -> bool:
     files = [root / "fundos/io.py", root / "fundos/tool_runtime.py", root / "fundos/capability_apply.py", root / "README.md"]
     combined = "\n".join(path.read_text(encoding="utf-8") for path in files if path.exists())
     return all(term in combined for term in ["不构成投资建议", "no_real_trade", "broker"])
+
+
+def contains_stub_gap(rows: list[Any]) -> bool:
+    text = "\n".join(str(row) for row in rows)
+    return "public retrieval interface stub" in text or "EvidencePack stub" in text or "真实公开数据检索工具尚未接入" in text
+
+
+def tool_harness_ok(report: Any) -> bool:
+    if not isinstance(report, dict):
+        return False
+    adapter = report.get("adapter_coverage", {})
+    return (
+        report.get("overall_score", 0) >= 80
+        and adapter.get("public_research_items", 0) >= 1
+        and adapter.get("primary_public_items", 0) >= 1
+        and not report.get("blocking_issues", [])
+        and not report.get("real_trade_allowed", False)
+    )
+
+
+def agent_tool_use_ok(report: Any) -> bool:
+    if not isinstance(report, dict):
+        return False
+    return report.get("overall_score", 0) >= 80 and not report.get("blocking_issues", []) and not report.get("real_trade_allowed", False)
+
+
+def claim_graph_ok(report: Any) -> bool:
+    if not isinstance(report, dict):
+        return False
+    blocking = [issue for issue in report.get("blocking_issues", []) if issue != "missing_claim_graph_report"]
+    return report.get("traceability_score", 0) >= 80 and not blocking and not report.get("real_trade_allowed", False)
+
+
+def selected_agent_artifacts_exist(run_path: Path, agent_id: str) -> bool:
+    if not agent_id:
+        return False
+    return all(
+        (run_path / rel).exists()
+        for rel in [
+            f"context/{agent_id}.context-pack.yaml",
+            f"agent_work/{agent_id}.md",
+            f"agent_work/{agent_id}.structured.yaml",
+        ]
+    )
+
+
+def missing_selected_agent_artifacts(run_path: Path, agent_ids: list[str]) -> list[str]:
+    missing: list[str] = []
+    for agent_id in agent_ids:
+        for rel in [
+            f"context/{agent_id}.context-pack.yaml",
+            f"agent_work/{agent_id}.md",
+            f"agent_work/{agent_id}.structured.yaml",
+        ]:
+            path = run_path / rel
+            if not path.exists():
+                missing.append(str(path))
+    return missing
 
 
 def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:

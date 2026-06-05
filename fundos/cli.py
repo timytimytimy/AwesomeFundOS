@@ -676,13 +676,18 @@ def command_system_audit(args: argparse.Namespace) -> int:
     out_dir = Path(args.out)
     if not out_dir.is_absolute():
         out_dir = Path.cwd() / out_dir
-    report = run_system_audit(repo, out_dir=out_dir)
+    run_path = Path(args.run) if getattr(args, "run", None) else None
+    if run_path is not None and not run_path.is_absolute():
+        run_path = Path.cwd() / run_path
+    report = run_system_audit(repo, out_dir=out_dir, run_path=run_path)
     print(f"system_audit={out_dir / 'system-audit.yaml'}")
     print(f"overall_coverage_score={report['overall_coverage_score']}")
     print(f"passed_requirements={report['passed_requirements']}")
     print(f"failed_requirements={report['failed_requirements']}")
     print(f"real_trade_allowed={report['real_trade_allowed']}")
     print(f"broker_integration={report['broker_integration']}")
+    if args.strict and report["failed_requirements"]:
+        return 1
     return 0
 
 def command_cases_list(args: argparse.Namespace) -> int:
@@ -793,6 +798,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_system_audit = system_sub.add_parser("audit")
     p_system_audit.add_argument("--repo", default=".")
     p_system_audit.add_argument("--out", default="audit")
+    p_system_audit.add_argument("--run")
+    p_system_audit.add_argument("--strict", action="store_true")
     p_system_audit.set_defaults(func=command_system_audit)
 
     return parser
