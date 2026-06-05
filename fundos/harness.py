@@ -18,6 +18,7 @@ from fundos.source_ingestion import load_ingestion_report
 from fundos.tool_harness import load_tool_harness
 from fundos.task_dag import load_task_dag_harness
 from fundos.tool_runtime import load_tool_runtime_report
+from fundos.claim_graph import load_claim_graph_report
 
 
 def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
@@ -60,6 +61,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     skill_benchmark = load_skill_benchmark_report(run_path)
     task_dag = load_task_dag_harness(run_path)
     tool_runtime = load_tool_runtime_report(run_path)
+    claim_graph = load_claim_graph_report(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
@@ -107,6 +109,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("task_dag")
     if tool_runtime.get("tool_runtime_quality_score", 0) > 0:
         accepted_outputs.append("tool_runtime")
+    if claim_graph.get("traceability_score", 0) > 0:
+        accepted_outputs.append("claim_graph")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -143,6 +147,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             blocking.append(issue)
     if tool_runtime.get("real_trade_allowed"):
         blocking.append("Tool Runtime 出现 real_trade_allowed=true，违反工具运行边界。")
+    for issue in claim_graph.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_claim_graph_report":
+            blocking.append(issue)
+    if claim_graph.get("real_trade_allowed"):
+        blocking.append("Claim Graph 出现 real_trade_allowed=true，违反证据审计边界。")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
@@ -170,6 +179,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "market_state_recognition": market_state.get("market_state_quality_score", 0),
             "workflow_orchestration": task_dag.get("task_dag_quality_score", 0),
             "tool_runtime_quality": tool_runtime.get("tool_runtime_quality_score", 0),
+            "claim_traceability": claim_graph.get("traceability_score", 0),
         },
         "context_quality_scores": {
             "relevance": 82,
@@ -239,6 +249,20 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "low_tier_public_items": tool_harness_adapter.get("low_tier_public_items", 0),
             "high_confidence_allowed": tool_harness.get("high_confidence_allowed", False),
             "blocking_issues": tool_harness.get("blocking_issues", []),
+        },
+        "claim_graph_quality": {
+            "traceability_score": claim_graph.get("traceability_score", 0),
+            "claim_node_count": claim_graph.get("claim_node_count", 0),
+            "evidence_node_count": claim_graph.get("evidence_node_count", 0),
+            "decision_claim_count": claim_graph.get("decision_claim_count", 0),
+            "agent_claim_count": claim_graph.get("agent_claim_count", 0),
+            "tool_result_node_count": claim_graph.get("tool_result_node_count", 0),
+            "unsupported_decision_claims": claim_graph.get("unsupported_decision_claims", []),
+            "low_tier_decision_claims": claim_graph.get("low_tier_decision_claims", []),
+            "blocking_issues": claim_graph.get("blocking_issues", []),
+            "controls": claim_graph.get("controls", []),
+            "real_trade_allowed": claim_graph.get("real_trade_allowed", False),
+            "broker_integration": claim_graph.get("broker_integration", "disabled"),
         },
         "tool_runtime_quality": {
             "tool_runtime_quality_score": tool_runtime.get("tool_runtime_quality_score", 0),

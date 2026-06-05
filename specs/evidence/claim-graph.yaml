@@ -1,0 +1,39 @@
+graph_id: claim_graph_v1
+version: 0.1.0
+purpose: Build an auditable claim-to-evidence graph across EvidencePack, tool results, agent outputs, and final decision memos.
+node_kinds:
+  - evidence
+  - claim
+  - tool_result
+  - agent_output
+  - decision
+edge_kinds:
+  - contains_claim
+  - supported_by
+  - cited_by_decision
+  - cited_by_agent
+  - derived_from_tool_result
+  - excluded_from_decision
+source_tier_policy:
+  decision_eligible_tiers:
+    - tier_1_primary_fact
+    - tier_2_canonical_framework
+    - tier_3_verified_public_practitioner
+    - approved_memory
+  methodology_only_tiers:
+    - tier_2_canonical_framework
+    - tier_3_verified_public_practitioner
+  non_decision_tiers:
+    - tier_5_social_signal
+    - tier_6_unverified
+controls:
+  - claim_to_evidence_trace_required
+  - tool_result_trace_required_for_tool_evidence
+  - low_tier_claims_cannot_drive_decision
+  - methodology_sources_are_not_direct_trade_evidence
+  - every_agent_claim_must_have_evidence_ref_or_be_marked_gap
+  - unsupported_decision_claim_blocks_high_confidence
+  - social_signal_hypothesis_only
+  - no_real_trade_action
+real_trade_allowed: false
+broker_integration: disabled

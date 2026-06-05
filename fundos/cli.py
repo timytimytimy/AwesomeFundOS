@@ -17,6 +17,7 @@ from fundos.agent_threads import load_agent_thread_summary, materialize_agent_th
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.case_replay import run_case_replay
 from fundos.case_library import build_case_library_index, load_case_library
+from fundos.claim_graph import write_claim_graph
 from fundos.committee import write_committee_artifacts
 from fundos.context import context_focus, make_context_pack
 from fundos.context_policies import load_context_policy
@@ -422,6 +423,7 @@ def command_run(args: argparse.Namespace) -> int:
     run_outcome_tracking(run_path, market_replay_path)
     write_portfolio_review(run_path)
     write_task_dag(run_path, selected, evidence_pack)
+    write_claim_graph(run_path, evidence_pack)
 
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
@@ -456,6 +458,7 @@ def command_eval(args: argparse.Namespace) -> int:
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)
     write_task_dag(run_path, selected, evidence)
+    write_claim_graph(run_path, evidence)
     run_skill_benchmark(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
