@@ -1,0 +1,62 @@
+runtime_id: fixture_tool_adapter_runtime_v1
+version: 0.1.0
+purpose: Deterministic local read-only runtime for tool adapter calls, evidence creation, and tool-call auditing.
+market_scope: CN_A_SHARE
+execution_model:
+  mode: deterministic_fixture
+  network_access_required: false
+  live_credentials_allowed: false
+  ledger_append_only: true
+fixture_adapters:
+  - adapter_id: market_data_query
+    source_type: market_data
+    source_tier: tier_1_primary_fact
+    default_summary: Fixture market data summary for price, volume, relative strength, volatility, and liquidity context.
+    required_for_roles: [Trader, RiskManager]
+  - adapter_id: announcement_search
+    source_type: announcement
+    source_tier: tier_1_primary_fact
+    default_summary: Fixture disclosure search result from exchange-style announcements and investor relations records.
+    required_for_roles: [IndustryAnalyst, CompanyAnalyst, FundManager]
+  - adapter_id: financial_report_parser
+    source_type: financial_report
+    source_tier: tier_1_primary_fact
+    default_summary: Fixture financial report parser result for revenue, margin, cash flow, governance, and audit facts.
+    required_for_roles: [CompanyAnalyst, RiskManager]
+  - adapter_id: news_search
+    source_type: news
+    source_tier: tier_4_expert_opinion
+    default_summary: Fixture news and event search result, treated as hypothesis unless confirmed by primary evidence.
+    required_for_roles: [IndustryAnalyst, EventAnalyst]
+  - adapter_id: policy_search
+    source_type: policy
+    source_tier: tier_1_primary_fact
+    default_summary: Fixture official policy and regulator document search result.
+    required_for_roles: [PolicyAnalyst, MacroAnalyst]
+  - adapter_id: web_search
+    source_type: web
+    source_tier: tier_4_expert_opinion
+    default_summary: Fixture public web search result with source-tier classification.
+    aliases: [public_web_search]
+    required_for_roles: [LearningCurator, BearDebater]
+  - adapter_id: case_library_reader
+    source_type: case
+    source_tier: tier_2_canonical_framework
+    default_summary: Fixture historical case library match for replay and overfit warnings.
+    required_for_roles: [ReviewArchivist, BearDebater, EvaluationHarness]
+  - adapter_id: memory_retrieval
+    source_type: memory
+    source_tier: approved_memory
+    default_summary: Fixture role-specific approved memory retrieval with stale-memory warnings.
+    required_for_roles: [FundManager, Trader, RiskManager]
+controls:
+  - all_fixture_tools_are_read_only
+  - tool_call_ledger_required
+  - every_tool_result_maps_to_evidence_item
+  - no_live_credentials
+  - no_network_required
+  - no_order_or_broker_adapter
+  - social_and_web_sources_are_hypothesis_only
+  - primary_fact_required_for_high_confidence
+real_trade_allowed: false
+broker_integration: disabled

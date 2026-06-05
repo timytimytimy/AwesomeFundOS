@@ -41,6 +41,7 @@ from fundos.source_ingestion import ingest_source_candidates
 from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
 from fundos.task_dag import write_task_dag
+from fundos.tool_runtime import run_fixture_tool_runtime
 from fundos.tool_policies import load_tool_policy
 
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
@@ -394,6 +395,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
     write_run_research_manifest(run_path, value, public_results, research_client.adapter_name, research_cache_root)
     write_tool_adapter_manifest(run_path, roster)
+    run_fixture_tool_runtime(run_path, selected, evidence_pack)
     write_tool_harness(run_path, evidence_pack)
     write_run_learning_patterns(run_path, [item["agent_id"] for item in selected])
     write_run_learning_source_registry(run_path)
@@ -442,6 +444,7 @@ def command_eval(args: argparse.Namespace) -> int:
     selected = run_doc["selected_agents"]
     run_case_replay(run_path)
     write_tool_adapter_manifest(run_path, load_roster())
+    run_fixture_tool_runtime(run_path, selected, evidence)
     write_tool_harness(run_path, evidence)
     write_run_learning_source_registry(run_path)
     if (run_path / "agent_work").exists():
