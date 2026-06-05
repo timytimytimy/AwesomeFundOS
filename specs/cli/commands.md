@@ -23,6 +23,7 @@ fundos failures summary
 fundos sources ingest --run runs/2026-06-05-robotics --fixture examples/fixtures/source-candidates.yaml
 fundos cases list
 fundos threads show --agent fund_manager
+fundos governance summary --run runs/2026-06-05-robotics
 ```
 
 ## 2. `fundos init`
@@ -254,7 +255,19 @@ memory/agents/{agent_id}/thread-events.jsonl
 
 Agent Thread 是每个 Agent 的长期身份和连续性日志，不等同于自动记忆写入；能力或记忆升级仍必须通过 EvolutionGate / capability approval。
 
-## 15. 全局合规要求
+## 15. `fundos governance summary --run`
+
+展示指定 run 的 Agent Governance 摘要，读取：
+
+```text
+runs/{run_id}/harness/agent-governance.yaml
+memory/organization/agent-governance-ledger.jsonl
+agents/{agent_id}/governance/seat-history.jsonl
+```
+
+Governance 用于晋升观察、降权观察、复训、席位竞争和组织学习，不改变真实资金权限、不删除记忆、不改写核心 Profile，不开启真实交易。
+
+## 16. 全局合规要求
 
 所有 `fundos run` 输出必须包含：
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.agent_outputs import write_agent_output
+from fundos.agent_governance import load_governance_summary, write_agent_governance
 from fundos.agent_harness import write_agent_harness
 from fundos.agent_performance import load_performance_summary, write_agent_performance
 from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
@@ -448,6 +449,7 @@ def command_evolve(args: argparse.Namespace) -> int:
     if run_doc.get("selected_agents"):
         record_run_threads(run_path, run_doc["selected_agents"], event_type="evolution", payload={"candidate_count": len(results)})
     write_agent_performance(run_path)
+    governance = write_agent_governance(run_path)
     failure_report = write_failure_patterns(run_path)
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
@@ -455,6 +457,8 @@ def command_evolve(args: argparse.Namespace) -> int:
     print(f"memory_writes={memory_summary['memory_writes']}")
     print(f"memory_writeback_summary={run_path / 'evolution' / 'memory-writeback-summary.yaml'}")
     print(f"agent_performance={run_path / 'harness' / 'agent-performance.yaml'}")
+    print(f"agent_governance={run_path / 'harness' / 'agent-governance.yaml'}")
+    print(f"governance_agents={governance['agent_count']}")
     print(f"failure_patterns={run_path / 'learning' / 'failure-patterns.yaml'}")
     print(f"failure_pattern_count={failure_report['pattern_count']}")
     return 0
@@ -602,6 +606,19 @@ def command_threads_show(args: argparse.Namespace) -> int:
     print(f"broker_integration={summary['broker_integration']}")
     return 0
 
+def command_governance_summary(args: argparse.Namespace) -> int:
+    run_path = Path(args.run)
+    if not run_path.is_absolute():
+        run_path = Path.cwd() / run_path
+    summary = load_governance_summary(run_path)
+    print(f"agent_governance_report={run_path / 'harness' / 'agent-governance.yaml'}")
+    print(f"agent_count={summary['agent_count']}")
+    print("governance_action_counts=" + inline_counts(summary.get("governance_action_counts", {})))
+    print(f"seat_competitions={len(summary.get('seat_competitions', {}))}")
+    print(f"real_trade_allowed={summary['real_trade_allowed']}")
+    print(f"broker_integration={summary['broker_integration']}")
+    return 0
+
 def command_cases_list(args: argparse.Namespace) -> int:
     library = load_case_library()
     index = build_case_library_index(library)
@@ -698,6 +715,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_threads_show = threads_sub.add_parser("show")
     p_threads_show.add_argument("--agent", required=True)
     p_threads_show.set_defaults(func=command_threads_show)
+
+    p_governance = sub.add_parser("governance")
+    governance_sub = p_governance.add_subparsers(dest="governance_command", required=True)
+    p_governance_summary = governance_sub.add_parser("summary")
+    p_governance_summary.add_argument("--run", required=True)
+    p_governance_summary.set_defaults(func=command_governance_summary)
 
     return parser
 

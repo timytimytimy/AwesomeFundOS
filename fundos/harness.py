@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.agent_harness import load_agent_harness
+from fundos.agent_governance import load_governance_summary
 from fundos.agent_threads import evaluate_thread_manifest
 from fundos.case_replay import load_case_replay
 from fundos.capability_regression import load_capability_regression
@@ -42,6 +43,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     }
     case_replay = load_case_replay(run_path) if run_path else {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0, "passed_results": 0, "high_overfit_results": 0}
     agent_harness = load_agent_harness(run_path)
+    agent_governance = load_governance_summary(run_path)
     agent_thread_quality = evaluate_thread_manifest(run_path)
     collaboration_harness = load_collaboration_harness(run_path)
     tool_harness = load_tool_harness(run_path)
@@ -83,6 +85,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("outcome_tracking")
     if capability_regression.get("candidates_total", 0) > 0:
         accepted_outputs.append("capability_regression")
+    if agent_governance.get("agent_count", 0) > 0:
+        accepted_outputs.append("agent_governance")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -138,6 +142,16 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "overall": agent_harness_scores.get("overall", 0),
         },
         "agent_thread_quality": agent_thread_quality,
+        "agent_governance_quality": {
+            "agent_count": agent_governance.get("agent_count", 0),
+            "governance_action_counts": agent_governance.get("governance_action_counts", {}),
+            "seat_competitions": len(agent_governance.get("seat_competitions", {})),
+            "promotion_watch": agent_governance.get("governance_action_counts", {}).get("promotion_watch", 0),
+            "retrain_and_downgrade_watch": agent_governance.get("governance_action_counts", {}).get("retrain_and_downgrade_watch", 0),
+            "controls": agent_governance.get("controls", []),
+            "real_trade_allowed": agent_governance.get("real_trade_allowed", False),
+            "broker_integration": agent_governance.get("broker_integration", "disabled"),
+        },
         "context_management_quality": context_management,
         "collaboration_harness_quality": {
             "overall_score": collaboration_harness.get("overall_score", 0),
