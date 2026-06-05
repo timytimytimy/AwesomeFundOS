@@ -122,6 +122,15 @@ class CapabilityApplyTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 apply_approved_capability(root, "cand_needs_approval", approver="")
 
+    def test_apply_rejects_candidate_blocked_by_regression_harness(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "fund_manager" / "capabilities" / "workflow.jsonl"
+            append_jsonl(registry, [{"candidate_id": "cand_blocked_regression", "target_agent": "fund_manager", "capability_kind": "workflow", "application_status": "blocked_regression", "proposal": "test"}])
+
+            with self.assertRaises(ValueError):
+                apply_approved_capability(root, "cand_blocked_regression", approver="human-test")
+
 
 if __name__ == "__main__":
     unittest.main()

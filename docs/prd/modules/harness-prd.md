@@ -30,6 +30,25 @@ Harness 负责持续评估 Agent、Context、Evidence、Tools、Collaboration、
 - role_drift_risk
 - risk_regression_risk
 
+### Capability Regression Harness
+
+能力候选即使通过 EvolutionGate，也必须在人工 apply 前经过 regression harness。产物：
+
+```text
+runs/{run_id}/harness/capability-regression.yaml
+```
+
+Regression Harness 检查：
+
+- required_tests 是否存在对应 artifact；
+- historical_case_replay 是否有结果且 score 达标；
+- agent_harness 的 role_consistency / skill_invocation 是否达标；
+- evaluation-report 的 evidence_quality 和 tier_1_primary_fact 覆盖是否达标；
+- 候选是否试图触碰 core_profile / org_structure / tool_permission / risk_limit；
+- 候选是否试图开启真实交易。
+
+未通过时，registry 中该候选 `application_status=blocked_regression`，并禁止 `fundos capabilities apply` 应用。
+
 ### Context Quality Harness
 
 评估 ContextPack：

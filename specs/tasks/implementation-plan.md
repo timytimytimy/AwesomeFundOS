@@ -200,13 +200,33 @@ V1 增加 Learning Source Registry：
 - Harness 输出 `outcome_tracking_quality`。
 - 不产生真实下单指令。
 
-## 11. 后续 V2
+## 11. Phase 9: Capability Regression / Human Apply
+
+目标：让 Agent 能力可以自我学习并升级，但升级前必须通过回归测试和人工审批。
+
+任务：
+
+1. EvolutionGate 接受的 principle / skill / checklist / workflow / tool_policy 候选进入 capability registry。
+2. 生成 `harness/capability-regression.yaml`，检查 required_tests 对应的 historical case replay、agent harness、evidence quality 等产物。
+3. 未通过回归的候选标记为 `blocked_regression`，并追加 follow-up tests。
+4. 通过回归的候选保持 `pending_human_apply`。
+5. `fundos capabilities apply <candidate_id> --approver <human>` 只允许人工审批后受控写入 runtime managed block 或 `applied-capabilities.yaml`。
+
+验收：
+
+- `fundos evolve --run` 生成 capability registry 和 `harness/capability-regression.yaml`。
+- 缺少 required_tests artifact 的候选不能被 apply。
+- 缺少 `--approver` 时 apply 返回非 0。
+- 不改写 source-controlled `agent.md` / `SKILL.md`，不改写核心 profile / risk limit / tool permission。
+- 不开启真实交易或券商集成。
+
+## 12. 后续 V2
 
 - 接入稳定公开数据源；
 - Codex App Server dashboard；
 - 更完整的历史案例库；
 - 多市场 Market Adapter；
-- Skill version regression tests；
+- 更细粒度 Skill version regression benchmark；
 - Agent promotion / demotion；
 - 多 FundManager 风格竞争；
 - 组合级 Paper Portfolio performance attribution。

@@ -132,6 +132,7 @@ runs/{run_id}/evolution/capability-version-summary.yaml
 
 - `--approver` 必填；缺失时必须返回非 0；
 - 只应用 `application_status=pending_human_apply` 的候选；
+- 如果候选被 `harness/capability-regression.yaml` 标记为 `blocked_regression`，apply 必须拒绝；
 - skill 候选只追加带 `FUNDOS_CAPABILITY:{candidate_id}` 标记的 managed block 到 runtime `skills/{agent_id}/SKILL.md`；
 - principle / workflow / checklist / tool_policy 候选写入 `agents/{agent_id}/applied-capabilities.yaml`；
 - 更新 registry 为 `application_status=applied`，并写入 `memory/organization/capability-apply-ledger.jsonl`；

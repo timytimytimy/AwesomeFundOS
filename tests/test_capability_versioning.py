@@ -15,9 +15,16 @@ class CapabilityVersioningTests(unittest.TestCase):
             root = Path(d)
             run_path = root / "runs" / "run-capability"
             evo_dir = run_path / "evolution"
+            harness_dir = run_path / "harness"
+            eval_dir = run_path / "evaluations"
             skill_dir = root / "skills" / "swing_trader"
             evo_dir.mkdir(parents=True)
+            harness_dir.mkdir(parents=True)
+            eval_dir.mkdir(parents=True)
             skill_dir.mkdir(parents=True)
+            (harness_dir / "historical-case-replay.yaml").write_text(yaml.safe_dump({"case_replay_score": 82, "case_results_total": 3}, allow_unicode=True), encoding="utf-8")
+            (harness_dir / "agent-harness.yaml").write_text(yaml.safe_dump({"aggregate_scores": {"role_consistency": 88, "skill_invocation": 90}}, allow_unicode=True), encoding="utf-8")
+            (eval_dir / "evaluation-report.yaml").write_text(yaml.safe_dump({"source_coverage": {"tier_1_primary_fact": 2}, "dimension_scores": {"evidence_quality": 86}}, allow_unicode=True), encoding="utf-8")
             skill_path = skill_dir / "SKILL.md"
             original_skill = "# Swing Trader Skill\n\nExisting rules only.\n"
             skill_path.write_text(original_skill, encoding="utf-8")

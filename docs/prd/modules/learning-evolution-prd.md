@@ -144,6 +144,29 @@ Apply 约束：
 - 不改写核心 Profile、Risk Limit、Tool Permission、Organization Structure；
 - `real_trade_allowed=false`，`broker_integration=disabled` 必须保持不变。
 
+### 5.4 Capability Regression Harness
+
+在人工 apply 之前，系统必须运行 capability regression harness，避免一次 run 的候选绕过历史案例、角色漂移和证据质量检查。
+
+产物：
+
+```text
+runs/{run_id}/harness/capability-regression.yaml
+```
+
+Regression Harness 输入：
+
+- `memory/agents/{agent_id}/capabilities/{kind}.jsonl` 中的 `pending_human_apply` 候选；
+- run 级 `evolution/capability-candidates.jsonl`；
+- `harness/historical-case-replay.yaml`；
+- `harness/agent-harness.yaml`；
+- `evaluations/evaluation-report.yaml`；
+- 候选声明的 `required_tests`。
+
+Regression Harness 输出：candidates_total、passed_candidates、blocked_candidates、candidate_results、blocking_issues、application_status_after_regression。
+
+如果缺少 required_tests 对应 artifact，或 case replay / role consistency / evidence quality 分数低于门槛，候选必须变为 `blocked_regression`，并追加 `capability_regression_required` follow-up test。`fundos capabilities apply` 必须拒绝 blocked regression 的候选。
+
 每次写回必须包含：candidate_id、run_id、source_agent、target_agent、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、reversible、real_trade_allowed=false、broker_integration=disabled。
 
 ## 6. Self Reflection
@@ -185,5 +208,6 @@ V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hy
 - 能通过 EvolutionGate 输出 accept / reject / quarantine / needs_more_evidence。
 - 被接受升级能版本化写入对应 Agent 的 memory 与 evolution-ledger；principles / skillset 的直接改写必须进入后续审批流。
 - 被接受的 principle / skill / checklist / workflow / tool policy 候选能进入 capability registry，并保持 pending_human_apply；被 quarantine / reject 的能力候选只进入 run 级 capability-candidates 队列。
+- EvolutionGate 后必须生成 `harness/capability-regression.yaml`，并把未通过回归测试的能力候选标记为 `blocked_regression`。
 - pending_human_apply 能通过 `fundos capabilities apply ... --approver ...` 受控应用到 runtime managed block 或 applied-capabilities.yaml，并记录 capability-apply-ledger；缺少 approver 时必须拒绝。
 - 被拒绝升级保留拒绝理由，不能删除。

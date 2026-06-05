@@ -5,6 +5,7 @@ from typing import Any
 
 from fundos.agent_harness import load_agent_harness
 from fundos.case_replay import load_case_replay
+from fundos.capability_regression import load_capability_regression
 from fundos.outcomes import load_outcome_tracking
 from fundos.portfolio import load_portfolio_state
 from fundos.tool_harness import load_tool_harness
@@ -40,6 +41,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     agent_harness = load_agent_harness(run_path)
     tool_harness = load_tool_harness(run_path)
     outcome_tracking = load_outcome_tracking(run_path)
+    capability_regression = load_capability_regression(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
@@ -63,6 +65,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("tool_harness")
     if outcome_tracking.get("actions_evaluated", 0) > 0:
         accepted_outputs.append("outcome_tracking")
+    if capability_regression.get("candidates_total", 0) > 0:
+        accepted_outputs.append("capability_regression")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -139,6 +143,12 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "passed_results": case_replay.get("passed_results", 0),
             "high_overfit_results": case_replay.get("high_overfit_results", 0),
             "case_replay_score": case_replay_score,
+        },
+        "capability_regression_quality": {
+            "regression_status": capability_regression.get("regression_status", "missing"),
+            "candidates_total": capability_regression.get("candidates_total", 0),
+            "passed_candidates": capability_regression.get("passed_candidates", 0),
+            "blocked_candidates": capability_regression.get("blocked_candidates", 0),
         },
         "agent_scores": [
             {

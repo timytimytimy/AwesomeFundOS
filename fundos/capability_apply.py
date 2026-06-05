@@ -55,6 +55,8 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
     registry_path, rows, index, candidate = match
     if candidate.get("application_status") != "pending_human_apply":
         raise ValueError(f"capability candidate is not pending_human_apply: {candidate_id}")
+    if candidate.get("regression_status") == "blocked":
+        raise ValueError(f"capability candidate is blocked by regression harness: {candidate_id}")
 
     target_agent = candidate.get("target_agent") or candidate.get("source_agent") or "organization"
     capability_kind = candidate.get("capability_kind") or kind_from_path(registry_path)

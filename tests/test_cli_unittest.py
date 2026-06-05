@@ -159,6 +159,10 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue((run_path / "evolution/memory-writeback-summary.yaml").exists())
             self.assertTrue((run_path / "evolution/capability-version-summary.yaml").exists())
             self.assertTrue((run_path / "evolution/capability-candidates.jsonl").exists())
+            self.assertTrue((run_path / "harness/capability-regression.yaml").exists())
+            regression = load_yaml(run_path / "harness/capability-regression.yaml")
+            self.assertIn("candidate_results", regression)
+            self.assertGreaterEqual(regression["candidates_total"], 1)
             for rel in ["accepted.jsonl", "quarantine.jsonl", "rejected.jsonl"]:
                 self.assertTrue((run_path / "evolution" / rel).exists(), rel)
             rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]

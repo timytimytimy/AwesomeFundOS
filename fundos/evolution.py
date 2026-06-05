@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.capabilities import apply_capability_versions
+from fundos.capability_regression import run_capability_regression
 from fundos.learning import source_registry_by_id, write_run_learning_source_registry
 from fundos.memory import apply_evolution_results
 
@@ -205,6 +206,7 @@ def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     results = [evaluate_candidate(candidate) for candidate in candidates]
     apply_evolution_results(run_path, results)
     apply_capability_versions(run_path, results)
+    run_capability_regression(run_path)
     accepted = [row for row in results if row["decision"] == "accept"]
     quarantined = [row for row in results if row["decision"] == "quarantine"]
     rejected = [row for row in results if row["decision"] == "reject"]
