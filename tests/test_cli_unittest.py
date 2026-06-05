@@ -72,6 +72,8 @@ class FundosCliTests(unittest.TestCase):
                 "harness/historical-case-replay.yaml",
                 "harness/agent-harness.yaml",
                 "harness/tool-harness.yaml",
+                "harness/pm-competition-harness.yaml",
+                "committee/pm-competition.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
                 "evaluations/evaluation-report.yaml",
@@ -113,6 +115,10 @@ class FundosCliTests(unittest.TestCase):
             tool_harness = yaml.safe_load((run_path / "harness/tool-harness.yaml").read_text())
             self.assertIn("adapter_coverage", tool_harness)
             self.assertIn("source_boundary_quality", tool_harness)
+            pm_competition = yaml.safe_load((run_path / "committee/pm-competition.yaml").read_text())
+            self.assertEqual(pm_competition["artifact_type"], "pm_style_competition_report")
+            self.assertGreaterEqual(pm_competition["style_count"], 4)
+            self.assertFalse(pm_competition["real_trade_allowed"])
 
             for agent_id in ids:
                 self.assertTrue((run_path / "context" / f"{agent_id}.context-pack.yaml").exists(), agent_id)
@@ -153,6 +159,8 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("outcome_tracking_quality", report)
             self.assertIn("agent_harness_quality", report)
             self.assertIn("tool_harness_quality", report)
+            self.assertIn("pm_competition_quality", report)
+            self.assertIn("pm_competition", report["accepted_outputs"])
             self.assertIn("portfolio_review", report["accepted_outputs"])
             self.assertIn("agent_harness", report["accepted_outputs"])
 

@@ -315,3 +315,16 @@ def summarize_agent_outputs(agent_outputs: list[dict[str, Any]]) -> list[dict[st
         }
         for output in agent_outputs
     ]
+
+
+def load_agent_outputs(run_path: Path) -> list[dict[str, Any]]:
+    outputs = []
+    for path in sorted((run_path / "agent_work").glob("*.structured.yaml")):
+        try:
+            from fundos.io import read_yaml
+            loaded = read_yaml(path)
+        except FileNotFoundError:
+            continue
+        if loaded:
+            outputs.append(loaded)
+    return outputs

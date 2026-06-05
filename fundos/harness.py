@@ -10,6 +10,7 @@ from fundos.case_replay import load_case_replay
 from fundos.capability_regression import load_capability_regression
 from fundos.committee import load_collaboration_harness
 from fundos.outcomes import load_outcome_tracking
+from fundos.pm_competition import load_pm_competition_harness
 from fundos.portfolio import load_portfolio_state
 from fundos.source_ingestion import load_ingestion_report
 from fundos.tool_harness import load_tool_harness
@@ -46,6 +47,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     agent_governance = load_governance_summary(run_path)
     agent_thread_quality = evaluate_thread_manifest(run_path)
     collaboration_harness = load_collaboration_harness(run_path)
+    pm_competition_harness = load_pm_competition_harness(run_path)
     tool_harness = load_tool_harness(run_path)
     source_ingestion = load_ingestion_report(run_path)
     outcome_tracking = load_outcome_tracking(run_path)
@@ -77,6 +79,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("context_management")
     if collaboration_harness.get("overall_score", 0) > 0:
         accepted_outputs.append("collaboration_harness")
+    if pm_competition_harness.get("overall_score", 0) > 0:
+        accepted_outputs.append("pm_competition")
     if tool_harness.get("high_confidence_allowed"):
         accepted_outputs.append("tool_harness")
     if source_ingestion.get("ingested_sources", 0) > 0:
@@ -93,6 +97,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     for issue in collaboration_harness.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_collaboration_harness":
             blocking.append(issue)
+    for issue in pm_competition_harness.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_pm_competition_harness":
+            blocking.append(issue)
+    if pm_competition_harness.get("real_trade_allowed"):
+        blocking.append("PM Competition 出现 real_trade_allowed=true，违反投委会边界。")
     for issue in agent_thread_quality.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_agent_thread_manifest":
             blocking.append(issue)
@@ -160,6 +169,17 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "veto_count": collaboration_harness.get("veto_count", 0),
             "checks": collaboration_harness.get("checks", {}),
             "blocking_issues": collaboration_harness.get("blocking_issues", []),
+        },
+        "pm_competition_quality": {
+            "overall_score": pm_competition_harness.get("overall_score", 0),
+            "style_count": pm_competition_harness.get("style_count", 0),
+            "disagreement_count": pm_competition_harness.get("disagreement_count", 0),
+            "risk_boundary_present": pm_competition_harness.get("risk_boundary_present", False),
+            "no_real_trade_action": pm_competition_harness.get("no_real_trade_action", True),
+            "checks": pm_competition_harness.get("checks", {}),
+            "blocking_issues": pm_competition_harness.get("blocking_issues", []),
+            "real_trade_allowed": pm_competition_harness.get("real_trade_allowed", False),
+            "broker_integration": pm_competition_harness.get("broker_integration", "disabled"),
         },
         "tool_harness_quality": {
             "overall_score": tool_harness.get("overall_score", 0),

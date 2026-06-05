@@ -1,0 +1,52 @@
+competition_id: pm_style_competition_v1
+version: 0.1.0
+purpose: Preserve multiple portfolio-manager style lenses before the FundManager synthesizes a simulated committee memo.
+market_scope: CN_A_SHARE
+styles:
+  - style_id: quality_growth_pm
+    display_name: Quality Growth PM
+    mandate: Prefer durable compounders, high-quality financials, management quality, and verified long-term industry tailwinds.
+    preferred_agents: [tech_growth_analyst, consumer_healthcare_analyst, quality_growth_company_analyst, position_trend_trader]
+    default_risk_posture: medium
+    time_horizon: 6-24 months
+    stance_bias: watchlist
+    must_check: [primary_evidence_density, moat_or_quality_claim, valuation_or_drawdown_risk]
+  - style_id: cycle_value_pm
+    display_name: Cycle Value PM
+    mandate: Prefer cycle position, supply-demand inflection, low expectations, valuation reset, and earnings turn.
+    preferred_agents: [cyclical_macro_analyst, turnaround_value_company_analyst, policy_event_analyst, event_driven_trader]
+    default_risk_posture: medium_high
+    time_horizon: 3-18 months
+    stance_bias: needs_research
+    must_check: [cycle_position, inventory_or_price_signal, policy_or_demand_catalyst]
+  - style_id: trend_following_pm
+    display_name: Trend Following PM
+    mandate: Prefer confirmed price-volume trend, sector diffusion, relative strength, and strict invalidation.
+    preferred_agents: [position_trend_trader, swing_trader, event_driven_trader, tech_growth_analyst]
+    default_risk_posture: medium
+    time_horizon: 2 weeks-12 months
+    stance_bias: paper_candidate
+    must_check: [trend_confirmation, volume_structure, invalidation_line]
+  - style_id: defensive_risk_pm
+    display_name: Defensive Risk PM
+    mandate: Prefer capital preservation, evidence sufficiency, liquidity, crowding, downside asymmetry, and kill criteria.
+    preferred_agents: [risk_manager, bear_debater, fraud_governance_analyst, defensive_execution_trader]
+    default_risk_posture: low
+    time_horizon: cross_horizon
+    stance_bias: avoid
+    must_check: [evidence_gap, liquidity_or_tail_risk, contradiction_or_bear_case]
+allowed_stances: [watchlist, avoid, needs_research, paper_candidate]
+decision_controls:
+  - minimum_four_styles_required
+  - disagreement_preservation_required
+  - risk_boundary_required
+  - final_synthesis_requires_fund_manager_review
+  - style_winner_has_no_capital_authority
+safety_controls:
+  - research_watchlist_only
+  - paper_portfolio_only
+  - no_real_trade_action
+  - no_broker_integration
+  - no_automatic_order_generation
+real_trade_allowed: false
+broker_integration: disabled

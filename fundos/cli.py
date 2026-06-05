@@ -30,6 +30,7 @@ from fundos.learning import build_learning_source_registry, write_run_learning_p
 from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
 from fundos.memory_policies import load_memory_policy
 from fundos.outcomes import run_outcome_tracking
+from fundos.pm_competition import write_pm_competition
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient
 from fundos.research_cache import write_run_research_manifest
@@ -400,6 +401,7 @@ def command_run(args: argparse.Namespace) -> int:
         agent_outputs.append(write_agent_output(run_path / "agent_work" / f"{agent['id']}.md", agent, context, value, evidence_pack))
     write_agent_harness(run_path, selected)
     collaboration_report = write_committee_artifacts(run_path, run_id, value, selected, agent_outputs, evidence_pack)
+    pm_competition_report = write_pm_competition(run_path, run_id, value, evidence_pack, selected, agent_outputs)
     (run_path / "risk" / "risk-review.md").write_text(f"# Risk Review\n\n真实数据工具未接入，模拟仓位为 0%。\n\n{DISCLAIMER}\n", encoding="utf-8")
     write_yaml(run_path / "risk" / "position-risk.yaml", {"hypothetical_max_position": "0%", "reason": "stub evidence only"})
 
@@ -432,6 +434,10 @@ def command_eval(args: argparse.Namespace) -> int:
     run_case_replay(run_path)
     write_tool_harness(run_path, evidence)
     write_run_learning_source_registry(run_path)
+    if (run_path / "agent_work").exists():
+        from fundos.agent_outputs import load_agent_outputs
+        agent_outputs = load_agent_outputs(run_path)
+        write_pm_competition(run_path, run_doc["run_id"], run_doc["input"]["value"], evidence, selected, agent_outputs)
     run_outcome_tracking(run_path)
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)
