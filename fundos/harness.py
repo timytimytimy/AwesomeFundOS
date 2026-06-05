@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.agent_harness import load_agent_harness
+from fundos.agent_learning import load_agent_learning_report
 from fundos.agent_tool_use import load_agent_tool_use_report
 from fundos.agent_governance import load_governance_summary
 from fundos.agent_threads import evaluate_thread_manifest
@@ -64,6 +65,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     tool_runtime = load_tool_runtime_report(run_path)
     claim_graph = load_claim_graph_report(run_path)
     agent_tool_use = load_agent_tool_use_report(run_path)
+    agent_learning = load_agent_learning_report(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
@@ -115,6 +117,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("claim_graph")
     if agent_tool_use.get("overall_score", 0) > 0:
         accepted_outputs.append("agent_tool_use")
+    if agent_learning.get("candidate_count", 0) > 0:
+        accepted_outputs.append("agent_learning_candidates")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -161,6 +165,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             blocking.append(issue)
     if agent_tool_use.get("real_trade_allowed"):
         blocking.append("Agent Tool Use 出现 real_trade_allowed=true，违反工具使用边界。")
+    for issue in agent_learning.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_agent_learning_report":
+            blocking.append(issue)
+    if agent_learning.get("real_trade_allowed"):
+        blocking.append("Agent Learning 出现 real_trade_allowed=true，违反学习升级边界。")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
@@ -297,6 +306,18 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "controls": agent_tool_use.get("controls", []),
             "real_trade_allowed": agent_tool_use.get("real_trade_allowed", False),
             "broker_integration": agent_tool_use.get("broker_integration", "disabled"),
+        },
+        "agent_learning_quality": {
+            "candidate_count": agent_learning.get("candidate_count", 0),
+            "new_candidates": agent_learning.get("new_candidates", 0),
+            "merged_to_evolution": agent_learning.get("merged_to_evolution", 0),
+            "candidates_by_agent": agent_learning.get("candidates_by_agent", {}),
+            "candidate_type_counts": agent_learning.get("candidate_type_counts", {}),
+            "target_scope_counts": agent_learning.get("target_scope_counts", {}),
+            "blocking_issues": agent_learning.get("blocking_issues", []),
+            "controls": agent_learning.get("controls", []),
+            "real_trade_allowed": agent_learning.get("real_trade_allowed", False),
+            "broker_integration": agent_learning.get("broker_integration", "disabled"),
         },
         "source_ingestion_quality": {
             "status": source_ingestion.get("status", "present"),

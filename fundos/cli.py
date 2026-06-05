@@ -12,6 +12,7 @@ from typing import Any
 from fundos.agent_outputs import refresh_agent_outputs_with_tool_use, write_agent_output
 from fundos.agent_governance import load_governance_summary, write_agent_governance
 from fundos.agent_harness import write_agent_harness
+from fundos.agent_learning import generate_agent_learning_candidates
 from fundos.agent_tool_use import write_agent_tool_use_report
 from fundos.agent_performance import load_performance_summary, write_agent_performance
 from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
@@ -436,6 +437,10 @@ def command_run(args: argparse.Namespace) -> int:
 
     write_reflections(run_path, selected, run_id)
     write_failure_patterns(run_path)
+    generate_agent_learning_candidates(run_path)
+    evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
+    write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
+    (run_path / "evaluations" / "evaluation-report.md").write_text(f"# Evaluation Report\n\nOverall score: {evaluation['overall_score']}\n\nBlocking issues:\n" + "\n".join(f"- {x}" for x in evaluation["blocking_issues"]), encoding="utf-8")
     (run_path / "archive" / "run-summary.md").write_text(f"# Run Summary\n\nrun_id: {run_id}\nquery: {value}\nselected_agents: {len(selected)}\n", encoding="utf-8")
 
     print(f"run_id={run_id}")
@@ -468,6 +473,7 @@ def command_eval(args: argparse.Namespace) -> int:
     refresh_agent_outputs_with_tool_use(run_path)
     write_agent_harness(run_path, selected)
     run_skill_benchmark(run_path)
+    generate_agent_learning_candidates(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")
@@ -477,6 +483,7 @@ def command_evolve(args: argparse.Namespace) -> int:
     run_path = Path(args.run)
     if not run_path.is_absolute():
         run_path = Path.cwd() / run_path
+    generate_agent_learning_candidates(run_path)
     results = run_evolution_gate(run_path)
     run_doc = read_yaml(run_path / "run.yaml") if (run_path / "run.yaml").exists() else {"selected_agents": []}
     if run_doc.get("selected_agents"):

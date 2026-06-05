@@ -1,0 +1,59 @@
+version: 0.1.0
+artifact_type: agent_learning_candidate_spec
+spec_id: agent_learning_candidates_v1
+purpose: >
+  Generate quarantined, testable learning and workflow candidates from per-agent
+  runtime evidence, tool-use reconciliation, harness scores, and failure patterns.
+  Candidates are proposals only and must pass EvolutionGate before any memory or
+  capability writeback.
+allowed_candidate_types:
+  - workflow_update
+  - principle_update
+  - checklist_update
+  - reflection_update
+allowed_target_scopes:
+  - agent_memory
+  - workflow
+  - checklist
+  - principle
+forbidden_candidate_types:
+  - profile_update
+  - tool_permission_update
+  - risk_limit_update
+  - broker_update
+  - order_execution_update
+forbidden_target_scopes:
+  - core_profile
+  - tool_permission
+  - risk_limit
+  - broker_integration
+  - real_capital_authority
+required_candidate_fields:
+  - candidate_id
+  - run_id
+  - source_agent
+  - target_agent
+  - candidate_type
+  - target_scope
+  - proposal
+  - source_basis
+  - required_tests
+  - status
+  - origin
+required_tests:
+  - agent_tool_use_reconciliation
+  - role_drift_check
+  - evidence_quality_check
+  - historical_case_replay
+controls:
+  - no_direct_profile_mutation
+  - no_real_trade_action
+  - requires_evolution_gate
+  - quarantine_before_memory_write
+  - tool_permission_changes_forbidden
+  - risk_limit_changes_forbidden
+  - broker_integration_disabled
+  - paper_portfolio_only
+  - social_signal_cannot_be_direct_trade_evidence
+real_trade_allowed: false
+broker_integration: disabled
