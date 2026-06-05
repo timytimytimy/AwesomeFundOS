@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from fundos.research_cache import read_cached_results, write_cached_results
+
 
 DEFAULT_TIMEOUT_SECONDS = 8
 
@@ -25,13 +27,18 @@ class PublicResearchClient:
     fixture_path: Path | None = None
     enable_network: bool = False
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS
+    cache_root: Path | None = None
+    adapter_name: str = "public_research"
 
     def search(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
+        cached = read_cached_results(self.cache_root, query, self.adapter_name, limit)
+        if cached is not None:
+            return cached
         if self.fixture_path:
-            return self._read_fixture(limit)
+            return write_cached_results(self.cache_root, query, self.adapter_name, limit, self._read_fixture(limit))
         if self.enable_network or os.environ.get("FUNDOS_ENABLE_NETWORK") == "1":
             try:
-                return self._search_duckduckgo(query, limit)
+                return write_cached_results(self.cache_root, query, self.adapter_name, limit, self._search_duckduckgo(query, limit))
             except Exception:
                 return []
         return []

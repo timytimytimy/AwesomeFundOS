@@ -57,6 +57,7 @@ class FundosCliTests(unittest.TestCase):
                 "task-brief.md",
                 "selected-agents.yaml",
                 "evidence/evidence-pack.yaml",
+                "evidence/public-research-manifest.yaml",
                 "learning/source-registry.yaml",
                 "learning/patterns.yaml",
                 "portfolio/watchlist.yaml",
@@ -91,7 +92,10 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue("tech_growth_analyst" in ids or "advanced_manufacturing_analyst" in ids)
 
             evidence = yaml.safe_load((run_path / "evidence/evidence-pack.yaml").read_text())
+            research_manifest = yaml.safe_load((run_path / "evidence/public-research-manifest.yaml").read_text())
             self.assertTrue(evidence["evidence_items"])
+            self.assertEqual(research_manifest["artifact_type"], "public_research_manifest")
+            self.assertIn("cache_is_audit_trail_not_truth_source", research_manifest["boundary_controls"])
             self.assertTrue(any(item["source_tier"] == "tier_3_verified_public_practitioner" for item in evidence["evidence_items"]))
             self.assertTrue(any(item.get("source_type") == "learning_pattern" for item in evidence["evidence_items"]))
             learning = yaml.safe_load((run_path / "learning/patterns.yaml").read_text())
@@ -277,10 +281,13 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
             evidence = yaml.safe_load((tmp_path / run_rel / "evidence" / "evidence-pack.yaml").read_text())
+            manifest = yaml.safe_load((tmp_path / run_rel / "evidence" / "public-research-manifest.yaml").read_text())
             public_items = [item for item in evidence["evidence_items"] if item.get("source_id") == "public_research"]
             self.assertEqual(len(public_items), 2)
             self.assertTrue(all(item["source_tier"] == "tier_1_primary_fact" for item in public_items))
             self.assertIn("public_research", evidence["retrieval_plan"])
+            self.assertEqual(manifest["result_count"], 2)
+            self.assertEqual(manifest["cache_status_counts"]["hit"], 2)
 
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:

@@ -11,6 +11,7 @@ from fundos.capabilities import load_capability_summary
 from fundos.learning import build_learning_source_registry
 from fundos.memory import load_memory_writeback_summary
 from fundos.outcomes import load_outcome_tracking
+from fundos.research_cache import load_research_manifest
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -27,6 +28,7 @@ def build_first_version_report(run_path: Path) -> str:
     run_doc = read_yaml(run_path / "run.yaml")
     selected = read_yaml(run_path / "selected-agents.yaml")["selected_agents"]
     evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
+    research_manifest = load_research_manifest(run_path)
     learning = read_yaml(run_path / "learning" / "patterns.yaml")
     source_registry = read_optional_yaml(run_path / "learning" / "source-registry.yaml", build_learning_source_registry())
     memo = read_yaml(run_path / "decision" / "final-decision-memo.yaml")
@@ -61,7 +63,7 @@ def build_first_version_report(run_path: Path) -> str:
         "",
         f"- 默认 Agent roster：{len(roster.get('agents', []))} 个独立角色。",
         f"- 本次示例动态选择 Agent：{len(selected_ids)} 个，包含 {', '.join(selected_ids)}。",
-        "- 已实现模块：CLI run/init/eval/evolve/report、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、Historical Case Replay、Watchlist/Paper Portfolio Review、Outcome Tracking、EvolutionGate、Capability Regression、Learning Pattern 蒸馏。",
+        "- 已实现模块：CLI run/init/eval/evolve/report、Public Research Cache、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、Historical Case Replay、Watchlist/Paper Portfolio Review、Outcome Tracking、EvolutionGate、Capability Regression、Learning Pattern 蒸馏。",
         "- V1 范围：本地优先、模拟投委会、观察池/Paper Portfolio，不接真实交易、不自动下单。",
         "",
         "## Agent Runtime Assets",
@@ -98,6 +100,7 @@ def build_first_version_report(run_path: Path) -> str:
         "",
         "- source_type：" + inline_counts(source_counts),
         "- source_tier：" + inline_counts(tier_counts),
+        f"- public_research_manifest：adapter={research_manifest.get('adapter_name')}，results={research_manifest.get('result_count', 0)}，cache=" + inline_counts(research_manifest.get("cache_status_counts", {})),
         "",
         "### Agent Learning Pattern 示例",
         "",

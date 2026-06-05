@@ -66,11 +66,13 @@
    - case_library_reader
 4. 为每个 EvidenceItem 打 source_tier。
 5. 抽取 Claim。
+6. 生成 Public Research Cache 和 run-scoped Manifest。
 
 验收：
 
 - 给定 mock tool results 能生成合法 EvidencePack。
 - EvidencePack 中每个 claim 有 id、type、confidence。
+- `evidence/public-research-manifest.yaml` 能记录 adapter、cache status、source hash 和来源等级分布。
 
 ## 5. Phase 3: Context Manager
 

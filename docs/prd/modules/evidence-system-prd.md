@@ -117,7 +117,20 @@ runs/{run_id}/harness/tool-harness.yaml
 
 Serenity、知名大 V、交易课程和经典书籍可以贡献方法论、checklist、假设和案例选择，但 Tool Harness 必须阻止它们绕过一手公告、财报、政策或行情证据直接生成买卖结论。
 
-## 9. 验收标准
+## 9. Public Research Cache / Manifest
+
+V1 公开资料检索必须可审计、可复现、可缓存。每次 run 需要生成：
+
+```text
+cache/research/{cache_key}.json
+runs/{run_id}/evidence/public-research-manifest.yaml
+```
+
+Cache entry 记录 query、adapter_name、limit、created_at、results、retrieval_id、source_hash 和 boundary_controls。Manifest 记录 result_count、cache_status_counts、source_tier_counts、source_type_counts 和每个结果的 retrieval_id / source_hash。
+
+边界：cache 是审计轨迹，不是真实性来源；缓存命中不能提高 source tier；社媒和大 V 仍然必须遵守 `social_signal_never_direct_buy` 与 `kol_is_hypothesis_not_trade_signal`。
+
+## 10. 验收标准
 
 - 给定 topic / stock / question，系统能生成 EvidencePack。
 - EvidencePack 中每个 evidence item 有 source tier、timestamp、summary、claims。
@@ -125,3 +138,4 @@ Serenity、知名大 V、交易课程和经典书籍可以贡献方法论、chec
 - 能识别证据缺口和冲突。
 - 能为 Context Manager 提供按 Agent 过滤的证据索引。
 - Tool Harness 能检查 adapter 覆盖、来源等级、KOL/社媒边界和高置信阻断。
+- 每次 run 生成 public-research-manifest，并能用 cache/research 复现公开检索输入。

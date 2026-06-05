@@ -25,6 +25,7 @@ from fundos.memory import load_agent_memory_summary, load_memory_writeback_summa
 from fundos.outcomes import run_outcome_tracking
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient
+from fundos.research_cache import write_run_research_manifest
 from fundos.reporting import write_first_version_report
 from fundos.tool_harness import write_tool_harness
 
@@ -339,7 +340,9 @@ def command_run(args: argparse.Namespace) -> int:
     agents_by_id = {agent["id"]: agent for agent in roster["agents"]}
     fixture_path = Path(args.research_fixture) if getattr(args, "research_fixture", None) else None
     market_replay_path = Path(args.market_replay_fixture) if getattr(args, "market_replay_fixture", None) else None
-    public_results = PublicResearchClient(fixture_path=fixture_path).search(value)
+    research_cache_root = Path(args.research_cache) if getattr(args, "research_cache", None) else Path.cwd() / "cache" / "research"
+    research_client = PublicResearchClient(fixture_path=fixture_path, cache_root=research_cache_root, adapter_name="fixture" if fixture_path else "duckduckgo")
+    public_results = research_client.search(value)
     evidence_pack = make_evidence_pack(run_id, input_type, value, public_results=public_results)
 
     run_doc = {
@@ -365,6 +368,7 @@ def command_run(args: argparse.Namespace) -> int:
     (run_path / "task-brief.md").write_text(f"# Task Brief\n\n{DISCLAIMER}\n\n- input_type: {input_type}\n- value: {value}\n", encoding="utf-8")
     write_yaml(run_path / "selected-agents.yaml", {"selected_agents": selected})
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
+    write_run_research_manifest(run_path, value, public_results, research_client.adapter_name, research_cache_root)
     write_tool_harness(run_path, evidence_pack)
     write_run_learning_patterns(run_path, [item["agent_id"] for item in selected])
     write_run_learning_source_registry(run_path)
@@ -538,6 +542,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--stock")
     p_run.add_argument("--question")
     p_run.add_argument("--research-fixture", help="Path to a JSON array of public research results for deterministic offline runs")
+    p_run.add_argument("--research-cache", help="Path to public research cache directory; defaults to ./cache/research")
     p_run.add_argument("--market-replay-fixture", help="Path to a YAML market replay fixture for deterministic offline outcome tracking")
     p_run.set_defaults(func=command_run)
 
