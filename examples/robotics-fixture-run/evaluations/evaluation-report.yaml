@@ -1,4 +1,4 @@
-run_id: 2026-06-05-cn-topic
+run_id: 2026-06-05-cn-topic-2
 overall_score: 77.7
 source_coverage:
   total_items: 21
@@ -22,6 +22,11 @@ context_quality_scores:
   noise_control: 84
   leakage_control: 85
   contradiction_preservation: 80
+portfolio_quality:
+  watchlist_items: 1
+  paper_actions: 1
+  real_trade_violations: 0
+  review_dates_present: 1
 agent_scores:
 - agent_id: chief_of_staff
   role_consistency: 82

@@ -13,9 +13,10 @@ from fundos.context import context_focus, make_context_pack
 from fundos.decision import make_decision_memo, write_decision_markdown
 from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
-from fundos.harness import make_evaluation
+from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import write_run_learning_patterns
+from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts
 from fundos.public_research import PublicResearchClient
 from fundos.reporting import write_first_version_report
 
@@ -303,7 +304,7 @@ def command_run(args: argparse.Namespace) -> int:
         run_path = Path(f"{base}-{suffix}")
         run_id = run_path.name
 
-    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution", "learning"]:
+    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution", "learning", "portfolio"]:
         (run_path / sub).mkdir(parents=True, exist_ok=True)
 
     roster = load_roster()
@@ -353,8 +354,9 @@ def command_run(args: argparse.Namespace) -> int:
     memo = make_decision_memo(run_id, value, evidence_pack, agent_outputs=agent_outputs)
     write_yaml(run_path / "decision" / "final-decision-memo.yaml", memo)
     write_decision_markdown(run_path / "decision" / "final-decision-memo.md", memo)
+    write_portfolio_artifacts(run_path, memo, evidence_pack)
 
-    evaluation = make_evaluation(run_id, selected, evidence_pack)
+    evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     (run_path / "evaluations" / "evaluation-report.md").write_text(f"# Evaluation Report\n\nOverall score: {evaluation['overall_score']}\n\nBlocking issues:\n" + "\n".join(f"- {x}" for x in evaluation["blocking_issues"]), encoding="utf-8")
 
@@ -372,7 +374,7 @@ def command_eval(args: argparse.Namespace) -> int:
     run_doc = read_yaml(run_path / "run.yaml")
     evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
     selected = run_doc["selected_agents"]
-    evaluation = make_evaluation(run_doc["run_id"], selected, evidence)
+    evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")
     return 0
@@ -394,6 +396,9 @@ def command_inspect(args: argparse.Namespace) -> int:
     print(f"run_id={run_doc['run_id']}")
     print(f"status={run_doc['status']}")
     print(f"selected_agents={len(run_doc['selected_agents'])}")
+    portfolio = load_portfolio_state(run_path)
+    print(f"watchlist_items={len(portfolio['watchlist'].get('items', []))}")
+    print(f"paper_actions={len(portfolio['paper_portfolio'].get('actions', []))}")
     return 0
 
 def command_report(args: argparse.Namespace) -> int:

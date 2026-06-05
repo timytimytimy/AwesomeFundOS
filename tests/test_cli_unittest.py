@@ -54,6 +54,9 @@ class FundosCliTests(unittest.TestCase):
                 "selected-agents.yaml",
                 "evidence/evidence-pack.yaml",
                 "learning/patterns.yaml",
+                "portfolio/watchlist.yaml",
+                "portfolio/paper-portfolio.yaml",
+                "portfolio/portfolio-actions.jsonl",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
                 "evaluations/evaluation-report.yaml",
@@ -89,6 +92,11 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(memo["memo_type"], "simulated_investment_committee_memo")
             self.assertIn("不构成投资建议", memo["disclaimer"])
             self.assertTrue(memo["evidence_references"])
+            watchlist = yaml.safe_load((run_path / "portfolio/watchlist.yaml").read_text())
+            paper = yaml.safe_load((run_path / "portfolio/paper-portfolio.yaml").read_text())
+            self.assertTrue(watchlist["items"])
+            self.assertTrue(paper["actions"])
+            self.assertFalse(paper["actions"][0]["real_trade_allowed"])
 
     def test_eval_and_evolve_can_reprocess_run(self):
         with tempfile.TemporaryDirectory() as d:

@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
+
+from fundos.portfolio import load_portfolio_state
 
 
 def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
+    return make_evaluation_for_run(run_id, selected, evidence_pack, None)
+
+
+def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidence_pack: dict[str, Any], run_path: Path | None = None) -> dict[str, Any]:
     items = evidence_pack["evidence_items"]
     public_items = [item for item in items if item.get("source_id") == "public_research"]
     primary_count = sum(1 for item in items if item.get("source_tier") == "tier_1_primary_fact")
@@ -18,6 +25,11 @@ def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: 
         blocking.append("缺少 tier_1_primary_fact，不能形成高置信结论。")
     if low_count > primary_count:
         blocking.append("低等级信号数量超过一手证据，需要降级结论。")
+    portfolio = load_portfolio_state(run_path) if run_path else {"watchlist": {"items": []}, "paper_portfolio": {"actions": []}}
+    paper_actions = portfolio["paper_portfolio"].get("actions", [])
+    real_trade_violations = [action for action in paper_actions if action.get("real_trade_allowed")]
+    if real_trade_violations:
+        blocking.append("Paper Portfolio 出现 real_trade_allowed=true，违反 V1 边界。")
     return {
         "run_id": run_id,
         "overall_score": overall,
@@ -45,6 +57,12 @@ def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: 
             "noise_control": 84,
             "leakage_control": 85,
             "contradiction_preservation": 80,
+        },
+        "portfolio_quality": {
+            "watchlist_items": len(portfolio["watchlist"].get("items", [])),
+            "paper_actions": len(paper_actions),
+            "real_trade_violations": len(real_trade_violations),
+            "review_dates_present": sum(1 for item in portfolio["watchlist"].get("items", []) if item.get("review_date")),
         },
         "agent_scores": [
             {

@@ -36,7 +36,7 @@
 
 ## 示例运行：机器人产业链投资机会
 
-- run_id：2026-06-05-cn-topic
+- run_id：2026-06-05-cn-topic-2
 - market：CN_A_SHARE
 - final label：continue_research
 - stance：constructive
@@ -66,6 +66,14 @@
 - position_trend_trader：agent_card=specs/agents/agent-cards/position_trend_trader/agent.md；skill=specs/skills/position_trend_trader/SKILL.md；checklist_items=4
 - quality_growth_company_analyst：agent_card=specs/agents/agent-cards/quality_growth_company_analyst/agent.md；skill=specs/skills/quality_growth_company_analyst/SKILL.md；checklist_items=4
 
+## Watchlist / Paper Portfolio
+
+- watchlist_items：1
+- paper_actions：1
+- real_trade_allowed：False
+- artifact_paths：portfolio/watchlist.yaml；portfolio/paper-portfolio.yaml；portfolio/portfolio-actions.jsonl
+
+
 ## 投委会 Memo 摘要
 
 - Thesis：机器人产业链投资机会 已有 2 条 fixture/public 一手证据线索和 4 条公开检索结果进入 EvidencePack；仍需真实公告、财报、行情和案例回放继续验证。
@@ -79,19 +87,20 @@
 - overall_score：77.7
 - dimension_scores：evidence_quality=95, reasoning_quality=70, role_consistency=82, decision_quality=72, collaboration_quality=75, tool_usage_quality=70, context_quality=80
 - context_quality_scores：relevance=82, compression_fidelity=78, evidence_traceability=86, role_specificity=82, information_sufficiency=70, noise_control=84, leakage_control=85, contradiction_preservation=80
+- portfolio_quality：watchlist_items=1, paper_actions=1, real_trade_violations=0, review_dates_present=1
 - blocking_issues：none
 
 ## EvolutionGate
 
 - decision counts：quarantine=1
-- cand_2026-06-05-cn-topic_001：quarantine，scores=source_quality=75, testability=95, overfitting_risk=25, role_drift_risk=20, expected_value=80，memory_write_allowed=False
+- cand_2026-06-05-cn-topic-2_001：quarantine，scores=source_quality=75, testability=95, overfitting_risk=25, role_drift_risk=20, expected_value=80，memory_write_allowed=False
 
 ## V2 Gaps
 
 - 接入真实公告、财报、交易所问询、互动易和政策数据源。
 - 接入真实行情/价格序列，支持买点、卖点、仓位和 drawdown 的可评测判断。
 - 实现历史案例回放 Harness，用于验证 pattern 和 EvolutionGate 中 quarantine 的候选。
-- 将 Paper Portfolio 从 memo 字段扩展为独立 artifact。
+- 将 Paper Portfolio 从 stub 扩展为可定期 review 和后验归因的完整模块。
 - 将 agent 长期记忆写入从人工批准 stub 升级为可审计审批流。
 
 ## 可重复运行命令

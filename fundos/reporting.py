@@ -24,6 +24,8 @@ def build_first_version_report(run_path: Path) -> str:
     learning = read_yaml(run_path / "learning" / "patterns.yaml")
     memo = read_yaml(run_path / "decision" / "final-decision-memo.yaml")
     evaluation = read_yaml(run_path / "evaluations" / "evaluation-report.yaml")
+    watchlist = read_optional_yaml(run_path / "portfolio" / "watchlist.yaml", {"items": []})
+    paper_portfolio = read_optional_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {"actions": []})
     evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
     agent_outputs = load_agent_outputs(run_path)
 
@@ -95,6 +97,14 @@ def build_first_version_report(run_path: Path) -> str:
         lines.append(f"- {output['agent_id']}：agent_card={runtime.get('agent_card_path')}；skill={runtime.get('skill_path')}；checklist_items={len(output.get('role_checklist_applied', []))}")
     lines += [
         "",
+        "## Watchlist / Paper Portfolio",
+        "",
+        f"- watchlist_items：{len(watchlist.get('items', []))}",
+        f"- paper_actions：{len(paper_portfolio.get('actions', []))}",
+        f"- real_trade_allowed：{any(action.get('real_trade_allowed') for action in paper_portfolio.get('actions', []))}",
+        "- artifact_paths：portfolio/watchlist.yaml；portfolio/paper-portfolio.yaml；portfolio/portfolio-actions.jsonl",
+        "",
+        "",
         "## 投委会 Memo 摘要",
         "",
         f"- Thesis：{memo['thesis']}",
@@ -108,6 +118,7 @@ def build_first_version_report(run_path: Path) -> str:
         f"- overall_score：{evaluation['overall_score']}",
         "- dimension_scores：" + inline_counts(evaluation.get("dimension_scores", {})),
         "- context_quality_scores：" + inline_counts(evaluation.get("context_quality_scores", {})),
+        "- portfolio_quality：" + inline_counts(evaluation.get("portfolio_quality", {})),
         "- blocking_issues：" + ("; ".join(evaluation.get("blocking_issues", [])) if evaluation.get("blocking_issues") else "none"),
         "",
         "## EvolutionGate",
@@ -123,7 +134,7 @@ def build_first_version_report(run_path: Path) -> str:
         "- 接入真实公告、财报、交易所问询、互动易和政策数据源。",
         "- 接入真实行情/价格序列，支持买点、卖点、仓位和 drawdown 的可评测判断。",
         "- 实现历史案例回放 Harness，用于验证 pattern 和 EvolutionGate 中 quarantine 的候选。",
-        "- 将 Paper Portfolio 从 memo 字段扩展为独立 artifact。",
+        "- 将 Paper Portfolio 从 stub 扩展为可定期 review 和后验归因的完整模块。",
         "- 将 agent 长期记忆写入从人工批准 stub 升级为可审计审批流。",
         "",
         "## 可重复运行命令",
@@ -144,6 +155,12 @@ def load_agent_outputs(run_path: Path) -> list[dict[str, Any]]:
     for path in sorted((run_path / "agent_work").glob("*.structured.yaml")):
         outputs.append(read_yaml(path))
     return outputs
+
+
+def read_optional_yaml(path: Path, default: dict[str, Any]) -> dict[str, Any]:
+    if not path.exists():
+        return default
+    return read_yaml(path)
 
 
 def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:

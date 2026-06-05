@@ -1,0 +1,52 @@
+version: 0.1.0
+artifact_type: paper_portfolio
+run_id: 2026-06-05-cn-topic-2
+actions:
+- action_id: ppa_2026-06-05-cn-topic-2_001
+  run_id: 2026-06-05-cn-topic-2
+  watchlist_id: wl_2026-06-05-cn-topic-2
+  subject: 机器人产业链投资机会
+  market: CN_A_SHARE
+  action_type: watchlist_only
+  target_weight: 0.0
+  max_weight: 0.0
+  real_trade_allowed: false
+  rationale: 0%，仅进入观察和研究队列
+  required_before_upgrade:
+  - 真实行情趋势确认
+  - 公告/财报验证订单或收入
+  - 风控确认模拟仓位上限
+  risk_controls:
+  - 缺少一手证据
+  - 关键假设被公告或财报证伪
+  - 反方和风控提出未解决阻断项
+  - 社媒热度成为主要依据
+  - 核心假设被证伪
+  - 公告/财报不支持产业链映射
+  - 风控触发退出
+  review_date: '2026-07-05'
+  evidence_references:
+  - evidence_id: E001
+    claim_id: C001
+    usage: supports simulated committee memo
+  - evidence_id: E002
+    claim_id: C002
+    usage: supports simulated committee memo
+  - evidence_id: E003
+    claim_id: C003
+    usage: supports simulated committee memo
+  - evidence_id: E004
+    claim_id: C004
+    usage: supports simulated committee memo
+  - evidence_id: E005
+    claim_id: C005
+    usage: supports simulated committee memo
+  - evidence_id: E013
+    claim_id: C013
+    usage: supports simulated committee memo
+  disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。
+constraints:
+  real_trade_allowed: false
+  broker_integration: disabled
+  max_real_capital: 0
+disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。

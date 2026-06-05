@@ -1,5 +1,5 @@
 context_pack_id: ctx_bear_debater
-run_id: 2026-06-05-cn-topic
+run_id: 2026-06-05-cn-topic-2
 agent_id: bear_debater
 role: BearDebaterAgent
 agent_card:
