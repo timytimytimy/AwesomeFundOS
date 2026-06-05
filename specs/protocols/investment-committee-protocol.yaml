@@ -1,0 +1,43 @@
+version: 0.1.0
+protocol_id: investment_committee_v1
+name: AwesomeFundOS simulated investment committee protocol
+purpose: Turn parallel agent work into a governed subjective-fund committee process with preserved disagreement, risk vetoes, and paper-only decisions.
+required_roles:
+- fund_manager
+- risk_manager
+- bear_debater
+- evaluation_harness
+optional_roles:
+- learning_curator
+- industry_research_agents
+- company_research_agents
+- trading_agents
+stage_order:
+- intake
+- staffing
+- evidence_collection
+- context_routing
+- specialist_analysis
+- adversarial_review
+- risk_review
+- committee_synthesis
+- final_decision
+- runtime_evaluation
+- archive_and_reflect
+decision_gates:
+- mandatory_roles_present
+- specialist_outputs_available
+- bear_challenge_required
+- risk_veto_or_position_cap_required
+- disagreement_preservation_required
+- evidence_traceability_required
+- kill_criteria_required
+- paper_portfolio_only
+handoff_contract: specs/protocols/handoff-contract.yaml
+debate_protocol: specs/protocols/debate-protocol.yaml
+safety_controls:
+- no_real_trade_action
+- no_broker_integration
+- no_personal_financial_advice
+- low_tier_sources_are_hypothesis_only
+- disagreement_must_not_be_smoothed_away

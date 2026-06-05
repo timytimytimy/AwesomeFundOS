@@ -1,0 +1,19 @@
+version: 0.1.0
+contract_id: committee_handoff_contract_v1
+required_fields:
+- from_agent
+- to_agent
+- reason
+- artifact
+- required_response
+- blocking_if_missing
+handoff_types:
+- research_to_company_validation
+- analyst_to_trader_trigger_check
+- bear_to_fund_manager_dispute
+- risk_to_fund_manager_position_cap
+- evaluation_to_archivist_review_task
+rules:
+- Every handoff must name the receiving role and the artifact it must inspect.
+- Blocking handoffs must appear in decision-readiness before final memo conviction can rise.
+- Handoffs are paper-only and cannot request real execution.

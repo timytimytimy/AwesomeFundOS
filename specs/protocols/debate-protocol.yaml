@@ -1,0 +1,19 @@
+version: 0.1.0
+protocol_id: debate_protocol_v1
+required_debate_roles:
+- bear_debater
+- risk_manager
+- fund_manager
+rules:
+- Bear Debater must attack core assumptions, missing evidence, alternative explanations, crowding, and failed analogies.
+- Risk Manager must convert material concerns into vetoes, position caps, kill criteria, or follow-up research tasks.
+- Fund Manager must integrate disagreement explicitly and cannot average away unresolved risk.
+outputs:
+- debate/bear-case.md
+- debate/issue-table.yaml
+- committee/disagreement-register.yaml
+- committee/veto-table.yaml
+safety_controls:
+- no_real_trade_action
+- no_social_signal_direct_buy
+- preserve_unresolved_disputes

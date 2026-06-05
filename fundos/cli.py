@@ -14,6 +14,7 @@ from fundos.agent_harness import write_agent_harness
 from fundos.agent_performance import load_performance_summary, write_agent_performance
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.case_replay import run_case_replay
+from fundos.committee import write_committee_artifacts
 from fundos.context import context_focus, make_context_pack
 from fundos.context_policies import load_context_policy
 from fundos.decision import make_decision_memo, write_decision_markdown
@@ -390,13 +391,11 @@ def command_run(args: argparse.Namespace) -> int:
         write_yaml(run_path / "context" / f"{agent['id']}.context-pack.yaml", context)
         agent_outputs.append(write_agent_output(run_path / "agent_work" / f"{agent['id']}.md", agent, context, value, evidence_pack))
     write_agent_harness(run_path, selected)
-
-    (run_path / "debate" / "bear-case.md").write_text(f"# Bear Case\n\n- 当前证据为 stub，不能形成高置信结论。\n- 方法论源不能替代一手事实。\n\n{DISCLAIMER}\n", encoding="utf-8")
-    write_yaml(run_path / "debate" / "issue-table.yaml", {"issues": [{"issue": "evidence stub", "status": "unresolved"}]})
+    collaboration_report = write_committee_artifacts(run_path, run_id, value, selected, agent_outputs, evidence_pack)
     (run_path / "risk" / "risk-review.md").write_text(f"# Risk Review\n\n真实数据工具未接入，模拟仓位为 0%。\n\n{DISCLAIMER}\n", encoding="utf-8")
     write_yaml(run_path / "risk" / "position-risk.yaml", {"hypothetical_max_position": "0%", "reason": "stub evidence only"})
 
-    memo = make_decision_memo(run_id, value, evidence_pack, agent_outputs=agent_outputs)
+    memo = make_decision_memo(run_id, value, evidence_pack, agent_outputs=agent_outputs, collaboration_report=collaboration_report)
     write_yaml(run_path / "decision" / "final-decision-memo.yaml", memo)
     write_decision_markdown(run_path / "decision" / "final-decision-memo.md", memo)
     write_portfolio_artifacts(run_path, memo, evidence_pack)
