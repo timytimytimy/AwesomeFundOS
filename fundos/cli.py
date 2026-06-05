@@ -11,6 +11,7 @@ from fundos.agent_outputs import write_agent_output
 from fundos.context import context_focus, make_context_pack
 from fundos.decision import make_decision_memo, write_decision_markdown
 from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
+from fundos.evolution import run_evolution_gate
 from fundos.harness import make_evaluation
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.public_research import PublicResearchClient
@@ -277,35 +278,6 @@ def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: st
     evo = run_path / "evolution" / "candidates.jsonl"
     evo.parent.mkdir(parents=True, exist_ok=True)
     evo.write_text(json.dumps(candidate, ensure_ascii=False) + "\n", encoding="utf-8")
-
-def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
-    candidates_path = run_path / "evolution" / "candidates.jsonl"
-    results = []
-    if candidates_path.exists():
-        for line in candidates_path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            candidate = json.loads(line)
-            decision = "quarantine" if len(candidate.get("required_tests", [])) >= 2 else "needs_more_evidence"
-            results.append(
-                {
-                    "candidate_id": candidate["candidate_id"],
-                    "decision": decision,
-                    "scores": {
-                        "source_quality": 75,
-                        "testability": 70,
-                        "overfitting_risk": 45,
-                        "role_drift_risk": 20,
-                        "expected_value": 72,
-                    },
-                    "required_follow_up_tests": candidate.get("required_tests", []),
-                    "rationale": "V1 gate keeps candidate quarantined until historical replay is implemented.",
-                }
-            )
-    out = run_path / "evolution" / "evolution-gate-results.jsonl"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in results), encoding="utf-8")
-    return results
 
 def command_run(args: argparse.Namespace) -> int:
     input_type, value = infer_input(args)

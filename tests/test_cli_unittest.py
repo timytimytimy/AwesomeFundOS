@@ -104,9 +104,12 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
             gate_path = run_path / "evolution/evolution-gate-results.jsonl"
             self.assertTrue(gate_path.exists())
+            for rel in ["accepted.jsonl", "quarantine.jsonl", "rejected.jsonl"]:
+                self.assertTrue((run_path / "evolution" / rel).exists(), rel)
             rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]
             self.assertTrue(rows)
-            self.assertIn(rows[0]["decision"], {"accept", "reject", "quarantine", "needs_more_evidence"})
+            self.assertIn(rows[0]["decision"], {"accept", "reject", "quarantine"})
+            self.assertIn("memory_write_allowed", rows[0])
 
     def test_init_materializes_agent_profiles_and_context_policies(self):
         with tempfile.TemporaryDirectory() as d:
