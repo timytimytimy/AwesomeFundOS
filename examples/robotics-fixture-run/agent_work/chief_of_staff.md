@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/chief_of_staff/agent.md
+- skill: specs/skills/chief_of_staff/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 重述任务并识别输入类型、市场和投资问题。
+- 选择 7-10 个适配 Agent，并说明选择理由。
+- 为每个 Agent 指定 ContextPack 重点和输出 schema。
+- 检查 run workspace 的必要 artifact 是否齐全。
+
 ## 分析要点
 
 - 综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。

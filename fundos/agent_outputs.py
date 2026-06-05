@@ -73,15 +73,30 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     low_tier = summary["coverage"].get("tier_5_social_signal", 0) + summary["coverage"].get("tier_6_unverified", 0)
     confidence = "medium" if primary >= 1 else "low"
     learning_patterns = [compact_pattern(pattern) for pattern in patterns_for_agent(agent["id"], context_focus_tags(context))]
+    agent_card = context.get("agent_card", {})
+    skill_contract = context.get("skill_contract", {})
     return {
         "run_id": context["run_id"],
         "agent_id": agent["id"],
         "agent_name": agent.get("name"),
         "role": agent.get("role"),
+        "agent_runtime": {
+            "agent_card_path": agent_card.get("source_path"),
+            "agent_card_title": agent_card.get("title"),
+            "skill_path": skill_contract.get("source_path"),
+            "skill_name": skill_contract.get("name"),
+            "skill_sections": skill_contract.get("sections", []),
+        },
         "query": query,
         "stance": agent_stance(agent, summary),
         "confidence": confidence,
         "required_focus": context.get("required_focus", []),
+        "decision_principles_applied": agent_card.get("decision_principles", [])[:8],
+        "role_checklist_applied": skill_contract.get("role_checklist", [])[:8],
+        "skill_evidence_rules": skill_contract.get("evidence_rules", [])[:8],
+        "agent_declared_skills": agent_card.get("declared_skills", []),
+        "agent_declared_tools": agent_card.get("declared_tools", []),
+        "agent_declared_learning_patterns": agent_card.get("learning_patterns", []),
         "evidence_coverage": summary["coverage"],
         "source_type_coverage": summary["source_types"],
         "key_claims": summary["key_claims"][:8],
@@ -138,6 +153,15 @@ def analysis_points_for(agent: dict[str, Any], summary: dict[str, Any]) -> list[
     return ["综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。", first_claim]
 
 
+def runtime_lines(structured: dict[str, Any]) -> list[str]:
+    runtime = structured.get("agent_runtime", {})
+    return [
+        f"- agent_card: {runtime.get('agent_card_path')}",
+        f"- skill: {runtime.get('skill_path')}",
+        f"- skill_sections: {', '.join(runtime.get('skill_sections', []))}",
+    ]
+
+
 def risk_gaps_for(agent: dict[str, Any], primary: int, low_tier: int) -> list[str]:
     gaps = []
     if primary == 0:
@@ -169,6 +193,8 @@ def write_agent_output(path: Path, agent: dict[str, Any], context: dict[str, Any
 
 """
     text += "\n".join(f"- {tier}: {count}" for tier, count in structured["evidence_coverage"].items())
+    text += "\n\n## Agent Card / Skill 已加载\n\n" + "\n".join(runtime_lines(structured))
+    text += "\n\n## Skill 角色检查清单\n\n" + "\n".join(f"- {item}" for item in structured.get("role_checklist_applied", []))
     text += "\n\n## 分析要点\n\n" + "\n".join(f"- {point}" for point in structured["analysis_points"])
     text += "\n\n## 证据引用\n\n" + (", ".join(evidence_refs) if evidence_refs else "无")
     text += f"\n\n## 边界\n\n{DISCLAIMER}\n"

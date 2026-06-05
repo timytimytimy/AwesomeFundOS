@@ -2,6 +2,18 @@ run_id: 2026-06-05-cn-topic
 agent_id: evaluation_harness
 agent_name: 衡准
 role: EvaluationHarnessAgent
+agent_runtime:
+  agent_card_path: specs/agents/agent-cards/evaluation_harness/agent.md
+  agent_card_title: 衡准 / EvaluationHarnessAgent
+  skill_path: specs/skills/evaluation_harness/SKILL.md
+  skill_name: fundos-evaluation_harness
+  skill_sections:
+  - Evidence Rules
+  - Context Management
+  - Learning Patterns
+  - Role-Specific Checklist
+  - Forbidden Outputs
+  - Required Closing
 query: 机器人产业链投资机会
 stance: constructive_but_evidence_capped
 confidence: medium
@@ -9,6 +21,38 @@ required_focus:
 - 综合判断
 - 证据追溯
 - 流程完整性
+decision_principles_applied:
+- No source, no confidence; every important claim must cite Evidence ID and Claim
+  ID.
+- Separate fact, opinion, inference, hypothesis, and missing evidence.
+- Preserve contradictions and uncertainty instead of smoothing them away.
+- Learning sources can provide lenses and checklists, but A-share conclusions require
+  primary or cross-validated evidence.
+role_checklist_applied:
+- 读取 run artifacts，不参与投资立场竞争。
+- 评分 Evidence、Context、Agent 输出、协作、工具调用和角色一致性。
+- 识别 blocking issues 和 context 压缩损失。
+- 输出可复现的 evaluation-report。
+skill_evidence_rules:
+- No source, no confidence.
+- Cite Evidence ID and Claim ID for important claims.
+- 'Rank evidence by source tier: primary facts > canonical frameworks > verified practitioners/KOLs
+  > expert opinions > social signals > unverified material.'
+- Serenity, 里海, classic traders, books, courses, and 大V material are learning lenses
+  or hypothesis generators; they are not direct A-share buy/sell evidence.
+- If evidence is missing, say so and cap confidence.
+agent_declared_skills:
+- runtime_evaluation
+- context_evaluation
+- evolution_gate
+- role_consistency_check
+agent_declared_tools:
+- artifact_reader
+- scoring_engine
+- report_writer
+agent_declared_learning_patterns:
+- context_quality_harness
+- evolution_gate_harness
 evidence_coverage:
   tier_1_primary_fact: 5
   tier_2_canonical_framework: 10

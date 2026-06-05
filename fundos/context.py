@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import re
 from typing import Any
+
+from fundos.io import REPO_ROOT
 
 
 def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
@@ -25,6 +28,8 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "run_id": run_id,
         "agent_id": agent_id,
         "role": role,
+        "agent_card": load_agent_card(agent_id),
+        "skill_contract": load_skill_contract(agent_id),
         "task_stage": "specialist_analysis",
         "context_budget_tokens": 8000,
         "included_evidence": included,
@@ -43,6 +48,104 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "forbidden_focus": ["不要输出真实交易指令", "不要把低等级来源当作一手事实"],
         "output_schema": f"{role}Output",
     }
+
+
+def load_agent_card(agent_id: str) -> dict[str, Any]:
+    rel = f"specs/agents/agent-cards/{agent_id}/agent.md"
+    path = REPO_ROOT / rel
+    if not path.exists():
+        return {"source_path": rel, "available": False, "title": "", "profile_summary": "", "learning_patterns": []}
+    text = path.read_text(encoding="utf-8")
+    return {
+        "source_path": rel,
+        "available": True,
+        "title": first_heading(text),
+        "profile_summary": compact_section(text, "Profile", max_lines=10),
+        "decision_principles": bullet_lines(section_body(text, "Decision Principles")),
+        "declared_skills": code_or_bullet_values(section_body(text, "Skills")),
+        "declared_tools": code_or_bullet_values(section_body(text, "Tools")),
+        "learning_patterns": code_or_bullet_values(section_body(text, "Learning Patterns")),
+        "capability_boundaries": bullet_lines(section_body(text, "Capability Boundaries")),
+        "output_contract": compact_section(text, "Output Contract", max_lines=10),
+    }
+
+
+def load_skill_contract(agent_id: str) -> dict[str, Any]:
+    rel = f"specs/skills/{agent_id}/SKILL.md"
+    path = REPO_ROOT / rel
+    if not path.exists():
+        return {"source_path": rel, "available": False, "name": "", "sections": [], "role_checklist": []}
+    text = path.read_text(encoding="utf-8")
+    frontmatter = parse_frontmatter(text)
+    sections = re.findall(r"^##\s+(.+)$", text, flags=re.MULTILINE)
+    return {
+        "source_path": rel,
+        "available": True,
+        "name": frontmatter.get("name", ""),
+        "description": frontmatter.get("description", ""),
+        "sections": sections,
+        "operating_workflow": bullet_lines(section_body(text, "Operating Workflow")),
+        "evidence_rules": bullet_lines(section_body(text, "Evidence Rules")),
+        "context_management": bullet_lines(section_body(text, "Context Management")),
+        "learning_patterns": code_or_bullet_values(section_body(text, "Learning Patterns")),
+        "role_checklist": bullet_lines(section_body(text, "Role-Specific Checklist")),
+        "forbidden_outputs": bullet_lines(section_body(text, "Forbidden Outputs")),
+        "required_closing": compact_section(text, "Required Closing", max_lines=4),
+    }
+
+
+def parse_frontmatter(text: str) -> dict[str, str]:
+    if not text.startswith("---\n"):
+        return {}
+    end = text.find("\n---", 4)
+    if end == -1:
+        return {}
+    values: dict[str, str] = {}
+    for line in text[4:end].splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            values[key.strip()] = value.strip()
+    return values
+
+
+def first_heading(text: str) -> str:
+    for line in text.splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
+    return ""
+
+
+def section_body(text: str, heading: str) -> str:
+    pattern = re.compile(rf"^##\s+{re.escape(heading)}\s*$", re.MULTILINE)
+    match = pattern.search(text)
+    if not match:
+        return ""
+    start = match.end()
+    next_heading = re.search(r"^##\s+", text[start:], flags=re.MULTILINE)
+    end = start + next_heading.start() if next_heading else len(text)
+    return text[start:end].strip()
+
+
+def bullet_lines(body: str) -> list[str]:
+    values = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            values.append(stripped[2:].strip())
+    return values
+
+
+def code_or_bullet_values(body: str) -> list[str]:
+    values = []
+    for line in bullet_lines(body):
+        values.append(line.replace("`", ""))
+    return values
+
+
+def compact_section(text: str, heading: str, max_lines: int) -> str:
+    body = section_body(text, heading)
+    lines = [line.strip() for line in body.splitlines() if line.strip()]
+    return "\n".join(lines[:max_lines])
 
 
 def context_focus(agent_id: str, role: str) -> dict[str, Any]:

@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/position_trend_trader/agent.md
+- skill: specs/skills/position_trend_trader/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 先判断 3-12 个月趋势和大盘/板块状态。
+- 检查相对强度、量价确认、趋势模板和波动收缩。
+- 只有在止损距离和仓位风险明确时讨论模拟仓位。
+- 输出等待、观察、试探或退出条件。
+
 ## 分析要点
 
 - 只在一手事实和量价证据同时支持时讨论模拟入场触发。

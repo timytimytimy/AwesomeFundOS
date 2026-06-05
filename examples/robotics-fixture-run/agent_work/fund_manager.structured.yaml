@@ -2,6 +2,18 @@ run_id: 2026-06-05-cn-topic
 agent_id: fund_manager
 agent_name: 沈砚
 role: FundManagerAgent
+agent_runtime:
+  agent_card_path: specs/agents/agent-cards/fund_manager/agent.md
+  agent_card_title: 沈砚 / FundManagerAgent
+  skill_path: specs/skills/fund_manager/SKILL.md
+  skill_name: fundos-fund_manager
+  skill_sections:
+  - Evidence Rules
+  - Context Management
+  - Learning Patterns
+  - Role-Specific Checklist
+  - Forbidden Outputs
+  - Required Closing
 query: 机器人产业链投资机会
 stance: continue_research
 confidence: medium
@@ -9,6 +21,41 @@ required_focus:
 - 综合判断
 - 证据追溯
 - 流程完整性
+decision_principles_applied:
+- No source, no confidence; every important claim must cite Evidence ID and Claim
+  ID.
+- Separate fact, opinion, inference, hypothesis, and missing evidence.
+- Preserve contradictions and uncertainty instead of smoothing them away.
+- Learning sources can provide lenses and checklists, but A-share conclusions require
+  primary or cross-validated evidence.
+- Final memo must integrate disagreement rather than average it away.
+- Conviction must be capped by the weakest critical evidence link.
+role_checklist_applied:
+- 阅读研究、交易、风控和反方输出，不直接跳到结论。
+- 把 bull case、bear case、risk review 和 trigger 合并为投委会 memo。
+- 给出观察池或 Paper Portfolio 级别动作，禁止真实交易建议。
+- 明确 conviction、position range、kill criteria 和 next research tasks。
+skill_evidence_rules:
+- No source, no confidence.
+- Cite Evidence ID and Claim ID for important claims.
+- 'Rank evidence by source tier: primary facts > canonical frameworks > verified practitioners/KOLs
+  > expert opinions > social signals > unverified material.'
+- Serenity, 里海, classic traders, books, courses, and 大V material are learning lenses
+  or hypothesis generators; they are not direct A-share buy/sell evidence.
+- If evidence is missing, say so and cap confidence.
+agent_declared_skills:
+- thesis_synthesis
+- capital_allocation
+- risk_reward_analysis
+- committee_decision
+agent_declared_tools:
+- context_reader
+- memo_writer
+- watchlist_writer
+agent_declared_learning_patterns:
+- howard_marks_cycle_risk
+- serenity_scheme_first_chokepoint
+- a_share_theme_diffusion_case
 evidence_coverage:
   tier_1_primary_fact: 5
   tier_2_canonical_framework: 10

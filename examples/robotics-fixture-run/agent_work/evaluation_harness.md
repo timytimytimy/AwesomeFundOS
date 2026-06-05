@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/evaluation_harness/agent.md
+- skill: specs/skills/evaluation_harness/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 读取 run artifacts，不参与投资立场竞争。
+- 评分 Evidence、Context、Agent 输出、协作、工具调用和角色一致性。
+- 识别 blocking issues 和 context 压缩损失。
+- 输出可复现的 evaluation-report。
+
 ## 分析要点
 
 - 综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。

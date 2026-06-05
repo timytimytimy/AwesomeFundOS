@@ -9,6 +9,12 @@
 - 已实现模块：CLI run/init/eval/evolve/report、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、EvolutionGate、Learning Pattern 蒸馏。
 - V1 范围：本地优先、模拟投委会、观察池/Paper Portfolio，不接真实交易、不自动下单。
 
+## Agent Runtime Assets
+
+- 每个 Agent 都有 source-controlled `agent.md / SKILL.md`，并在运行时进入 ContextPack 与结构化输出。
+- agent.md 数量：19。
+- SKILL.md 数量：19。
+
 ## 学习源与蒸馏 Pattern
 
 - Seed learning sources：10 个。
@@ -50,6 +56,15 @@
 - fund_manager：stance=continue_research，confidence=medium，patterns=a_share_theme_diffusion_case, howard_marks_cycle_risk
 - position_trend_trader：stance=wait_for_price_confirmation，confidence=medium，patterns=lihai_a_share_market_state, minervini_trend_template, oneil_canslim_growth
 - quality_growth_company_analyst：stance=constructive_but_evidence_capped，confidence=medium，patterns=oneil_canslim_growth
+
+### Agent Card / Skill Runtime 示例
+
+- bear_debater：agent_card=specs/agents/agent-cards/bear_debater/agent.md；skill=specs/skills/bear_debater/SKILL.md；checklist_items=4
+- chief_of_staff：agent_card=specs/agents/agent-cards/chief_of_staff/agent.md；skill=specs/skills/chief_of_staff/SKILL.md；checklist_items=4
+- evaluation_harness：agent_card=specs/agents/agent-cards/evaluation_harness/agent.md；skill=specs/skills/evaluation_harness/SKILL.md；checklist_items=4
+- fund_manager：agent_card=specs/agents/agent-cards/fund_manager/agent.md；skill=specs/skills/fund_manager/SKILL.md；checklist_items=4
+- position_trend_trader：agent_card=specs/agents/agent-cards/position_trend_trader/agent.md；skill=specs/skills/position_trend_trader/SKILL.md；checklist_items=4
+- quality_growth_company_analyst：agent_card=specs/agents/agent-cards/quality_growth_company_analyst/agent.md；skill=specs/skills/quality_growth_company_analyst/SKILL.md；checklist_items=4
 
 ## 投委会 Memo 摘要
 

@@ -2,6 +2,18 @@ run_id: 2026-06-05-cn-topic
 agent_id: review_archivist
 agent_name: 案藏
 role: ReviewArchivistAgent
+agent_runtime:
+  agent_card_path: specs/agents/agent-cards/review_archivist/agent.md
+  agent_card_title: 案藏 / ReviewArchivistAgent
+  skill_path: specs/skills/review_archivist/SKILL.md
+  skill_name: fundos-review_archivist
+  skill_sections:
+  - Evidence Rules
+  - Context Management
+  - Learning Patterns
+  - Role-Specific Checklist
+  - Forbidden Outputs
+  - Required Closing
 query: 机器人产业链投资机会
 stance: constructive_but_evidence_capped
 confidence: medium
@@ -9,6 +21,37 @@ required_focus:
 - 综合判断
 - 证据追溯
 - 流程完整性
+decision_principles_applied:
+- No source, no confidence; every important claim must cite Evidence ID and Claim
+  ID.
+- Separate fact, opinion, inference, hypothesis, and missing evidence.
+- Preserve contradictions and uncertainty instead of smoothing them away.
+- Learning sources can provide lenses and checklists, but A-share conclusions require
+  primary or cross-validated evidence.
+role_checklist_applied:
+- 归档 run summary、关键证据、决策、复盘和升级候选。
+- 把成功/失败/缺证据模式结构化为案例库候选。
+- 维护可追踪的记忆候选，不绕过 EvolutionGate。
+- 为下一次 review 生成问题清单。
+skill_evidence_rules:
+- No source, no confidence.
+- Cite Evidence ID and Claim ID for important claims.
+- 'Rank evidence by source tier: primary facts > canonical frameworks > verified practitioners/KOLs
+  > expert opinions > social signals > unverified material.'
+- Serenity, 里海, classic traders, books, courses, and 大V material are learning lenses
+  or hypothesis generators; they are not direct A-share buy/sell evidence.
+- If evidence is missing, say so and cap confidence.
+agent_declared_skills:
+- run_archiving
+- memory_candidate_extraction
+- case_structuring
+agent_declared_tools:
+- run_store
+- memory_store
+- case_store
+agent_declared_learning_patterns:
+- historical_case_library
+- failure_pattern_library
 evidence_coverage:
   tier_1_primary_fact: 5
   tier_2_canonical_framework: 10

@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/tech_growth_analyst/agent.md
+- skill: specs/skills/tech_growth_analyst/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 先定义下游系统和部署场景，再谈公司映射。
+- 拆分 BOM、软件、工艺、数据、客户认证和产能瓶颈。
+- 用一手公告、财报和客户证据验证 chokepoint。
+- 标记研究缺口和可能被市场忽视的变量。
+
 ## 分析要点
 
 - 产业链/chokepoint 假设必须从政策、公告、产业资料逐层验证。

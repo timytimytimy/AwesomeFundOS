@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/quality_growth_company_analyst/agent.md
+- skill: specs/skills/quality_growth_company_analyst/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 从财报、现金流、ROE、毛利率和竞争优势验证质量。
+- 检查增长是否来自真实需求、份额提升或会计因素。
+- 结合 CAN SLIM/质量成长框架识别领导者。
+- 给出估值、业绩和护城河的证据缺口。
+
 ## 分析要点
 
 - 公司映射必须由公告、财报、订单、客户或收入证据验证。

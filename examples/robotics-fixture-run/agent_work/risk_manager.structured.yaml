@@ -2,6 +2,18 @@ run_id: 2026-06-05-cn-topic
 agent_id: risk_manager
 agent_name: 许慎行
 role: RiskManagerAgent
+agent_runtime:
+  agent_card_path: specs/agents/agent-cards/risk_manager/agent.md
+  agent_card_title: 许慎行 / RiskManagerAgent
+  skill_path: specs/skills/risk_manager/SKILL.md
+  skill_name: fundos-risk_manager
+  skill_sections:
+  - Evidence Rules
+  - Context Management
+  - Learning Patterns
+  - Role-Specific Checklist
+  - Forbidden Outputs
+  - Required Closing
 query: 机器人产业链投资机会
 stance: risk_control_first
 confidence: medium
@@ -9,6 +21,40 @@ required_focus:
 - 下行风险
 - 证据等级
 - 仓位上限
+decision_principles_applied:
+- No source, no confidence; every important claim must cite Evidence ID and Claim
+  ID.
+- Separate fact, opinion, inference, hypothesis, and missing evidence.
+- Preserve contradictions and uncertainty instead of smoothing them away.
+- Learning sources can provide lenses and checklists, but A-share conclusions require
+  primary or cross-validated evidence.
+- Downside, liquidity, crowding, and falsification override narrative attractiveness.
+- Attack role drift, overconfidence, and low-quality evidence contamination.
+role_checklist_applied:
+- 优先寻找永久损失、流动性、拥挤度、估值和回撤风险。
+- 检查是否有低等级信号被错误升级为高置信结论。
+- 为任何模拟仓位输出风险预算、止损/降级条件和阻断项。
+- 当关键证据缺失时降低 conviction 或阻断升级。
+skill_evidence_rules:
+- No source, no confidence.
+- Cite Evidence ID and Claim ID for important claims.
+- 'Rank evidence by source tier: primary facts > canonical frameworks > verified practitioners/KOLs
+  > expert opinions > social signals > unverified material.'
+- Serenity, 里海, classic traders, books, courses, and 大V material are learning lenses
+  or hypothesis generators; they are not direct A-share buy/sell evidence.
+- If evidence is missing, say so and cap confidence.
+agent_declared_skills:
+- risk_exposure_analysis
+- drawdown_control
+- liquidity_risk
+- tail_risk
+agent_declared_tools:
+- risk_checklist
+- evidence_pack_reader
+- paper_portfolio_reader
+agent_declared_learning_patterns:
+- howard_marks_cycle_risk
+- lihai_a_share_market_state
 evidence_coverage:
   tier_1_primary_fact: 5
   tier_2_canonical_framework: 10

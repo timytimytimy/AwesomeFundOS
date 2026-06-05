@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/bear_debater/agent.md
+- skill: specs/skills/bear_debater/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 攻击最强版本的多头逻辑，而不是稻草人。
+- 列出替代解释、反事实证据、失败案例和叙事过热信号。
+- 把每个反方问题映射到 Evidence ID、缺失证据或待验证假设。
+- 给出哪些证据能解除反方阻断。
+
 ## 分析要点
 
 - 攻击方法论源替代事实源、社媒热度替代订单验证的风险。

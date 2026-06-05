@@ -13,6 +13,8 @@ class ReportingTests(unittest.TestCase):
         report = build_first_version_report(run_path)
         self.assertIn("# AwesomeFundOS 第一版结果报告", report)
         self.assertIn("## 系统能力总览", report)
+        self.assertIn("## Agent Runtime Assets", report)
+        self.assertIn("agent.md / SKILL.md", report)
         self.assertIn("19", report)
         self.assertIn("## 学习源与蒸馏 Pattern", report)
         self.assertIn("serenity_scheme_first_chokepoint", report)

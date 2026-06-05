@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/review_archivist/agent.md
+- skill: specs/skills/review_archivist/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 归档 run summary、关键证据、决策、复盘和升级候选。
+- 把成功/失败/缺证据模式结构化为案例库候选。
+- 维护可追踪的记忆候选，不绕过 EvolutionGate。
+- 为下一次 review 生成问题清单。
+
 ## 分析要点
 
 - 综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。

@@ -20,6 +20,19 @@
 - tier_5_social_signal: 1
 - tier_6_unverified: 0
 
+## Agent Card / Skill 已加载
+
+- agent_card: specs/agents/agent-cards/fund_manager/agent.md
+- skill: specs/skills/fund_manager/SKILL.md
+- skill_sections: Evidence Rules, Context Management, Learning Patterns, Role-Specific Checklist, Forbidden Outputs, Required Closing
+
+## Skill 角色检查清单
+
+- 阅读研究、交易、风控和反方输出，不直接跳到结论。
+- 把 bull case、bear case、risk review 和 trigger 合并为投委会 memo。
+- 给出观察池或 Paper Portfolio 级别动作，禁止真实交易建议。
+- 明确 conviction、position range、kill criteria 和 next research tasks。
+
 ## 分析要点
 
 - 综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。

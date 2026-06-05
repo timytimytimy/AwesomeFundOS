@@ -46,6 +46,12 @@ def build_first_version_report(run_path: Path) -> str:
         "- 已实现模块：CLI run/init/eval/evolve/report、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、EvolutionGate、Learning Pattern 蒸馏。",
         "- V1 范围：本地优先、模拟投委会、观察池/Paper Portfolio，不接真实交易、不自动下单。",
         "",
+        "## Agent Runtime Assets",
+        "",
+        "- 每个 Agent 都有 source-controlled `agent.md / SKILL.md`，并在运行时进入 ContextPack 与结构化输出。",
+        f"- agent.md 数量：{len(list((REPO_ROOT / 'specs' / 'agents' / 'agent-cards').glob('*/agent.md')))}。",
+        f"- SKILL.md 数量：{len(list((REPO_ROOT / 'specs' / 'skills').glob('*/SKILL.md')))}。",
+        "",
         "## 学习源与蒸馏 Pattern",
         "",
         f"- Seed learning sources：{len(seed.get('sources', []))} 个。",
@@ -79,6 +85,14 @@ def build_first_version_report(run_path: Path) -> str:
     for output in agent_outputs[:6]:
         patterns = [p["pattern_id"] for p in output.get("learning_patterns", [])]
         lines.append(f"- {output['agent_id']}：stance={output['stance']}，confidence={output['confidence']}，patterns={', '.join(patterns) if patterns else 'none'}")
+    lines += [
+        "",
+        "### Agent Card / Skill Runtime 示例",
+        "",
+    ]
+    for output in agent_outputs[:6]:
+        runtime = output.get("agent_runtime", {})
+        lines.append(f"- {output['agent_id']}：agent_card={runtime.get('agent_card_path')}；skill={runtime.get('skill_path')}；checklist_items={len(output.get('role_checklist_applied', []))}")
     lines += [
         "",
         "## 投委会 Memo 摘要",
