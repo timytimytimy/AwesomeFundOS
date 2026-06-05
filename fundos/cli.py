@@ -27,6 +27,7 @@ from fundos.failure_patterns import load_failure_summary, write_failure_patterns
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import build_learning_source_registry, write_run_learning_patterns, write_run_learning_source_registry
+from fundos.market_state import write_market_state_report
 from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
 from fundos.memory_policies import load_memory_policy
 from fundos.outcomes import run_outcome_tracking
@@ -414,6 +415,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_yaml(run_path / "decision" / "final-decision-memo.yaml", memo)
     write_decision_markdown(run_path / "decision" / "final-decision-memo.md", memo)
     write_portfolio_artifacts(run_path, memo, evidence_pack)
+    write_market_state_report(run_path, evidence_pack, market_replay_path)
     run_outcome_tracking(run_path, market_replay_path)
     write_portfolio_review(run_path)
 
@@ -444,6 +446,7 @@ def command_eval(args: argparse.Namespace) -> int:
         from fundos.agent_outputs import load_agent_outputs
         agent_outputs = load_agent_outputs(run_path)
         write_pm_competition(run_path, run_doc["run_id"], run_doc["input"]["value"], evidence, selected, agent_outputs)
+    write_market_state_report(run_path, evidence)
     run_outcome_tracking(run_path)
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)

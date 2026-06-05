@@ -1,0 +1,34 @@
+taxonomy_id: market_state_taxonomy_v1
+version: 0.1.0
+purpose: Classify market replay or market-data adapter series into context states for discretionary research, trader context, risk review, and harness evaluation.
+market_scope: CN_A_SHARE
+states:
+  - state_id: uptrend_accumulation
+    description: Price advances with contained drawdown and moderate volume confirmation.
+    posture: constructive_watchlist
+  - state_id: bull_breakout
+    description: Strong positive return with volume expansion and limited adverse excursion.
+    posture: constructive_but_requires_invalidation
+  - state_id: range_bound_rotation
+    description: Low absolute return and contained drawdown; sector or theme may be rotating without clear trend.
+    posture: wait_for_confirmation
+  - state_id: distribution_top
+    description: Positive or flat return with elevated drawdown or late volume expansion, suggesting unstable leadership.
+    posture: reduce_conviction_or_wait
+  - state_id: downtrend_risk_off
+    description: Negative return and negative trend direction; risk controls dominate narrative.
+    posture: risk_off
+  - state_id: panic_capitulation
+    description: Sharp negative return with high adverse excursion; avoid upgrade until stabilization.
+    posture: avoid_or_review_only
+  - state_id: insufficient_data
+    description: Missing or too-short market replay; market state cannot be verified.
+    posture: confidence_cap
+controls:
+  - market_state_is_context_not_trade_signal
+  - fixture_or_market_data_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  - state_classification_requires_review_before_skill_upgrade
+real_trade_allowed: false
+broker_integration: disabled

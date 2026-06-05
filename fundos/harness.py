@@ -9,6 +9,7 @@ from fundos.agent_threads import evaluate_thread_manifest
 from fundos.case_replay import load_case_replay
 from fundos.capability_regression import load_capability_regression
 from fundos.committee import load_collaboration_harness
+from fundos.market_state import load_market_state_report
 from fundos.outcomes import load_outcome_tracking
 from fundos.pm_competition import load_pm_competition_harness
 from fundos.portfolio import load_portfolio_state
@@ -52,6 +53,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     tool_harness = load_tool_harness(run_path)
     source_ingestion = load_ingestion_report(run_path)
     outcome_tracking = load_outcome_tracking(run_path)
+    market_state = load_market_state_report(run_path)
     capability_regression = load_capability_regression(run_path)
     skill_benchmark = load_skill_benchmark_report(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
@@ -89,6 +91,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("source_ingestion")
     if outcome_tracking.get("actions_evaluated", 0) > 0:
         accepted_outputs.append("outcome_tracking")
+    if market_state.get("subjects_evaluated", 0) > 0:
+        accepted_outputs.append("market_state")
     if capability_regression.get("candidates_total", 0) > 0:
         accepted_outputs.append("capability_regression")
     if skill_benchmark.get("overall_score", 0) > 0:
@@ -114,6 +118,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             blocking.append(issue)
     if skill_benchmark.get("real_trade_allowed"):
         blocking.append("Skill Benchmark 出现 real_trade_allowed=true，违反能力评测边界。")
+    for issue in market_state.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_market_state_report":
+            blocking.append(issue)
+    if market_state.get("real_trade_allowed"):
+        blocking.append("Market State 出现 real_trade_allowed=true，违反市场状态识别边界。")
     if source_ingestion.get("real_trade_allowed"):
         blocking.append("Source Ingestion 出现 real_trade_allowed=true，违反学习源边界。")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
@@ -140,6 +149,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "context_quality": 80,
             "historical_case_replay": case_replay_score,
             "outcome_tracking": outcome_score,
+            "market_state_recognition": market_state.get("market_state_quality_score", 0),
         },
         "context_quality_scores": {
             "relevance": 82,
@@ -229,6 +239,15 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "market_replay_items": outcome_tracking.get("market_replay_items", 0),
             "outcome_quality_score": outcome_score,
         },
+        "market_state_quality": {
+            "market_state_quality_score": market_state.get("market_state_quality_score", 0),
+            "subjects_evaluated": market_state.get("subjects_evaluated", 0),
+            "subjects_missing_data": market_state.get("subjects_missing_data", 0),
+            "state_counts": count_market_states(market_state),
+            "blocking_issues": market_state.get("blocking_issues", []),
+            "real_trade_allowed": market_state.get("real_trade_allowed", False),
+            "broker_integration": market_state.get("broker_integration", "disabled"),
+        },
         "case_replay_quality": {
             "patterns_replayed": case_replay.get("patterns_replayed", 0),
             "case_results_total": case_replay.get("case_results_total", 0),
@@ -305,3 +324,11 @@ def summarize_context_management(agent_harness: dict[str, Any]) -> dict[str, Any
         "estimated_tokens_after": sum(int(item.get("estimated_tokens_after", 0) or 0) for item in qualities),
         "drop_reasons": sorted({reason for item in qualities for reason in item.get("drop_reasons", [])}),
     }
+
+
+def count_market_states(report: dict[str, Any]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in report.get("subject_states", []):
+        state = row.get("state_id", "unknown")
+        counts[state] = counts.get(state, 0) + 1
+    return counts

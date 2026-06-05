@@ -75,6 +75,7 @@ class FundosCliTests(unittest.TestCase):
                 "harness/tool-harness.yaml",
                 "harness/pm-competition-harness.yaml",
                 "harness/skill-benchmark.yaml",
+                "harness/market-state.yaml",
                 "committee/pm-competition.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
@@ -108,6 +109,9 @@ class FundosCliTests(unittest.TestCase):
             source_registry = yaml.safe_load((run_path / "learning/source-registry.yaml").read_text())
             self.assertEqual(source_registry["artifact_type"], "learning_source_registry")
             self.assertIn("no_direct_trade_signal", source_registry["boundary_policy"]["controls"])
+            market_state = yaml.safe_load((run_path / "harness/market-state.yaml").read_text())
+            self.assertEqual(market_state["artifact_type"], "market_state_report")
+            self.assertFalse(market_state["real_trade_allowed"])
             replay = yaml.safe_load((run_path / "harness/historical-case-replay.yaml").read_text())
             self.assertGreaterEqual(replay["patterns_replayed"], 1)
             self.assertIn("direct_case_mapping_forbidden", replay["controls"])
@@ -171,6 +175,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("tool_harness_quality", report)
             self.assertIn("pm_competition_quality", report)
             self.assertIn("skill_benchmark_quality", report)
+            self.assertIn("market_state_quality", report)
             self.assertIn("pm_competition", report["accepted_outputs"])
             self.assertIn("skill_benchmark", report["accepted_outputs"])
             self.assertIn("portfolio_review", report["accepted_outputs"])
