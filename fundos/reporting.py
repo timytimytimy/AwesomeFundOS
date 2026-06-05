@@ -1,0 +1,155 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml
+
+
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def build_first_version_report(run_path: Path) -> str:
+    if not run_path.is_absolute():
+        run_path = REPO_ROOT / run_path
+    roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+    seed = read_yaml(REPO_ROOT / "specs" / "learning" / "seed-library.yaml")
+    run_doc = read_yaml(run_path / "run.yaml")
+    selected = read_yaml(run_path / "selected-agents.yaml")["selected_agents"]
+    evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
+    learning = read_yaml(run_path / "learning" / "patterns.yaml")
+    memo = read_yaml(run_path / "decision" / "final-decision-memo.yaml")
+    evaluation = read_yaml(run_path / "evaluations" / "evaluation-report.yaml")
+    evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
+    agent_outputs = load_agent_outputs(run_path)
+
+    source_counts = count_by(evidence["evidence_items"], "source_type")
+    tier_counts = count_by(evidence["evidence_items"], "source_tier")
+    selected_ids = [item["agent_id"] for item in selected]
+    pattern_ids = [pattern["id"] for pattern in learning.get("patterns", [])]
+    evolution_counts = count_by(evolution, "decision")
+    final = memo["final_decision"]
+
+    lines = [
+        "# AwesomeFundOS 第一版结果报告",
+        "",
+        DISCLAIMER,
+        "",
+        "## 系统能力总览",
+        "",
+        f"- 默认 Agent roster：{len(roster.get('agents', []))} 个独立角色。",
+        f"- 本次示例动态选择 Agent：{len(selected_ids)} 个，包含 {', '.join(selected_ids)}。",
+        "- 已实现模块：CLI run/init/eval/evolve/report、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、EvolutionGate、Learning Pattern 蒸馏。",
+        "- V1 范围：本地优先、模拟投委会、观察池/Paper Portfolio，不接真实交易、不自动下单。",
+        "",
+        "## 学习源与蒸馏 Pattern",
+        "",
+        f"- Seed learning sources：{len(seed.get('sources', []))} 个。",
+        f"- Run-scoped distilled patterns：{len(pattern_ids)} 个。",
+        "- Pattern IDs：" + ", ".join(pattern_ids),
+        "",
+        "### 代表性学习源",
+        "",
+    ]
+    for source in seed.get("sources", [])[:10]:
+        lines.append(f"- {source['id']} / {source['display_name']} / {source['source_tier']}")
+    lines += [
+        "",
+        f"## 示例运行：{run_doc['input']['value']}",
+        "",
+        f"- run_id：{run_doc['run_id']}",
+        f"- market：{run_doc['market']}",
+        f"- final label：{final['label']}",
+        f"- stance：{final['stance']}",
+        f"- conviction：{final['conviction']}",
+        f"- hypothetical_position_range：{final['hypothetical_position_range']}",
+        "",
+        "### Evidence Coverage",
+        "",
+        "- source_type：" + inline_counts(source_counts),
+        "- source_tier：" + inline_counts(tier_counts),
+        "",
+        "### Agent Learning Pattern 示例",
+        "",
+    ]
+    for output in agent_outputs[:6]:
+        patterns = [p["pattern_id"] for p in output.get("learning_patterns", [])]
+        lines.append(f"- {output['agent_id']}：stance={output['stance']}，confidence={output['confidence']}，patterns={', '.join(patterns) if patterns else 'none'}")
+    lines += [
+        "",
+        "## 投委会 Memo 摘要",
+        "",
+        f"- Thesis：{memo['thesis']}",
+        f"- Bull case：{memo['bull_case']}",
+        f"- Bear case：{memo['bear_case']}",
+        f"- Risk review：{memo['risk_review']}",
+        "- Kill criteria：" + "; ".join(memo.get("kill_criteria", [])),
+        "",
+        "## Harness / Evaluation",
+        "",
+        f"- overall_score：{evaluation['overall_score']}",
+        "- dimension_scores：" + inline_counts(evaluation.get("dimension_scores", {})),
+        "- context_quality_scores：" + inline_counts(evaluation.get("context_quality_scores", {})),
+        "- blocking_issues：" + ("; ".join(evaluation.get("blocking_issues", [])) if evaluation.get("blocking_issues") else "none"),
+        "",
+        "## EvolutionGate",
+        "",
+        "- decision counts：" + inline_counts(evolution_counts),
+    ]
+    for row in evolution:
+        lines.append(f"- {row['candidate_id']}：{row['decision']}，scores={inline_counts(row.get('scores', {}))}，memory_write_allowed={row.get('memory_write_allowed')}")
+    lines += [
+        "",
+        "## V2 Gaps",
+        "",
+        "- 接入真实公告、财报、交易所问询、互动易和政策数据源。",
+        "- 接入真实行情/价格序列，支持买点、卖点、仓位和 drawdown 的可评测判断。",
+        "- 实现历史案例回放 Harness，用于验证 pattern 和 EvolutionGate 中 quarantine 的候选。",
+        "- 将 Paper Portfolio 从 memo 字段扩展为独立 artifact。",
+        "- 将 agent 长期记忆写入从人工批准 stub 升级为可审计审批流。",
+        "",
+        "## 可重复运行命令",
+        "",
+        "```bash",
+        "python3 -m fundos.cli init",
+        "python3 -m fundos.cli run --topic '机器人产业链投资机会' --research-fixture examples/fixtures/robotics-public-research.json",
+        "python3 -m fundos.cli evolve --run runs/<run_id>",
+        "python3 -m fundos.cli report --run runs/<run_id> --out reports/first-version-result.md",
+        "```",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def load_agent_outputs(run_path: Path) -> list[dict[str, Any]]:
+    outputs = []
+    for path in sorted((run_path / "agent_work").glob("*.structured.yaml")):
+        outputs.append(read_yaml(path))
+    return outputs
+
+
+def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        value = str(row.get(key, "unknown"))
+        counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
+def inline_counts(counts: dict[str, Any]) -> str:
+    if not counts:
+        return "none"
+    return ", ".join(f"{key}={value}" for key, value in counts.items())
+
+
+def write_first_version_report(run_path: Path, out_path: Path) -> Path:
+    text = build_first_version_report(run_path)
+    if not out_path.is_absolute():
+        out_path = REPO_ROOT / out_path
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(text + "\n", encoding="utf-8")
+    return out_path

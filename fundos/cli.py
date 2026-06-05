@@ -16,6 +16,7 @@ from fundos.harness import make_evaluation
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import write_run_learning_patterns
 from fundos.public_research import PublicResearchClient
+from fundos.reporting import write_first_version_report
 
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
 
@@ -384,6 +385,17 @@ def command_inspect(args: argparse.Namespace) -> int:
     print(f"selected_agents={len(run_doc['selected_agents'])}")
     return 0
 
+def command_report(args: argparse.Namespace) -> int:
+    run_path = Path(args.run)
+    if not run_path.is_absolute():
+        run_path = Path.cwd() / run_path
+    out_path = Path(args.out)
+    if not out_path.is_absolute():
+        out_path = Path.cwd() / out_path
+    written = write_first_version_report(run_path, out_path)
+    print(f"report_path={written}")
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fundos")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -409,6 +421,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_inspect = sub.add_parser("inspect")
     p_inspect.add_argument("--run", required=True)
     p_inspect.set_defaults(func=command_inspect)
+
+    p_report = sub.add_parser("report")
+    p_report.add_argument("--run", required=True)
+    p_report.add_argument("--out", default="reports/first-version-result.md")
+    p_report.set_defaults(func=command_report)
 
     p_roster = sub.add_parser("roster")
     roster_sub = p_roster.add_subparsers(dest="roster_command", required=True)

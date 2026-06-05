@@ -205,6 +205,23 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("source_coverage", report)
             self.assertGreaterEqual(report["source_coverage"]["public_research_items"], 1)
 
+
+    def test_report_command_writes_first_version_result(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            evolve_result = run_cli(["evolve", "--run", run_rel], tmp_path)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+            report_result = run_cli(["report", "--run", run_rel, "--out", "reports/first-version-result.md"], tmp_path)
+            self.assertEqual(report_result.returncode, 0, report_result.stderr)
+            report_path = tmp_path / "reports" / "first-version-result.md"
+            self.assertTrue(report_path.exists())
+            text = report_path.read_text()
+            self.assertIn("AwesomeFundOS 第一版结果报告", text)
+            self.assertIn("EvolutionGate", text)
+
     def test_seed_library_contains_verified_practitioner_and_classics(self):
         seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"
         self.assertTrue(seed_path.exists())
