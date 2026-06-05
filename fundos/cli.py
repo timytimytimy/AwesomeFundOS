@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.agent_outputs import write_agent_output
+from fundos.agent_harness import write_agent_harness
 from fundos.case_replay import run_case_replay
 from fundos.context import context_focus, make_context_pack
 from fundos.decision import make_decision_memo, write_decision_markdown
@@ -349,6 +350,7 @@ def command_run(args: argparse.Namespace) -> int:
         context = make_context_pack(run_id, agent, evidence_pack)
         write_yaml(run_path / "context" / f"{agent['id']}.context-pack.yaml", context)
         agent_outputs.append(write_agent_output(run_path / "agent_work" / f"{agent['id']}.md", agent, context, value, evidence_pack))
+    write_agent_harness(run_path, selected)
 
     (run_path / "debate" / "bear-case.md").write_text(f"# Bear Case\n\n- 当前证据为 stub，不能形成高置信结论。\n- 方法论源不能替代一手事实。\n\n{DISCLAIMER}\n", encoding="utf-8")
     write_yaml(run_path / "debate" / "issue-table.yaml", {"issues": [{"issue": "evidence stub", "status": "unresolved"}]})
@@ -381,6 +383,7 @@ def command_eval(args: argparse.Namespace) -> int:
     selected = run_doc["selected_agents"]
     run_case_replay(run_path)
     write_portfolio_review(run_path)
+    write_agent_harness(run_path, selected)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")

@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from fundos.agent_harness import load_agent_harness
 from fundos.case_replay import load_case_replay
 from fundos.portfolio import load_portfolio_state
 
@@ -34,6 +35,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         "review_candidates": [],
     }
     case_replay = load_case_replay(run_path) if run_path else {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0, "passed_results": 0, "high_overfit_results": 0}
+    agent_harness = load_agent_harness(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
     portfolio_review = portfolio.get("portfolio_review", {})
@@ -50,6 +52,9 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("historical_case_replay")
     if portfolio_review.get("reviewed_actions", 0):
         accepted_outputs.append("portfolio_review")
+    if agent_harness.get("agent_count", 0):
+        accepted_outputs.append("agent_harness")
+    agent_harness_scores = agent_harness.get("aggregate_scores", {})
     return {
         "run_id": run_id,
         "overall_score": overall,
@@ -71,13 +76,20 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         },
         "context_quality_scores": {
             "relevance": 82,
-            "compression_fidelity": 78,
+            "compression_fidelity": agent_harness_scores.get("context_compression", 78),
             "evidence_traceability": 86,
-            "role_specificity": 82,
+            "role_specificity": agent_harness_scores.get("role_consistency", 82),
             "information_sufficiency": 70 if public_items else 60,
             "noise_control": 84,
             "leakage_control": 85,
             "contradiction_preservation": 80,
+        },
+        "agent_harness_quality": {
+            "agent_count": agent_harness.get("agent_count", 0),
+            "context_compression": agent_harness_scores.get("context_compression", 0),
+            "skill_invocation": agent_harness_scores.get("skill_invocation", 0),
+            "role_consistency": agent_harness_scores.get("role_consistency", 0),
+            "overall": agent_harness_scores.get("overall", 0),
         },
         "portfolio_quality": {
             "watchlist_items": len(portfolio["watchlist"].get("items", [])),

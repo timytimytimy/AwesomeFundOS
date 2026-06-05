@@ -43,6 +43,21 @@ Harness 负责持续评估 Agent、Context、Evidence、Tools、Collaboration、
 - leakage_control
 - contradiction_preservation
 
+V1 需要额外生成 Agent-level harness artifact，用于把 Context、Skill、Agent Card 和实际 Agent 输出绑定起来评估：
+
+```text
+runs/{run_id}/harness/agent-harness.yaml
+```
+
+Agent-level harness 对每个 selected agent 输出：
+
+- context_compression_quality：检查 included_evidence、allowed_claims、Evidence ID / Claim ID 回链、contradiction_table、missing_evidence 和 excluded_evidence_summary；
+- skill_invocation_quality：检查 `SKILL.md` 是否加载、关键 section 是否存在、runtime skill path 是否与 ContextPack 一致、role checklist 和 evidence rules 是否进入输出；
+- role_consistency_quality：检查 agent_id / role 是否一致、agent card 是否加载、declared skills 是否对齐、边界和免责声明是否存在；
+- blocking_issues：低于阈值或越界时产生阻断项。
+
+Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，并在有有效产物时把 `agent_harness` 放入 accepted_outputs。
+
 ### Historical Case Replay Harness
 
 Harness 必须把学习 pattern 放入历史案例回放，而不是让 Agent 直接套用案例结论。V1 回放产物：
@@ -99,6 +114,7 @@ V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程�
 - context_quality_scores
 - portfolio_quality
 - portfolio_review_quality
+- agent_harness_quality
 - case_replay_quality
 - agent_scores
 - collaboration_graph
@@ -140,5 +156,6 @@ V1 没有真实行情/成交回放 adapter，因此 attribution 只评价过程�
 - `fundos evolve --run <run>` 能生成 EvolutionGateResult。
 - Harness 能给出维度分数和阻断项。
 - Harness 能读取 Watchlist / Paper Portfolio Review，并输出 `portfolio_review_quality`。
+- Harness 能读取 per-agent Context / Skill / Role 评分，并输出 `agent_harness_quality`。
 - Harness 能拒绝低质量升级候选。
 - 所有评分依据能引用 artifact / evidence / context / output id。

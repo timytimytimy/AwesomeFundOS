@@ -95,6 +95,17 @@ ContextPack 是某个 Agent 在某个阶段看到的上下文包。
 - leakage_control
 - contradiction_preservation
 
+V1 的 Context Quality Harness 不只给全局平均分，还必须按 Agent 输出：
+
+- ContextPack 是否为该 Agent 专属，而非全量 run dump；
+- included_evidence 是否能回链 Evidence ID；
+- allowed_claims 是否能回链 Claim ID；
+- Agent 输出中的 key_claims 是否来自该 ContextPack；
+- contradiction_table、missing_evidence、excluded_evidence_summary 是否保留；
+- Skill 的 Context Management 规则是否进入运行时 Skill Contract。
+
+产物路径：`runs/{run_id}/harness/agent-harness.yaml`。
+
 ## 7. 验收标准
 
 - 每个 selected agent 均获得独立 ContextPack。
@@ -102,3 +113,4 @@ ContextPack 是某个 Agent 在某个阶段看到的上下文包。
 - 压缩摘要不丢失关键争议和证据等级。
 - 不同角色获得明显不同的上下文内容和输出约束。
 - Harness 能对 ContextPack 评分并指出缺陷。
+- Harness 能把 ContextPack 评分纳入 `agent_harness_quality`。

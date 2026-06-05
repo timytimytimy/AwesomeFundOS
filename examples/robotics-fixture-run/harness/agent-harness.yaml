@@ -1,0 +1,277 @@
+version: 0.1.0
+artifact_type: agent_harness_report
+run_id: 2026-06-06-cn-topic
+agent_count: 9
+aggregate_scores:
+  context_compression: 100.0
+  skill_invocation: 100.0
+  role_consistency: 100.0
+  overall: 100.0
+agent_results:
+- agent_id: chief_of_staff
+  role: ChiefOfStaffAgent
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 21
+    allowed_claims: 21
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: fund_manager
+  role: FundManagerAgent
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 21
+    allowed_claims: 21
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: risk_manager
+  role: RiskManagerAgent
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 20
+    allowed_claims: 20
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: bear_debater
+  role: BearDebaterAgent
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 21
+    allowed_claims: 21
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: evaluation_harness
+  role: EvaluationHarnessAgent
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 21
+    allowed_claims: 21
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: review_archivist
+  role: ReviewArchivistAgent
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 21
+    allowed_claims: 21
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: tech_growth_analyst
+  role: TechGrowthAnalyst
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 15
+    allowed_claims: 15
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: quality_growth_company_analyst
+  role: QualityGrowthCompanyAnalyst
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 20
+    allowed_claims: 20
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+- agent_id: position_trend_trader
+  role: PositionTrendTrader
+  overall_score: 100.0
+  context_compression_quality:
+    score: 100
+    included_evidence: 18
+    allowed_claims: 18
+    output_key_claims: 8
+    evidence_traceability: true
+    claims_fit_context: true
+    contradiction_preserved: true
+    missing_evidence_preserved: true
+    noise_control_present: true
+  skill_invocation_quality:
+    score: 100
+    skill_available: true
+    required_sections_present: true
+    runtime_matches_context: true
+    role_checklist_items: 4
+    evidence_rule_items: 5
+    missing_required_sections: []
+  role_consistency_quality:
+    score: 100
+    role_match: true
+    agent_card_loaded: true
+    declared_skills_aligned: true
+    boundaries_checked: true
+    disclaimer_present: true
+  blocking_issues: []
+controls:
+- agent_specific_context_only
+- skill_contract_required
+- agent_card_required
+- evidence_traceability_required
+- no_real_trade_action

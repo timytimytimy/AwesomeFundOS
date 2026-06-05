@@ -17,6 +17,7 @@ V1 聚焦 A 股主观投资研究场景，用户只输入投资议题、股票�
   -> EvidencePack
   -> Agent-specific ContextPack
   -> 多 Agent 分工研究与辩论
+  -> Agent-level Harness / Context & Skill Quality
   -> FundManager 模拟投委会决策备忘录
   -> Runtime / Context / Evolution Harness
   -> ReviewArchive / Watchlist / Paper Portfolio Review / Attribution

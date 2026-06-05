@@ -23,6 +23,7 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("tech_growth_analyst", report)
         self.assertIn("## Harness / Evaluation", report)
         self.assertIn("case_replay_quality", report)
+        self.assertIn("agent_harness_quality", report)
         self.assertIn("historical_case_replay", report)
         self.assertIn("## Watchlist / Paper Portfolio", report)
         self.assertIn("portfolio/watchlist.yaml", report)

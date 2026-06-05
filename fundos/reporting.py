@@ -29,6 +29,7 @@ def build_first_version_report(run_path: Path) -> str:
     paper_portfolio = read_optional_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {"actions": []})
     portfolio_review = read_optional_yaml(run_path / "portfolio" / "portfolio-review.yaml", {"reviewed_actions": 0, "attribution_items": [], "learning_candidates": []})
     case_replay = read_optional_yaml(run_path / "harness" / "historical-case-replay.yaml", {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0})
+    agent_harness = read_optional_yaml(run_path / "harness" / "agent-harness.yaml", {"agent_count": 0, "aggregate_scores": {}})
     evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
     memory_writeback = load_memory_writeback_summary(run_path)
     agent_outputs = load_agent_outputs(run_path)
@@ -128,6 +129,8 @@ def build_first_version_report(run_path: Path) -> str:
         "- context_quality_scores：" + inline_counts(evaluation.get("context_quality_scores", {})),
         "- portfolio_quality：" + inline_counts(evaluation.get("portfolio_quality", {})),
         "- portfolio_review_quality：" + inline_counts(evaluation.get("portfolio_review_quality", {})),
+        "- agent_harness_quality：" + inline_counts(evaluation.get("agent_harness_quality", {})),
+        "- agent_harness：agent_count=" + str(agent_harness.get("agent_count", 0)) + "，aggregate_scores=" + inline_counts(agent_harness.get("aggregate_scores", {})),
         "- case_replay_quality：" + inline_counts(evaluation.get("case_replay_quality", {})),
         f"- historical_case_replay：patterns_replayed={case_replay.get('patterns_replayed', 0)}, case_results_total={case_replay.get('case_results_total', 0)}, case_replay_score={case_replay.get('case_replay_score', 0)}",
         "- blocking_issues：" + ("; ".join(evaluation.get("blocking_issues", [])) if evaluation.get("blocking_issues") else "none"),

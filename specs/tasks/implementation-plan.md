@@ -89,6 +89,7 @@
 - 每个 selected agent 都有 ContextPack。
 - 行业、公司、交易、风控、反方获得不同上下文。
 - ContextPack 能回链 Evidence ID / Claim ID。
+- `harness/agent-harness.yaml` 能评估 ContextPack 的压缩、追溯、矛盾保留和噪声控制。
 
 ## 6. Phase 4: Agent Output Protocol
 
@@ -106,6 +107,7 @@
 
 - 每个 selected agent 可生成结构化输出文件。
 - 输出违反角色边界时能被标记。
+- Agent-level Harness 能检查 Agent Card、Skill Contract、Role Checklist、Evidence Rules 和 structured output 的一致性。
 
 ## 7. Phase 5: Debate, Risk Review, Final Memo
 

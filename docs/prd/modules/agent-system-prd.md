@@ -164,3 +164,4 @@ Agent 不可以：
 - 每次 run 能动态选择 7-10 个 Agent，并记录选择原因。
 - 每个 Agent 输出都能绑定 context_pack_id、skill_versions、tool_versions、model_policy。
 - Harness 能按 Agent 维度评分。
+- Harness 能检查 Agent Card / Skill Contract / ContextPack / structured output 的一致性，并生成 `harness/agent-harness.yaml`。

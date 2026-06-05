@@ -90,9 +90,11 @@
 
 - overall_score：77.7
 - dimension_scores：evidence_quality=95, reasoning_quality=70, role_consistency=82, decision_quality=72, collaboration_quality=75, tool_usage_quality=70, context_quality=80, historical_case_replay=74.8
-- context_quality_scores：relevance=82, compression_fidelity=78, evidence_traceability=86, role_specificity=82, information_sufficiency=70, noise_control=84, leakage_control=85, contradiction_preservation=80
+- context_quality_scores：relevance=82, compression_fidelity=100.0, evidence_traceability=86, role_specificity=100.0, information_sufficiency=70, noise_control=84, leakage_control=85, contradiction_preservation=80
 - portfolio_quality：watchlist_items=1, paper_actions=1, real_trade_violations=0, review_dates_present=1
 - portfolio_review_quality：reviewed_actions=1, attribution_items=1, learning_candidates=1, real_trade_violations=0, review_verdict=paper_review_recorded
+- agent_harness_quality：agent_count=9, context_compression=100.0, skill_invocation=100.0, role_consistency=100.0, overall=100.0
+- agent_harness：agent_count=9，aggregate_scores=context_compression=100.0, skill_invocation=100.0, role_consistency=100.0, overall=100.0
 - case_replay_quality：patterns_replayed=3, case_results_total=9, passed_results=8, high_overfit_results=1, case_replay_score=74.8
 - historical_case_replay：patterns_replayed=3, case_results_total=9, case_replay_score=74.8
 - blocking_issues：none
