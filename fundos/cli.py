@@ -565,6 +565,10 @@ def command_capabilities_list(args: argparse.Namespace) -> int:
             f"agent={row.get('target_agent')} "
             f"kind={row.get('capability_kind')} "
             f"status={row.get('application_status')} "
+            f"route={row.get('adoption_route')} "
+            f"regression={row.get('regression_status')} "
+            f"ready={row.get('ready_for_apply')} "
+            f"risk_flags={inline_counts({flag: 1 for flag in row.get('risk_flags', [])})} "
             f"registry={row.get('registry_path')}"
         )
     return 0
@@ -580,6 +584,9 @@ def command_capabilities_apply(args: argparse.Namespace) -> int:
         return 1
     print(f"candidate_id={result['candidate_id']}")
     print(f"application_status={result['application_status']}")
+    print(f"adoption_route={result.get('adoption_route')}")
+    print(f"memory_write_policy={result.get('memory_write_policy')}")
+    print(f"regression_status={result.get('approval_snapshot', {}).get('regression_status')}")
     print(f"target_path={result['target_path']}")
     print(f"reversible={result['reversible']}")
     print(f"real_trade_allowed={result['real_trade_allowed']}")

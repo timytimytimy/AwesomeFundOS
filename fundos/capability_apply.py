@@ -42,8 +42,39 @@ def list_pending_capabilities(root: Path) -> list[dict[str, Any]]:
         registry_rel = registry_path.relative_to(root).as_posix()
         for row in read_jsonl(registry_path):
             if row.get("application_status") == "pending_human_apply":
-                rows.append({**row, "registry_path": registry_rel})
+                enriched = enrich_pending_capability(row)
+                rows.append({**enriched, "registry_path": registry_rel})
     return rows
+
+
+def enrich_pending_capability(row: dict[str, Any]) -> dict[str, Any]:
+    risk_flags = capability_risk_flags(row)
+    return {
+        **row,
+        "risk_flags": risk_flags,
+        "ready_for_apply": not risk_flags and row.get("application_status") == "pending_human_apply",
+    }
+
+
+def capability_risk_flags(candidate: dict[str, Any]) -> list[str]:
+    flags: list[str] = []
+    if candidate.get("regression_status") != "passed":
+        flags.append("regression_status_not_passed")
+    if candidate.get("adoption_route") not in {"managed_capability_pending_human_apply", "skill_patch_pending_human_apply", None}:
+        flags.append("adoption_route_not_applyable")
+    if candidate.get("adoption_route") == "forbidden_protected_mutation":
+        flags.append("forbidden_protected_mutation")
+    if candidate.get("target_scope") in {"core_profile", "org_structure", "tool_permission", "risk_limit"}:
+        flags.append("protected_target_scope")
+    if candidate.get("candidate_type") in {"profile_update", "tool_permission_update", "risk_limit_update"}:
+        flags.append("protected_candidate_type")
+    if candidate.get("protected_mutation_allowed") is True:
+        flags.append("protected_mutation_allowed_true")
+    if candidate.get("real_trade_allowed") is True:
+        flags.append("real_trade_allowed_true")
+    if candidate.get("broker_integration") not in {None, "disabled", False}:
+        flags.append("broker_integration_enabled")
+    return sorted(set(flags))
 
 
 def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> dict[str, Any]:
@@ -55,8 +86,13 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
     registry_path, rows, index, candidate = match
     if candidate.get("application_status") != "pending_human_apply":
         raise ValueError(f"capability candidate is not pending_human_apply: {candidate_id}")
-    if candidate.get("regression_status") == "blocked":
-        raise ValueError(f"capability candidate is blocked by regression harness: {candidate_id}")
+    if candidate.get("regression_status") != "passed":
+        raise ValueError(f"regression_status must be passed before applying capability candidate: {candidate_id}")
+    if candidate.get("adoption_route") not in {"managed_capability_pending_human_apply", "skill_patch_pending_human_apply", None}:
+        raise ValueError(f"adoption route is not applyable: {candidate.get('adoption_route')}")
+    risk_flags = capability_risk_flags(candidate)
+    if risk_flags:
+        raise ValueError(f"capability candidate has apply risk flags: {', '.join(risk_flags)}")
 
     target_agent = candidate.get("target_agent") or candidate.get("source_agent") or "organization"
     capability_kind = candidate.get("capability_kind") or kind_from_path(registry_path)
@@ -65,14 +101,29 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
     else:
         target_path = apply_policy_candidate(root, target_agent, capability_kind, candidate)
 
+    approval_snapshot = {
+        "approver": approver,
+        "approved_at": now_iso(),
+        "adoption_route": candidate.get("adoption_route"),
+        "memory_write_policy": candidate.get("memory_write_policy"),
+        "human_approval_required": bool(candidate.get("human_approval_required", True)),
+        "protected_mutation_allowed": bool(candidate.get("protected_mutation_allowed", False)),
+        "regression_status": candidate.get("regression_status"),
+        "risk_flags": risk_flags,
+    }
     applied_ref = {
         "version": APPLY_VERSION,
         "candidate_id": candidate_id,
         "target_agent": target_agent,
         "capability_kind": capability_kind,
         "target_path": target_path.relative_to(root).as_posix(),
-        "applied_at": now_iso(),
+        "applied_at": approval_snapshot["approved_at"],
         "approver": approver,
+        "approval_snapshot": approval_snapshot,
+        "adoption_route": candidate.get("adoption_route"),
+        "memory_write_policy": candidate.get("memory_write_policy"),
+        "human_approval_required": bool(candidate.get("human_approval_required", True)),
+        "protected_mutation_allowed": bool(candidate.get("protected_mutation_allowed", False)),
         "reversible": True,
         "managed_block_only": capability_kind == "skill",
         "mutated_agent_card": False,
@@ -90,6 +141,11 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
             "source_agent": candidate.get("source_agent"),
             "proposal": candidate.get("proposal", ""),
             "required_tests": candidate.get("required_tests", []),
+            "adoption_route": candidate.get("adoption_route"),
+            "memory_write_policy": candidate.get("memory_write_policy"),
+            "human_approval_required": bool(candidate.get("human_approval_required", True)),
+            "protected_mutation_allowed": bool(candidate.get("protected_mutation_allowed", False)),
+            "approval_snapshot": approval_snapshot,
             "controls": sorted(set(candidate.get("controls", []) + ["human_approved_apply", "no_direct_profile_mutation", "no_real_trade_action"])),
         }
     ])

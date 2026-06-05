@@ -60,6 +60,7 @@ class CapabilityApplyTests(unittest.TestCase):
                     "candidate_type": "skill_update",
                     "target_scope": "skill",
                     "application_status": "pending_human_apply",
+                    "regression_status": "passed",
                     "proposal": "事件催化后必须等待量价确认，并回链一手公告。",
                     "required_tests": ["historical_case_replay", "role_drift_check"],
                     "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
@@ -98,6 +99,7 @@ class CapabilityApplyTests(unittest.TestCase):
                     "candidate_type": "principle_update",
                     "target_scope": "principle",
                     "application_status": "pending_human_apply",
+                    "regression_status": "passed",
                     "proposal": "方法论源只能生成研究问题，不能替代一手事实。",
                     "required_tests": ["evidence_quality_check"],
                     "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
@@ -134,3 +136,130 @@ class CapabilityApplyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class CapabilityApprovalWorkflowTests(unittest.TestCase):
+    def test_list_pending_capabilities_exposes_approval_route_regression_and_risk_flags(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "position_trend_trader" / "capabilities" / "workflow.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_route_pending",
+                    "target_agent": "position_trend_trader",
+                    "capability_kind": "workflow",
+                    "candidate_type": "workflow_update",
+                    "target_scope": "workflow",
+                    "application_status": "pending_human_apply",
+                    "regression_status": "passed",
+                    "adoption_route": "managed_capability_pending_human_apply",
+                    "memory_write_policy": "no_direct_memory_write",
+                    "human_approval_required": True,
+                    "protected_mutation_allowed": False,
+                    "proposal": "missing tools require confidence cap",
+                    "required_tests": ["historical_case_replay"],
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            ])
+
+            pending = list_pending_capabilities(root)
+
+            self.assertEqual(len(pending), 1)
+            row = pending[0]
+            self.assertEqual(row["candidate_id"], "cand_route_pending")
+            self.assertEqual(row["adoption_route"], "managed_capability_pending_human_apply")
+            self.assertEqual(row["regression_status"], "passed")
+            self.assertEqual(row["memory_write_policy"], "no_direct_memory_write")
+            self.assertTrue(row["human_approval_required"])
+            self.assertEqual(row["risk_flags"], [])
+            self.assertTrue(row["ready_for_apply"])
+
+    def test_apply_rejects_pending_candidate_without_passed_regression(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "fund_manager" / "capabilities" / "workflow.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_missing_regression",
+                    "target_agent": "fund_manager",
+                    "capability_kind": "workflow",
+                    "candidate_type": "workflow_update",
+                    "target_scope": "workflow",
+                    "application_status": "pending_human_apply",
+                    "proposal": "test",
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                    "adoption_route": "managed_capability_pending_human_apply",
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            ])
+
+            with self.assertRaises(ValueError) as ctx:
+                apply_approved_capability(root, "cand_missing_regression", approver="human-test")
+
+            self.assertIn("regression_status must be passed", str(ctx.exception))
+
+    def test_apply_rejects_forbidden_or_unsafe_route_even_with_human_approver(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "fund_manager" / "capabilities" / "workflow.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_forbidden_route",
+                    "target_agent": "fund_manager",
+                    "capability_kind": "workflow",
+                    "candidate_type": "tool_permission_update",
+                    "target_scope": "tool_permission",
+                    "application_status": "pending_human_apply",
+                    "regression_status": "passed",
+                    "proposal": "grant tool permission",
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                    "adoption_route": "forbidden_protected_mutation",
+                    "protected_mutation_allowed": False,
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            ])
+
+            with self.assertRaises(ValueError) as ctx:
+                apply_approved_capability(root, "cand_forbidden_route", approver="human-test")
+
+            self.assertIn("adoption route is not applyable", str(ctx.exception))
+
+    def test_apply_ledger_records_approval_snapshot_and_route(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "swing_trader" / "capabilities" / "skill.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_skill_route_apply",
+                    "run_id": "run-approve",
+                    "source_agent": "evaluation_harness",
+                    "target_agent": "swing_trader",
+                    "capability_kind": "skill",
+                    "candidate_type": "skill_update",
+                    "target_scope": "skill",
+                    "application_status": "pending_human_apply",
+                    "regression_status": "passed",
+                    "proposal": "append only managed skill section",
+                    "required_tests": ["role_drift_check"],
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                    "adoption_route": "skill_patch_pending_human_apply",
+                    "memory_write_policy": "no_direct_memory_write",
+                    "human_approval_required": True,
+                    "protected_mutation_allowed": False,
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            ])
+
+            result = apply_approved_capability(root, "cand_skill_route_apply", approver="human-test")
+
+            self.assertEqual(result["approval_snapshot"]["approver"], "human-test")
+            self.assertEqual(result["approval_snapshot"]["adoption_route"], "skill_patch_pending_human_apply")
+            ledger_row = json.loads((root / "memory/organization/capability-apply-ledger.jsonl").read_text().splitlines()[0])
+            self.assertEqual(ledger_row["adoption_route"], "skill_patch_pending_human_apply")
+            self.assertEqual(ledger_row["memory_write_policy"], "no_direct_memory_write")
+            self.assertTrue(ledger_row["human_approval_required"])
+            self.assertFalse(ledger_row["protected_mutation_allowed"])

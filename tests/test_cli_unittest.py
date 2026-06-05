@@ -295,6 +295,9 @@ class FundosCliTests(unittest.TestCase):
             list_result = run_cli(["capabilities", "list"], tmp_path)
             self.assertEqual(list_result.returncode, 0, list_result.stderr)
             self.assertIn("pending_human_apply", list_result.stdout)
+            self.assertIn("route=", list_result.stdout)
+            self.assertIn("regression=", list_result.stdout)
+            self.assertIn("ready=", list_result.stdout)
 
             apply_without_approval = run_cli(["capabilities", "apply", "cand_" + Path(run_rel).name + "_002"], tmp_path)
             self.assertNotEqual(apply_without_approval.returncode, 0)
@@ -303,6 +306,8 @@ class FundosCliTests(unittest.TestCase):
             apply_result = run_cli(["capabilities", "apply", "cand_" + Path(run_rel).name + "_002", "--approver", "human-test"], tmp_path)
             self.assertEqual(apply_result.returncode, 0, apply_result.stderr)
             self.assertIn("application_status=applied", apply_result.stdout)
+            self.assertIn("adoption_route=", apply_result.stdout)
+            self.assertIn("regression_status=passed", apply_result.stdout)
             applied_policy = yaml.safe_load((tmp_path / "agents" / "evaluation_harness" / "applied-capabilities.yaml").read_text())
             self.assertEqual(applied_policy["applied_capabilities"][0]["candidate_id"], "cand_" + Path(run_rel).name + "_002")
             self.assertFalse(applied_policy["applied_capabilities"][0]["real_trade_allowed"])
