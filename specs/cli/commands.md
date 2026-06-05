@@ -15,6 +15,8 @@ fundos evolve --run runs/2026-06-05-robotics
 fundos inspect --run runs/2026-06-05-robotics
 fundos roster list
 fundos memory show --agent fund_manager
+fundos capabilities list
+fundos capabilities apply cand_2026-06-05-robotics_002 --approver human-name
 ```
 
 ## 2. `fundos init`
@@ -122,15 +124,28 @@ runs/{run_id}/evolution/capability-version-summary.yaml
 
 默认 `application_status=pending_human_apply`。
 
-## 6. `fundos inspect --run`
+## 6. `fundos capabilities list / apply`
+
+`fundos capabilities list` 从本地 runtime 的 `memory/agents/*/capabilities/*.jsonl` 汇总所有 `pending_human_apply` 候选，输出 candidate_id、target_agent、capability_kind 和 registry_path。
+
+`fundos capabilities apply <candidate_id> --approver <human>` 是 V1 的人工审批应用入口：
+
+- `--approver` 必填；缺失时必须返回非 0；
+- 只应用 `application_status=pending_human_apply` 的候选；
+- skill 候选只追加带 `FUNDOS_CAPABILITY:{candidate_id}` 标记的 managed block 到 runtime `skills/{agent_id}/SKILL.md`；
+- principle / workflow / checklist / tool_policy 候选写入 `agents/{agent_id}/applied-capabilities.yaml`；
+- 更新 registry 为 `application_status=applied`，并写入 `memory/organization/capability-apply-ledger.jsonl`；
+- 不改写 source-controlled specs，不改写核心 Agent Card / Profile，不开启真实交易或券商集成。
+
+## 7. `fundos inspect --run`
 
 展示 run 状态、artifact 索引、Agent 参与情况、评分摘要和阻断项。
 
-## 7. `fundos roster list`
+## 8. `fundos roster list`
 
 列出默认 Agent、角色、能力、ContextPolicy、ModelPolicy。
 
-## 8. `fundos memory show --agent`
+## 9. `fundos memory show --agent`
 
 展示指定 Agent 的已接受长期记忆摘要、错误模式和能力版本历史。
 
@@ -149,7 +164,7 @@ V1 输出包括：
 
 如果目标 Agent 尚无长期记忆，命令返回非 0，并输出 `memory_not_found: {agent_id}`。
 
-## 9. 全局合规要求
+## 10. 全局合规要求
 
 所有 `fundos run` 输出必须包含：
 

@@ -11,6 +11,7 @@ from typing import Any
 
 from fundos.agent_outputs import write_agent_output
 from fundos.agent_harness import write_agent_harness
+from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.case_replay import run_case_replay
 from fundos.context import context_focus, make_context_pack
 from fundos.decision import make_decision_memo, write_decision_markdown
@@ -479,6 +480,36 @@ def command_memory_show(args: argparse.Namespace) -> int:
     print(summary["semantic_preview"])
     return 0
 
+def command_capabilities_list(args: argparse.Namespace) -> int:
+    pending = list_pending_capabilities(Path.cwd())
+    print(f"pending_human_apply={len(pending)}")
+    for row in pending:
+        print(
+            "- "
+            f"candidate_id={row.get('candidate_id')} "
+            f"agent={row.get('target_agent')} "
+            f"kind={row.get('capability_kind')} "
+            f"status={row.get('application_status')} "
+            f"registry={row.get('registry_path')}"
+        )
+    return 0
+
+def command_capabilities_apply(args: argparse.Namespace) -> int:
+    if not args.approver:
+        print("--approver is required for human-approved capability application", file=sys.stderr)
+        return 2
+    try:
+        result = apply_approved_capability(Path.cwd(), args.candidate_id, args.approver)
+    except (FileNotFoundError, PermissionError, ValueError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"candidate_id={result['candidate_id']}")
+    print(f"application_status={result['application_status']}")
+    print(f"target_path={result['target_path']}")
+    print(f"reversible={result['reversible']}")
+    print(f"real_trade_allowed={result['real_trade_allowed']}")
+    return 0
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fundos")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -521,6 +552,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_memory_show = memory_sub.add_parser("show")
     p_memory_show.add_argument("--agent", required=True)
     p_memory_show.set_defaults(func=command_memory_show)
+
+    p_caps = sub.add_parser("capabilities")
+    caps_sub = p_caps.add_subparsers(dest="capabilities_command", required=True)
+    p_caps_list = caps_sub.add_parser("list")
+    p_caps_list.set_defaults(func=command_capabilities_list)
+    p_caps_apply = caps_sub.add_parser("apply")
+    p_caps_apply.add_argument("candidate_id")
+    p_caps_apply.add_argument("--approver", default="", help="Human approver name/id required to apply a pending capability candidate")
+    p_caps_apply.set_defaults(func=command_capabilities_apply)
 
     return parser
 

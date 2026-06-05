@@ -127,7 +127,22 @@ runs/{run_id}/evolution/capability-version-summary.yaml
 
 能力版本记录必须包含 candidate_id、run_id、source_agent、target_agent、capability_kind、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、application_status、reversible、mutated_agent_card=false、mutated_runtime_skill=false、real_trade_allowed=false、broker_integration=disabled。
 
-默认 `application_status=pending_human_apply`。只有后续人工或更高等级审批流才能把候选合并进 Agent Card / Skill / Workflow；V1 自动流程只登记候选和 ledger，不直接修改运行时技能文件。
+默认 `application_status=pending_human_apply`。只有后续人工或更高等级审批流才能把候选合并进受控 runtime 能力文件；V1 自动 evolve 流程只登记候选和 ledger，不直接修改运行时技能文件。
+
+### 5.3 Human-approved Capability Apply
+
+V1 提供 `fundos capabilities list` 和 `fundos capabilities apply <candidate_id> --approver <human>` 作为人工审批入口。
+
+Apply 约束：
+
+- 只允许应用 `pending_human_apply` 候选；
+- 必须显式提供 human approver；
+- skill 候选只能追加 managed block 到 runtime `skills/{agent_id}/SKILL.md`，并带 `FUNDOS_CAPABILITY:{candidate_id}` 可回滚标记；
+- principle / workflow / checklist / tool_policy 候选写入 runtime `agents/{agent_id}/applied-capabilities.yaml`；
+- registry 更新为 `application_status=applied`，并写入 `memory/organization/capability-apply-ledger.jsonl`；
+- 不改写 source-controlled `specs/agents/agent-cards/**/agent.md` 或 `specs/skills/**/SKILL.md`；
+- 不改写核心 Profile、Risk Limit、Tool Permission、Organization Structure；
+- `real_trade_allowed=false`，`broker_integration=disabled` 必须保持不变。
 
 每次写回必须包含：candidate_id、run_id、source_agent、target_agent、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、reversible、real_trade_allowed=false、broker_integration=disabled。
 
@@ -170,4 +185,5 @@ V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hy
 - 能通过 EvolutionGate 输出 accept / reject / quarantine / needs_more_evidence。
 - 被接受升级能版本化写入对应 Agent 的 memory 与 evolution-ledger；principles / skillset 的直接改写必须进入后续审批流。
 - 被接受的 principle / skill / checklist / workflow / tool policy 候选能进入 capability registry，并保持 pending_human_apply；被 quarantine / reject 的能力候选只进入 run 级 capability-candidates 队列。
+- pending_human_apply 能通过 `fundos capabilities apply ... --approver ...` 受控应用到 runtime managed block 或 applied-capabilities.yaml，并记录 capability-apply-ledger；缺少 approver 时必须拒绝。
 - 被拒绝升级保留拒绝理由，不能删除。

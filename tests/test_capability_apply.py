@@ -1,0 +1,127 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+import yaml
+
+from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
+from fundos.capabilities import append_jsonl
+
+
+class CapabilityApplyTests(unittest.TestCase):
+    def test_list_pending_capabilities_reads_agent_capability_registry(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "fund_manager" / "capabilities" / "workflow.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_apply_001",
+                    "target_agent": "fund_manager",
+                    "capability_kind": "workflow",
+                    "application_status": "pending_human_apply",
+                    "proposal": "最终结论前检查 Tool Harness。",
+                    "required_tests": ["agent_harness", "tool_harness"],
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                },
+                {
+                    "candidate_id": "cand_already_applied",
+                    "target_agent": "fund_manager",
+                    "capability_kind": "workflow",
+                    "application_status": "applied",
+                    "proposal": "已经应用。",
+                },
+            ])
+
+            pending = list_pending_capabilities(root)
+
+            self.assertEqual([row["candidate_id"] for row in pending], ["cand_apply_001"])
+            self.assertEqual(pending[0]["registry_path"], "memory/agents/fund_manager/capabilities/workflow.jsonl")
+
+    def test_apply_approved_skill_candidate_appends_managed_section_without_mutating_agent_card(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            skill_path = root / "skills" / "swing_trader" / "SKILL.md"
+            agent_card = root / "agents" / "swing_trader" / "agent.md"
+            skill_path.parent.mkdir(parents=True)
+            agent_card.parent.mkdir(parents=True)
+            original_skill = "# Swing Trader Skill\n\n## Existing Rules\n\n- Keep old rule.\n"
+            original_card = "# Swing Trader Agent\n\nCore profile.\n"
+            skill_path.write_text(original_skill, encoding="utf-8")
+            agent_card.write_text(original_card, encoding="utf-8")
+            registry = root / "memory" / "agents" / "swing_trader" / "capabilities" / "skill.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_skill_apply",
+                    "run_id": "run-apply",
+                    "source_agent": "learning_curator",
+                    "target_agent": "swing_trader",
+                    "capability_kind": "skill",
+                    "candidate_type": "skill_update",
+                    "target_scope": "skill",
+                    "application_status": "pending_human_apply",
+                    "proposal": "事件催化后必须等待量价确认，并回链一手公告。",
+                    "required_tests": ["historical_case_replay", "role_drift_check"],
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                }
+            ])
+
+            result = apply_approved_capability(root, "cand_skill_apply", approver="human-test")
+
+            updated_skill = skill_path.read_text(encoding="utf-8")
+            self.assertEqual(result["application_status"], "applied")
+            self.assertEqual(result["target_path"], "skills/swing_trader/SKILL.md")
+            self.assertIn("<!-- FUNDOS_CAPABILITY:cand_skill_apply START -->", updated_skill)
+            self.assertIn("事件催化后必须等待量价确认", updated_skill)
+            self.assertEqual(agent_card.read_text(encoding="utf-8"), original_card)
+            rows = [json.loads(line) for line in registry.read_text().splitlines() if line.strip()]
+            self.assertEqual(rows[0]["application_status"], "applied")
+            self.assertTrue(rows[0]["applied_ref"]["reversible"])
+            ledger = root / "memory" / "organization" / "capability-apply-ledger.jsonl"
+            self.assertTrue(ledger.exists())
+            ledger_row = json.loads(ledger.read_text().splitlines()[0])
+            self.assertFalse(ledger_row["mutated_agent_card"])
+            self.assertFalse(ledger_row["real_trade_allowed"])
+
+    def test_apply_approved_principle_candidate_writes_managed_runtime_policy(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            policy = root / "agents" / "fund_manager" / "applied-capabilities.yaml"
+            registry = root / "memory" / "agents" / "fund_manager" / "capabilities" / "principle.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_principle_apply",
+                    "run_id": "run-apply",
+                    "source_agent": "learning_curator",
+                    "target_agent": "fund_manager",
+                    "capability_kind": "principle",
+                    "candidate_type": "principle_update",
+                    "target_scope": "principle",
+                    "application_status": "pending_human_apply",
+                    "proposal": "方法论源只能生成研究问题，不能替代一手事实。",
+                    "required_tests": ["evidence_quality_check"],
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                }
+            ])
+
+            result = apply_approved_capability(root, "cand_principle_apply", approver="human-test")
+
+            self.assertEqual(result["target_path"], "agents/fund_manager/applied-capabilities.yaml")
+            doc = yaml.safe_load(policy.read_text(encoding="utf-8"))
+            self.assertEqual(doc["agent_id"], "fund_manager")
+            self.assertEqual(doc["applied_capabilities"][0]["candidate_id"], "cand_principle_apply")
+            self.assertEqual(doc["applied_capabilities"][0]["capability_kind"], "principle")
+            self.assertFalse(doc["applied_capabilities"][0]["mutated_core_profile"])
+
+    def test_apply_rejects_candidates_without_human_approval_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "fund_manager" / "capabilities" / "workflow.jsonl"
+            append_jsonl(registry, [{"candidate_id": "cand_needs_approval", "target_agent": "fund_manager", "capability_kind": "workflow", "application_status": "pending_human_apply", "proposal": "test"}])
+
+            with self.assertRaises(PermissionError):
+                apply_approved_capability(root, "cand_needs_approval", approver="")
+
+
+if __name__ == "__main__":
+    unittest.main()

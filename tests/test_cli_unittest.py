@@ -199,6 +199,31 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("must_preserve", policy_doc)
             self.assertIn("contradictions", policy_doc["must_preserve"])
 
+
+    def test_capabilities_list_and_apply_cli_require_human_approval(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            evolve_result = run_cli(["evolve", "--run", str(tmp_path / run_rel)], tmp_path)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+
+            list_result = run_cli(["capabilities", "list"], tmp_path)
+            self.assertEqual(list_result.returncode, 0, list_result.stderr)
+            self.assertIn("pending_human_apply", list_result.stdout)
+
+            apply_without_approval = run_cli(["capabilities", "apply", "cand_" + Path(run_rel).name + "_002"], tmp_path)
+            self.assertNotEqual(apply_without_approval.returncode, 0)
+            self.assertIn("--approver is required", apply_without_approval.stderr)
+
+            apply_result = run_cli(["capabilities", "apply", "cand_" + Path(run_rel).name + "_002", "--approver", "human-test"], tmp_path)
+            self.assertEqual(apply_result.returncode, 0, apply_result.stderr)
+            self.assertIn("application_status=applied", apply_result.stdout)
+            applied_policy = yaml.safe_load((tmp_path / "agents" / "evaluation_harness" / "applied-capabilities.yaml").read_text())
+            self.assertEqual(applied_policy["applied_capabilities"][0]["candidate_id"], "cand_" + Path(run_rel).name + "_002")
+            self.assertFalse(applied_policy["applied_capabilities"][0]["real_trade_allowed"])
+
     def test_run_evidence_pack_uses_seed_library_source_metadata(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)
