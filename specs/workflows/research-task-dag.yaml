@@ -1,0 +1,102 @@
+workflow_id: research_task_dag_v1
+version: 0.1.0
+name: AwesomeFundOS Research Task DAG
+purpose: >-
+  Encode the discretionary investment research process as an auditable task DAG so
+  Codex Agents behave like a real investment firm rather than a linear stock picker.
+market_scope: CN_A_SHARE
+node_status_model:
+  ready: prerequisites satisfied or node is an intake/source node
+  waiting_for_artifact: expected upstream artifact is missing
+  planned: node is intentionally later in the lifecycle and must not block the run
+nodes:
+  - node_id: task_intake
+    owner_role: chief_of_staff
+    phase: intake
+    description: Normalize topic/stock/question input into a research brief.
+    depends_on: []
+    expected_artifacts: [run.yaml, task-brief.md]
+  - node_id: agent_staffing
+    owner_role: chief_of_staff
+    phase: staffing
+    description: Select a role-diverse roster with PM, risk, bear, analysts, and traders.
+    depends_on: [task_intake]
+    expected_artifacts: [selected-agents.yaml]
+  - node_id: evidence_retrieval
+    owner_role: learning_curator
+    phase: evidence
+    description: Retrieve and rank evidence by source hierarchy before any conclusion.
+    depends_on: [task_intake]
+    expected_artifacts: [evidence/evidence-pack.yaml]
+  - node_id: tool_adapter_manifest
+    owner_role: evaluation_harness
+    phase: tools
+    description: Verify read-only tool adapter contracts and prohibit broker/order adapters.
+    depends_on: [agent_staffing, evidence_retrieval]
+    expected_artifacts: [tools/tool-adapter-manifest.yaml]
+  - node_id: context_packaging
+    owner_role: chief_of_staff
+    phase: context
+    description: Build role-specific compressed context packs with loss accounting.
+    depends_on: [agent_staffing, evidence_retrieval, tool_adapter_manifest]
+    expected_artifacts: []
+  - node_id: agent_analysis
+    owner_role: selected_agents
+    phase: research
+    description: Analysts, traders, risk, and bear roles produce independent work.
+    depends_on: [context_packaging]
+    expected_artifacts: [harness/agent-harness.yaml]
+  - node_id: committee_collaboration
+    owner_role: fund_manager
+    phase: committee
+    description: Collect handoffs, disagreements, vetoes, and committee readiness.
+    depends_on: [agent_analysis]
+    expected_artifacts: []
+  - node_id: pm_style_competition
+    owner_role: fund_manager
+    phase: committee
+    description: Compare multiple PM styles before the final simulated decision.
+    depends_on: [committee_collaboration]
+    expected_artifacts: [committee/pm-competition.yaml]
+  - node_id: risk_review
+    owner_role: risk_manager
+    phase: risk
+    description: Apply risk boundaries, exposure checks, and no-real-trade controls.
+    depends_on: [agent_analysis]
+    expected_artifacts: []
+  - node_id: market_state_recognition
+    owner_role: position_trend_trader
+    phase: market_context
+    description: Classify market state as context, never as direct buy/sell evidence.
+    depends_on: [evidence_retrieval]
+    expected_artifacts: [harness/market-state.yaml]
+  - node_id: portfolio_review
+    owner_role: review_archivist
+    phase: paper_portfolio
+    description: Review watchlist and paper actions for attribution and failures.
+    depends_on: [pm_style_competition, risk_review, market_state_recognition]
+    expected_artifacts: [portfolio/portfolio-review.yaml]
+  - node_id: evaluation
+    owner_role: evaluation_harness
+    phase: harness
+    description: Score outputs, context handling, tools, collaboration, and safety gates.
+    depends_on: [portfolio_review]
+    expected_artifacts: []
+  - node_id: evolution_candidate_generation
+    owner_role: learning_curator
+    phase: evolution
+    description: Generate quarantined capability and memory candidates after evaluation.
+    depends_on: [evaluation]
+    expected_artifacts: []
+controls:
+  - no_real_trade_action
+  - broker_integration_disabled
+  - paper_portfolio_only
+  - research_watchlist_only
+  - human_approval_required_for_evolution_apply
+  - evidence_hierarchy_required
+  - social_signal_cannot_be_direct_trade_evidence
+  - context_compression_must_preserve_contradictions
+  - planned_lifecycle_nodes_do_not_authorize_trading
+real_trade_allowed: false
+broker_integration: disabled

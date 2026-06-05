@@ -16,6 +16,7 @@ from fundos.portfolio import load_portfolio_state
 from fundos.skill_benchmark import load_skill_benchmark_report
 from fundos.source_ingestion import load_ingestion_report
 from fundos.tool_harness import load_tool_harness
+from fundos.task_dag import load_task_dag_harness
 
 
 def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
@@ -56,6 +57,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     market_state = load_market_state_report(run_path)
     capability_regression = load_capability_regression(run_path)
     skill_benchmark = load_skill_benchmark_report(run_path)
+    task_dag = load_task_dag_harness(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
@@ -99,6 +101,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("skill_benchmark")
     if agent_governance.get("agent_count", 0) > 0:
         accepted_outputs.append("agent_governance")
+    if task_dag.get("task_dag_quality_score", 0) > 0:
+        accepted_outputs.append("task_dag")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -125,6 +129,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         blocking.append("Market State 出现 real_trade_allowed=true，违反市场状态识别边界。")
     if source_ingestion.get("real_trade_allowed"):
         blocking.append("Source Ingestion 出现 real_trade_allowed=true，违反学习源边界。")
+    for issue in task_dag.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_task_dag_harness":
+            blocking.append(issue)
+    if task_dag.get("real_trade_allowed"):
+        blocking.append("Task DAG 出现 real_trade_allowed=true，违反组织编排边界。")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
@@ -150,6 +159,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "historical_case_replay": case_replay_score,
             "outcome_tracking": outcome_score,
             "market_state_recognition": market_state.get("market_state_quality_score", 0),
+            "workflow_orchestration": task_dag.get("task_dag_quality_score", 0),
         },
         "context_quality_scores": {
             "relevance": 82,
@@ -170,6 +180,18 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "overall": agent_harness_scores.get("overall", 0),
         },
         "agent_thread_quality": agent_thread_quality,
+        "task_dag_quality": {
+            "task_dag_quality_score": task_dag.get("task_dag_quality_score", 0),
+            "node_count": task_dag.get("node_count", 0),
+            "edge_count": task_dag.get("edge_count", 0),
+            "blocked_node_count": task_dag.get("blocked_node_count", 0),
+            "topological_order_valid": task_dag.get("topological_order_valid", False),
+            "missing_artifacts": task_dag.get("missing_artifacts", []),
+            "blocking_issues": task_dag.get("blocking_issues", []),
+            "controls": task_dag.get("controls", []),
+            "real_trade_allowed": task_dag.get("real_trade_allowed", False),
+            "broker_integration": task_dag.get("broker_integration", "disabled"),
+        },
         "agent_governance_quality": {
             "agent_count": agent_governance.get("agent_count", 0),
             "governance_action_counts": agent_governance.get("governance_action_counts", {}),

@@ -40,6 +40,7 @@ from fundos.skill_benchmark import run_skill_benchmark
 from fundos.source_ingestion import ingest_source_candidates
 from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
+from fundos.task_dag import write_task_dag
 from fundos.tool_policies import load_tool_policy
 
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
@@ -418,6 +419,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_market_state_report(run_path, evidence_pack, market_replay_path)
     run_outcome_tracking(run_path, market_replay_path)
     write_portfolio_review(run_path)
+    write_task_dag(run_path, selected, evidence_pack)
 
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
@@ -450,6 +452,7 @@ def command_eval(args: argparse.Namespace) -> int:
     run_outcome_tracking(run_path)
     write_portfolio_review(run_path)
     write_agent_harness(run_path, selected)
+    write_task_dag(run_path, selected, evidence)
     run_skill_benchmark(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
