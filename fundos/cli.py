@@ -10,6 +10,8 @@ from typing import Any
 
 import yaml
 
+from fundos.public_research import PublicResearchClient, tool_result_to_evidence
+
 DISCLAIMER = "研究分析，不构成投资建议；不接真实交易，不自动下单。"
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -279,7 +281,7 @@ def selection_reason(agent_id: str, input_type: str, value: str) -> str:
     return f"matched {input_type} task: {value}"
 
 
-def make_evidence_pack(run_id: str, input_type: str, value: str) -> dict[str, Any]:
+def make_evidence_pack(run_id: str, input_type: str, value: str, public_results: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     retrieved_at = now_iso()
     base_relevance = ["industry", "company", "trading", "risk", "bear_case"]
     items = [
@@ -298,7 +300,11 @@ def make_evidence_pack(run_id: str, input_type: str, value: str) -> dict[str, An
     ]
     for eid, source_id, source_type, summary, claim, claim_type, relevant_to in seed_claims:
         items.append(seed_evidence_item(eid, source_id, source_type, summary, claim, claim_type, retrieved_at, relevant_to))
-    items.append(evidence_item("E011", "case", "tier_2_canonical_framework", "经典历史案例库种子", "包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。", "历史案例用于形成可测试模式，不可单案过拟合。", "inference", retrieved_at, base_relevance))
+    next_id = 11
+    for result in public_results or []:
+        items.append(tool_result_to_evidence(f"E{next_id:03d}", result, retrieved_at, base_relevance))
+        next_id += 1
+    items.append(evidence_item(f"E{next_id:03d}", "case", "tier_2_canonical_framework", "经典历史案例库种子", "包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。", "历史案例用于形成可测试模式，不可单案过拟合。", "inference", retrieved_at, base_relevance))
     return {
         "run_id": run_id,
         "market": "CN_A_SHARE",
@@ -309,7 +315,7 @@ def make_evidence_pack(run_id: str, input_type: str, value: str) -> dict[str, An
             "search policy and news sources",
             "query market data summary",
             "load seed practitioner and historical case library",
-        ],
+        ] + (["public_research"] if public_results else []),
         "evidence_items": items,
         "unresolved_gaps": [
             "V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。"
@@ -644,7 +650,8 @@ def command_run(args: argparse.Namespace) -> int:
     roster = load_roster()
     selected = select_agents(input_type, value, roster)
     agents_by_id = {agent["id"]: agent for agent in roster["agents"]}
-    evidence_pack = make_evidence_pack(run_id, input_type, value)
+    public_results = PublicResearchClient().search(value)
+    evidence_pack = make_evidence_pack(run_id, input_type, value, public_results=public_results)
 
     run_doc = {
         "run_id": run_id,
