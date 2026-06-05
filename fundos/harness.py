@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from fundos.case_replay import load_case_replay
 from fundos.portfolio import load_portfolio_state
 
 
@@ -26,6 +27,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     if low_count > primary_count:
         blocking.append("低等级信号数量超过一手证据，需要降级结论。")
     portfolio = load_portfolio_state(run_path) if run_path else {"watchlist": {"items": []}, "paper_portfolio": {"actions": []}}
+    case_replay = load_case_replay(run_path) if run_path else {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0, "passed_results": 0, "high_overfit_results": 0}
+    case_replay_score = case_replay.get("case_replay_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
     real_trade_violations = [action for action in paper_actions if action.get("real_trade_allowed")]
     if real_trade_violations:
@@ -47,6 +50,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "collaboration_quality": 75,
             "tool_usage_quality": tool_usage_quality,
             "context_quality": 80,
+            "historical_case_replay": case_replay_score,
         },
         "context_quality_scores": {
             "relevance": 82,
@@ -64,6 +68,13 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "real_trade_violations": len(real_trade_violations),
             "review_dates_present": sum(1 for item in portfolio["watchlist"].get("items", []) if item.get("review_date")),
         },
+        "case_replay_quality": {
+            "patterns_replayed": case_replay.get("patterns_replayed", 0),
+            "case_results_total": case_replay.get("case_results_total", 0),
+            "passed_results": case_replay.get("passed_results", 0),
+            "high_overfit_results": case_replay.get("high_overfit_results", 0),
+            "case_replay_score": case_replay_score,
+        },
         "agent_scores": [
             {
                 "agent_id": item["agent_id"],
@@ -75,6 +86,6 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             for item in selected
         ],
         "blocking_issues": blocking,
-        "accepted_outputs": ["final-decision-memo"],
+        "accepted_outputs": ["final-decision-memo"] + (["historical_case_replay"] if case_replay.get("case_results_total", 0) else []),
         "rejected_outputs": [],
     }

@@ -57,6 +57,7 @@ class FundosCliTests(unittest.TestCase):
                 "portfolio/watchlist.yaml",
                 "portfolio/paper-portfolio.yaml",
                 "portfolio/portfolio-actions.jsonl",
+                "harness/historical-case-replay.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
                 "evaluations/evaluation-report.yaml",
@@ -83,6 +84,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(any(item.get("source_type") == "learning_pattern" for item in evidence["evidence_items"]))
             learning = yaml.safe_load((run_path / "learning/patterns.yaml").read_text())
             self.assertTrue(learning["patterns"])
+            replay = yaml.safe_load((run_path / "harness/historical-case-replay.yaml").read_text())
+            self.assertGreaterEqual(replay["patterns_replayed"], 1)
+            self.assertIn("direct_case_mapping_forbidden", replay["controls"])
 
             for agent_id in ids:
                 self.assertTrue((run_path / "context" / f"{agent_id}.context-pack.yaml").exists(), agent_id)
@@ -111,6 +115,7 @@ class FundosCliTests(unittest.TestCase):
             report = yaml.safe_load((run_path / "evaluations/evaluation-report.yaml").read_text())
             self.assertGreaterEqual(report["overall_score"], 0)
             self.assertIn("context_quality", report["dimension_scores"])
+            self.assertIn("case_replay_quality", report)
 
             evolve_result = run_cli(["evolve", "--run", str(run_path)], tmp_path)
             self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)

@@ -70,6 +70,7 @@ runs/{date}-{slug}/
   agent_work/{agent_id}.md
   debate/
   risk/
+  harness/historical-case-replay.yaml
   decision/
   evaluations/
   archive/

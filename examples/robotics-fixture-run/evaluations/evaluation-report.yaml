@@ -13,6 +13,7 @@ dimension_scores:
   collaboration_quality: 75
   tool_usage_quality: 70
   context_quality: 80
+  historical_case_replay: 74.8
 context_quality_scores:
   relevance: 82
   compression_fidelity: 78
@@ -27,6 +28,12 @@ portfolio_quality:
   paper_actions: 1
   real_trade_violations: 0
   review_dates_present: 1
+case_replay_quality:
+  patterns_replayed: 3
+  case_results_total: 9
+  passed_results: 8
+  high_overfit_results: 1
+  case_replay_score: 74.8
 agent_scores:
 - agent_id: chief_of_staff
   role_consistency: 82
@@ -94,4 +101,5 @@ agent_scores:
 blocking_issues: []
 accepted_outputs:
 - final-decision-memo
+- historical_case_replay
 rejected_outputs: []

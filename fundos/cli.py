@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.agent_outputs import write_agent_output
+from fundos.case_replay import run_case_replay
 from fundos.context import context_focus, make_context_pack
 from fundos.decision import make_decision_memo, write_decision_markdown
 from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
@@ -306,7 +307,7 @@ def command_run(args: argparse.Namespace) -> int:
         run_path = Path(f"{base}-{suffix}")
         run_id = run_path.name
 
-    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution", "learning", "portfolio"]:
+    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution", "learning", "portfolio", "harness"]:
         (run_path / sub).mkdir(parents=True, exist_ok=True)
 
     roster = load_roster()
@@ -340,6 +341,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_yaml(run_path / "selected-agents.yaml", {"selected_agents": selected})
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
     write_run_learning_patterns(run_path, [item["agent_id"] for item in selected])
+    run_case_replay(run_path)
 
     agent_outputs = []
     for item in selected:
@@ -376,6 +378,7 @@ def command_eval(args: argparse.Namespace) -> int:
     run_doc = read_yaml(run_path / "run.yaml")
     evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
     selected = run_doc["selected_agents"]
+    run_case_replay(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")

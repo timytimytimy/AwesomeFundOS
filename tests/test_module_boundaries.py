@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 
 from fundos.agent_outputs import make_structured_agent_output
+from fundos.case_replay import run_case_replay
 from fundos.context import make_context_pack
 from fundos.evidence import make_evidence_pack
 from fundos.harness import make_evaluation
@@ -30,6 +31,16 @@ class FundosModuleBoundaryTests(unittest.TestCase):
         self.assertEqual(output["agent_id"], "tech_growth_analyst")
         self.assertGreaterEqual(output["evidence_coverage"]["tier_1_primary_fact"], 1)
         self.assertGreaterEqual(evaluation["source_coverage"]["public_research_items"], 1)
+
+    def test_case_replay_module_can_be_used_without_cli_import(self):
+        from fundos.io import write_yaml
+
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d) / "runs" / "run1"
+            write_yaml(run_path / "learning" / "patterns.yaml", {"patterns": [{"id": "a_share_theme_diffusion_case", "validation_gates": ["historical_case_replay"], "tags": ["industry"]}]})
+            replay = run_case_replay(run_path)
+            self.assertGreaterEqual(replay["patterns_replayed"], 1)
+            self.assertTrue((run_path / "harness" / "historical-case-replay.yaml").exists())
 
     def test_yaml_artifacts_written_by_modules_are_parseable(self):
         from fundos.agent_outputs import write_agent_output

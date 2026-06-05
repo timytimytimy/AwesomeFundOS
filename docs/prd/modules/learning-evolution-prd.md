@@ -128,6 +128,8 @@ V1 禁止自动写回：
 - 是否破坏风控；
 - 是否会污染其他 Agent。
 
+V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hypothesis generator；即使回放通过，也不能产生直接买卖、直接映射标的或提高真实风险权限。
+
 ## 8. 验收标准
 
 - 能从 run 生成 reflection 和 upgrade candidates。

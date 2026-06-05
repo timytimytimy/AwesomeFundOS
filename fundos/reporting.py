@@ -27,6 +27,7 @@ def build_first_version_report(run_path: Path) -> str:
     evaluation = read_yaml(run_path / "evaluations" / "evaluation-report.yaml")
     watchlist = read_optional_yaml(run_path / "portfolio" / "watchlist.yaml", {"items": []})
     paper_portfolio = read_optional_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {"actions": []})
+    case_replay = read_optional_yaml(run_path / "harness" / "historical-case-replay.yaml", {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0})
     evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
     memory_writeback = load_memory_writeback_summary(run_path)
     agent_outputs = load_agent_outputs(run_path)
@@ -47,7 +48,7 @@ def build_first_version_report(run_path: Path) -> str:
         "",
         f"- 默认 Agent roster：{len(roster.get('agents', []))} 个独立角色。",
         f"- 本次示例动态选择 Agent：{len(selected_ids)} 个，包含 {', '.join(selected_ids)}。",
-        "- 已实现模块：CLI run/init/eval/evolve/report、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、EvolutionGate、Learning Pattern 蒸馏。",
+        "- 已实现模块：CLI run/init/eval/evolve/report、EvidencePack、ContextPack、结构化 Agent 输出、模拟投委会 Memo、Harness Evaluation、Historical Case Replay、EvolutionGate、Learning Pattern 蒸馏。",
         "- V1 范围：本地优先、模拟投委会、观察池/Paper Portfolio，不接真实交易、不自动下单。",
         "",
         "## Agent Runtime Assets",
@@ -121,6 +122,8 @@ def build_first_version_report(run_path: Path) -> str:
         "- dimension_scores：" + inline_counts(evaluation.get("dimension_scores", {})),
         "- context_quality_scores：" + inline_counts(evaluation.get("context_quality_scores", {})),
         "- portfolio_quality：" + inline_counts(evaluation.get("portfolio_quality", {})),
+        "- case_replay_quality：" + inline_counts(evaluation.get("case_replay_quality", {})),
+        f"- historical_case_replay：patterns_replayed={case_replay.get('patterns_replayed', 0)}, case_results_total={case_replay.get('case_results_total', 0)}, case_replay_score={case_replay.get('case_replay_score', 0)}",
         "- blocking_issues：" + ("; ".join(evaluation.get("blocking_issues", [])) if evaluation.get("blocking_issues") else "none"),
         "",
         "## EvolutionGate",
@@ -139,7 +142,7 @@ def build_first_version_report(run_path: Path) -> str:
         "",
         "- 接入真实公告、财报、交易所问询、互动易和政策数据源。",
         "- 接入真实行情/价格序列，支持买点、卖点、仓位和 drawdown 的可评测判断。",
-        "- 实现历史案例回放 Harness，用于验证 pattern 和 EvolutionGate 中 quarantine 的候选。",
+        "- 扩展历史案例库与 outcome tracking，让回放从小型内置案例升级为多市场状态、多行业、多失败模式的后验评测。",
         "- 将 Paper Portfolio 从 stub 扩展为可定期 review 和后验归因的完整模块。",
         "- 将 EvolutionGate V1 自动受控写回升级为更完整的人工/规则审批流、回滚 UI 和长期绩效归因。",
         "",

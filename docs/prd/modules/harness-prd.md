@@ -43,6 +43,26 @@ Harness 负责持续评估 Agent、Context、Evidence、Tools、Collaboration、
 - leakage_control
 - contradiction_preservation
 
+### Historical Case Replay Harness
+
+Harness 必须把学习 pattern 放入历史案例回放，而不是让 Agent 直接套用案例结论。V1 回放产物：
+
+```text
+runs/{run_id}/harness/historical-case-replay.yaml
+```
+
+回放输入：
+
+- run-scoped `learning/patterns.yaml`；
+- 内置小型 historical case library；
+- 每个 pattern 的 `validation_gates`。
+
+回放输出：patterns_replayed、cases_available、case_results_total、fit_score、overfit_risk、verdict、lessons_checked、failure_modes_checked、controls。
+
+核心控制：`case_replay_is_not_trade_signal`、`direct_case_mapping_forbidden`、`primary_evidence_still_required`。
+
+Harness Evaluation 需要把回放摘要写入 `case_replay_quality`，并把 `historical_case_replay` 放入 dimension_scores。
+
 ### Level 3 Outcome Tracking Stub
 
 V1 只做轻量结构：
@@ -59,6 +79,7 @@ V1 只做轻量结构：
 - overall_score
 - dimension_scores
 - context_quality_scores
+- case_replay_quality
 - agent_scores
 - collaboration_graph
 - tool_usage_findings
