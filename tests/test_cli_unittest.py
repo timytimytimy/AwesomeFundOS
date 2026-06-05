@@ -1,0 +1,126 @@
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parents[1]
+CLI = [sys.executable, "-m", "fundos.cli"]
+
+
+def run_cli(args, cwd):
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(ROOT) + os.pathsep + env.get("PYTHONPATH", "")
+    return subprocess.run(CLI + args, cwd=cwd, text=True, capture_output=True, env=env)
+
+
+class FundosCliTests(unittest.TestCase):
+    def test_init_creates_runtime_dirs_idempotently(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["init"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for name in ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]:
+                self.assertTrue((tmp_path / name).is_dir(), name)
+
+            second = run_cli(["init"], tmp_path)
+            self.assertEqual(second.returncode, 0, second.stderr)
+            self.assertIn("skipped", second.stdout)
+
+    def test_roster_list_loads_default_agents(self):
+        result = run_cli(["roster", "list"], ROOT)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("chief_of_staff", result.stdout)
+        self.assertIn("fund_manager", result.stdout)
+        self.assertIn("19 agents", result.stdout)
+
+    def test_run_topic_creates_complete_workspace(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            lines = [line for line in result.stdout.splitlines() if line.startswith("run_path=")]
+            self.assertTrue(lines, result.stdout)
+            run_path = tmp_path / lines[-1].split("=", 1)[1]
+            self.assertTrue(run_path.is_dir())
+
+            expected = [
+                "run.yaml",
+                "task-brief.md",
+                "selected-agents.yaml",
+                "evidence/evidence-pack.yaml",
+                "decision/final-decision-memo.md",
+                "decision/final-decision-memo.yaml",
+                "evaluations/evaluation-report.yaml",
+                "archive/run-summary.md",
+                "evolution/candidates.jsonl",
+            ]
+            for rel in expected:
+                self.assertTrue((run_path / rel).exists(), rel)
+
+            run_doc = yaml.safe_load((run_path / "run.yaml").read_text())
+            self.assertEqual(run_doc["input"]["input_type"], "topic")
+            self.assertEqual(run_doc["market"], "CN_A_SHARE")
+            self.assertGreaterEqual(len(run_doc["selected_agents"]), 7)
+            self.assertLessEqual(len(run_doc["selected_agents"]), 10)
+
+            selected = yaml.safe_load((run_path / "selected-agents.yaml").read_text())
+            ids = {item["agent_id"] for item in selected["selected_agents"]}
+            self.assertTrue({"chief_of_staff", "fund_manager", "risk_manager", "bear_debater", "evaluation_harness", "review_archivist"}.issubset(ids))
+            self.assertTrue("tech_growth_analyst" in ids or "advanced_manufacturing_analyst" in ids)
+
+            evidence = yaml.safe_load((run_path / "evidence/evidence-pack.yaml").read_text())
+            self.assertTrue(evidence["evidence_items"])
+            self.assertTrue(any(item["source_tier"] == "tier_3_verified_public_practitioner" for item in evidence["evidence_items"]))
+
+            for agent_id in ids:
+                self.assertTrue((run_path / "context" / f"{agent_id}.context-pack.yaml").exists(), agent_id)
+                self.assertTrue((run_path / "agent_work" / f"{agent_id}.md").exists(), agent_id)
+
+            memo = yaml.safe_load((run_path / "decision/final-decision-memo.yaml").read_text())
+            self.assertEqual(memo["memo_type"], "simulated_investment_committee_memo")
+            self.assertIn("不构成投资建议", memo["disclaimer"])
+            self.assertTrue(memo["evidence_references"])
+
+    def test_eval_and_evolve_can_reprocess_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["run", "--question", "当前A股低空经济是否值得进入观察池？"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            run_path = tmp_path / run_rel
+
+            eval_result = run_cli(["eval", "--run", str(run_path)], tmp_path)
+            self.assertEqual(eval_result.returncode, 0, eval_result.stderr)
+            report = yaml.safe_load((run_path / "evaluations/evaluation-report.yaml").read_text())
+            self.assertGreaterEqual(report["overall_score"], 0)
+            self.assertIn("context_quality", report["dimension_scores"])
+
+            evolve_result = run_cli(["evolve", "--run", str(run_path)], tmp_path)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+            gate_path = run_path / "evolution/evolution-gate-results.jsonl"
+            self.assertTrue(gate_path.exists())
+            rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]
+            self.assertTrue(rows)
+            self.assertIn(rows[0]["decision"], {"accept", "reject", "quarantine", "needs_more_evidence"})
+
+    def test_seed_library_contains_verified_practitioner_and_classics(self):
+        seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"
+        self.assertTrue(seed_path.exists())
+        seed = yaml.safe_load(seed_path.read_text())
+        ids = {item["id"] for item in seed["sources"]}
+        self.assertIn("serenity_aleabitoreddit", ids)
+        self.assertIn("lihai_a_share", ids)
+        self.assertIn("howard_marks", ids)
+        self.assertIn("william_oneil_canslim", ids)
+        serenity = next(item for item in seed["sources"] if item["id"] == "serenity_aleabitoreddit")
+        self.assertEqual(serenity["source_tier"], "tier_3_verified_public_practitioner")
+        self.assertIn("direct_a_share_buy_signal", serenity["not_allowed_outputs"])
+
+
+if __name__ == "__main__":
+    unittest.main()
