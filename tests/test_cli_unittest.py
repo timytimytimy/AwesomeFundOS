@@ -103,6 +103,13 @@ class FundosCliTests(unittest.TestCase):
             evidence = yaml.safe_load((run_path / "evidence/evidence-pack.yaml").read_text())
             research_manifest = yaml.safe_load((run_path / "evidence/public-research-manifest.yaml").read_text())
             self.assertTrue(evidence["evidence_items"])
+            self.assertIn("claim_index", evidence)
+            self.assertIn("source_coverage", evidence)
+            self.assertTrue(evidence["schema_validation"]["valid"])
+            self.assertEqual(evidence["schema_validation"]["error_count"], 0)
+            first_claim = evidence["evidence_items"][0]["claims"][0]
+            self.assertIn(first_claim["claim_id"], evidence["claim_index"])
+            self.assertEqual(evidence["claim_index"][first_claim["claim_id"]]["evidence_id"], evidence["evidence_items"][0]["id"])
             self.assertEqual(research_manifest["artifact_type"], "public_research_manifest")
             self.assertIn("cache_is_audit_trail_not_truth_source", research_manifest["boundary_controls"])
             self.assertTrue(any(item["source_tier"] == "tier_3_verified_public_practitioner" for item in evidence["evidence_items"]))

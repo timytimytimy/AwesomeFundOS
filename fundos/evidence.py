@@ -50,7 +50,7 @@ def make_evidence_pack(run_id: str, input_type: str, value: str, public_results:
         items.append(tool_result_to_evidence(f"E{next_id:03d}", result, retrieved_at, base_relevance))
         next_id += 1
     items.append(evidence_item(f"E{next_id:03d}", "case", "tier_2_canonical_framework", "经典历史案例库种子", "包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。", "历史案例用于形成可测试模式，不可单案过拟合。", "inference", retrieved_at, base_relevance))
-    return {
+    pack = {
         "run_id": run_id,
         "market": "CN_A_SHARE",
         "query": value,
@@ -66,6 +66,114 @@ def make_evidence_pack(run_id: str, input_type: str, value: str, public_results:
             "V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。"
         ],
     }
+    enrich_evidence_pack(pack)
+    return pack
+
+
+def enrich_evidence_pack(pack: dict[str, Any]) -> dict[str, Any]:
+    items = pack.get("evidence_items", [])
+    pack["claim_index"] = build_claim_index(items)
+    pack["source_coverage"] = build_source_coverage(items)
+    validation = validate_evidence_pack(pack)
+    pack["schema_validation"] = validation
+    return pack
+
+
+def build_claim_index(items: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    index: dict[str, dict[str, Any]] = {}
+    for item in items:
+        evidence_id = item.get("id", "")
+        for claim in item.get("claims", []) or []:
+            claim_id = claim.get("claim_id")
+            if not claim_id:
+                continue
+            index[claim_id] = {
+                "claim_id": claim_id,
+                "evidence_id": evidence_id,
+                "source_id": item.get("source_id", item.get("source_type", "")),
+                "source_type": item.get("source_type", ""),
+                "source_tier": item.get("source_tier", ""),
+                "claim_type": claim.get("claim_type", ""),
+                "confidence": claim.get("confidence", ""),
+                "relevant_to": claim.get("relevant_to", []),
+                "claim_text": claim.get("claim_text", ""),
+            }
+    return index
+
+
+def build_source_coverage(items: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "total_items": len(items),
+        "public_research_items": sum(1 for item in items if item.get("source_id") == "public_research"),
+        "primary_fact_items": sum(1 for item in items if item.get("source_tier") == "tier_1_primary_fact"),
+        "low_tier_items": sum(1 for item in items if item.get("source_tier") in {"tier_5_social_signal", "tier_6_unverified"}),
+        "tier_counts": count_by(items, "source_tier"),
+        "type_counts": count_by(items, "source_type"),
+        "claim_type_counts": count_claims_by(items, "claim_type"),
+        "confidence_counts": count_by(items, "confidence"),
+    }
+
+
+def validate_evidence_pack(pack: dict[str, Any]) -> dict[str, Any]:
+    errors: list[str] = []
+    for field in ["run_id", "market", "query", "retrieval_plan", "evidence_items", "unresolved_gaps"]:
+        if field not in pack:
+            errors.append(f"{field} missing")
+    items = pack.get("evidence_items", [])
+    if not isinstance(items, list):
+        errors.append("evidence_items must be list")
+        items = []
+    seen_evidence_ids: set[str] = set()
+    seen_claim_ids: set[str] = set()
+    for i, item in enumerate(items):
+        for field in ["id", "source_type", "source_tier", "retrieved_at", "summary", "confidence", "claims"]:
+            if not item.get(field):
+                errors.append(f"evidence_items[{i}].{field} missing")
+        evidence_id = item.get("id")
+        if evidence_id in seen_evidence_ids:
+            errors.append(f"evidence_items[{i}].id duplicate")
+        if evidence_id:
+            seen_evidence_ids.add(evidence_id)
+        claims = item.get("claims", [])
+        if not isinstance(claims, list) or not claims:
+            errors.append(f"evidence_items[{i}].claims empty")
+            claims = []
+        for j, claim in enumerate(claims):
+            for field in ["claim_id", "claim_text", "claim_type", "confidence", "relevant_to", "supports", "contradicts"]:
+                if field not in claim or claim.get(field) in (None, ""):
+                    errors.append(f"evidence_items[{i}].claims[{j}].{field} missing")
+            claim_id = claim.get("claim_id")
+            if claim_id in seen_claim_ids:
+                errors.append(f"evidence_items[{i}].claims[{j}].claim_id duplicate")
+            if claim_id:
+                seen_claim_ids.add(claim_id)
+    claim_index = pack.get("claim_index", {})
+    if claim_index:
+        missing_from_index = sorted(seen_claim_ids - set(claim_index))
+        for claim_id in missing_from_index:
+            errors.append(f"claim_index missing {claim_id}")
+    return {
+        "valid": not errors,
+        "error_count": len(errors),
+        "errors": errors,
+    }
+
+
+def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        value = str(row.get(key) or "unknown")
+        counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
+def count_claims_by(items: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in items:
+        for claim in item.get("claims", []) or []:
+            value = str(claim.get(key) or "unknown")
+            counts[value] = counts.get(value, 0) + 1
+    return counts
 
 
 def seed_evidence_item(eid: str, source_id: str, source_type: str, summary: str, claim: str, claim_type: str, retrieved_at: str, relevant_to: list[str]) -> dict[str, Any]:

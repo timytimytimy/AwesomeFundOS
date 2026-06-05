@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
+from fundos.evidence import enrich_evidence_pack
 from fundos.tool_adapters import adapter_lookup, load_tool_adapter_contracts
 
 SPEC_REL = "specs/tools/fixture-adapter-runtime.yaml"
@@ -137,6 +138,7 @@ def merge_tool_evidence_into_memory(evidence_pack: dict[str, Any], evidence_item
         plan.append("fixture_tool_runtime")
     evidence_pack["retrieval_plan"] = plan
     evidence_pack["unresolved_gaps"] = [gap for gap in evidence_pack.get("unresolved_gaps", []) if "public retrieval interface stub" not in str(gap)]
+    enrich_evidence_pack(evidence_pack)
 
 
 def merge_tool_evidence_into_pack(run_path: Path, evidence_items: list[dict[str, Any]]) -> None:
@@ -155,6 +157,7 @@ def merge_tool_evidence_into_pack(run_path: Path, evidence_items: list[dict[str,
     if not evidence_items:
         gaps.append("Fixture Tool Runtime did not create evidence items.")
     pack["unresolved_gaps"] = gaps
+    enrich_evidence_pack(pack)
     write_yaml(path, pack)
 
 

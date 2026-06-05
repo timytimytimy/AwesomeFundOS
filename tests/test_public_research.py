@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from fundos.public_research import PublicResearchClient, classify_source, tool_result_to_evidence
-from fundos.evidence import make_evidence_pack
+from fundos.evidence import make_evidence_pack, validate_evidence_pack
 
 
 class PublicResearchTests(unittest.TestCase):
@@ -74,6 +74,42 @@ class PublicResearchTests(unittest.TestCase):
         item = next(item for item in pack["evidence_items"] if item.get("url") == "https://example.com/ann")
         self.assertEqual(item["source_type"], "announcement")
         self.assertEqual(item["claims"][0]["confidence"], "high")
+
+    def test_make_evidence_pack_builds_claim_index_source_coverage_and_validates_schema(self):
+        results = [
+            {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+            {"title": "X讨论", "url": "https://x.com/example/status/1", "snippet": "社媒显示机器人热度。"},
+        ]
+        pack = make_evidence_pack("run1", "topic", "机器人产业链", public_results=results)
+
+        self.assertIn("claim_index", pack)
+        self.assertIn("source_coverage", pack)
+        self.assertEqual(pack["source_coverage"]["public_research_items"], 2)
+        self.assertGreaterEqual(pack["source_coverage"]["tier_counts"]["tier_1_primary_fact"], 1)
+        self.assertGreaterEqual(pack["source_coverage"]["tier_counts"]["tier_5_social_signal"], 1)
+        first_claim = pack["evidence_items"][0]["claims"][0]
+        self.assertIn(first_claim["claim_id"], pack["claim_index"])
+        self.assertEqual(pack["claim_index"][first_claim["claim_id"]]["evidence_id"], pack["evidence_items"][0]["id"])
+        validation = validate_evidence_pack(pack)
+        self.assertTrue(validation["valid"], validation)
+        self.assertEqual(validation["error_count"], 0)
+
+    def test_validate_evidence_pack_reports_missing_claim_fields(self):
+        broken = {
+            "run_id": "run1",
+            "market": "CN_A_SHARE",
+            "query": "机器人",
+            "retrieval_plan": [],
+            "evidence_items": [
+                {"id": "E001", "source_type": "announcement", "source_tier": "tier_1_primary_fact", "claims": [{"claim_text": "missing id"}]}
+            ],
+            "unresolved_gaps": [],
+        }
+
+        validation = validate_evidence_pack(broken)
+
+        self.assertFalse(validation["valid"])
+        self.assertIn("evidence_items[0].claims[0].claim_id missing", validation["errors"])
 
 
 if __name__ == "__main__":
