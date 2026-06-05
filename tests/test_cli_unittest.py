@@ -114,8 +114,10 @@ class FundosCliTests(unittest.TestCase):
 
             evolve_result = run_cli(["evolve", "--run", str(run_path)], tmp_path)
             self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+            self.assertIn("memory_writes=", evolve_result.stdout)
             gate_path = run_path / "evolution/evolution-gate-results.jsonl"
             self.assertTrue(gate_path.exists())
+            self.assertTrue((run_path / "evolution/memory-writeback-summary.yaml").exists())
             for rel in ["accepted.jsonl", "quarantine.jsonl", "rejected.jsonl"]:
                 self.assertTrue((run_path / "evolution" / rel).exists(), rel)
             rows = [json.loads(line) for line in gate_path.read_text().splitlines() if line.strip()]

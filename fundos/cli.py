@@ -16,6 +16,7 @@ from fundos.evolution import run_evolution_gate
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import write_run_learning_patterns
+from fundos.memory import load_memory_writeback_summary
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts
 from fundos.public_research import PublicResearchClient
 from fundos.reporting import write_first_version_report
@@ -384,8 +385,11 @@ def command_evolve(args: argparse.Namespace) -> int:
     if not run_path.is_absolute():
         run_path = Path.cwd() / run_path
     results = run_evolution_gate(run_path)
+    memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")
+    print(f"memory_writes={memory_summary['memory_writes']}")
+    print(f"memory_writeback_summary={run_path / 'evolution' / 'memory-writeback-summary.yaml'}")
     return 0
 
 def command_inspect(args: argparse.Namespace) -> int:
@@ -399,6 +403,8 @@ def command_inspect(args: argparse.Namespace) -> int:
     portfolio = load_portfolio_state(run_path)
     print(f"watchlist_items={len(portfolio['watchlist'].get('items', []))}")
     print(f"paper_actions={len(portfolio['paper_portfolio'].get('actions', []))}")
+    memory_summary = load_memory_writeback_summary(run_path)
+    print(f"memory_writes={memory_summary['memory_writes']}")
     return 0
 
 def command_report(args: argparse.Namespace) -> int:

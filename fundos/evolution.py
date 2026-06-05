@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from fundos.memory import apply_evolution_results
+
 PRIMARY_TIERS = {"tier_1_primary_fact", "tier_2_canonical_framework"}
 METHODOLOGY_TIERS = {"tier_3_verified_public_practitioner", "tier_4_expert_opinion"}
 LOW_TIERS = {"tier_5_social_signal", "tier_6_unverified"}
@@ -42,7 +44,11 @@ def evaluate_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         controls.append("no_memory_write")
     return {
         "candidate_id": candidate["candidate_id"],
+        "run_id": candidate.get("run_id"),
+        "source_agent": candidate.get("source_agent"),
+        "target_agent": candidate.get("target_agent", candidate.get("source_agent")),
         "candidate_type": candidate_type,
+        "target_scope": target_scope,
         "decision": decision,
         "scores": {
             "source_quality": source_quality,
@@ -54,6 +60,7 @@ def evaluate_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "reasons": reasons,
         "controls": controls,
         "memory_write_allowed": False,
+        "required_tests": tests,
         "required_follow_up_tests": tests if decision in {"quarantine", "reject"} else [],
         "source_basis": candidate.get("source_basis", []),
         "proposal": candidate.get("proposal", ""),
@@ -171,6 +178,7 @@ def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     evo_dir = run_path / "evolution"
     candidates = read_jsonl(evo_dir / "candidates.jsonl")
     results = [evaluate_candidate(candidate) for candidate in candidates]
+    apply_evolution_results(run_path, results)
     accepted = [row for row in results if row["decision"] == "accept"]
     quarantined = [row for row in results if row["decision"] == "quarantine"]
     rejected = [row for row in results if row["decision"] == "reject"]

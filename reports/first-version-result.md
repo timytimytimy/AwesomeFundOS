@@ -36,7 +36,7 @@
 
 ## 示例运行：机器人产业链投资机会
 
-- run_id：2026-06-05-cn-topic-2
+- run_id：2026-06-05-cn-topic
 - market：CN_A_SHARE
 - final label：continue_research
 - stance：constructive
@@ -93,7 +93,11 @@
 ## EvolutionGate
 
 - decision counts：quarantine=1
-- cand_2026-06-05-cn-topic-2_001：quarantine，scores=source_quality=75, testability=95, overfitting_risk=25, role_drift_risk=20, expected_value=80，memory_write_allowed=False
+- memory_writes：0
+- approval_mode：evolution_gate_v1_auto_controlled
+- agent_writes：none
+- written_paths：none
+- cand_2026-06-05-cn-topic_001：quarantine，scores=source_quality=75, testability=95, overfitting_risk=25, role_drift_risk=20, expected_value=80，memory_write_allowed=False
 
 ## V2 Gaps
 
@@ -101,7 +105,7 @@
 - 接入真实行情/价格序列，支持买点、卖点、仓位和 drawdown 的可评测判断。
 - 实现历史案例回放 Harness，用于验证 pattern 和 EvolutionGate 中 quarantine 的候选。
 - 将 Paper Portfolio 从 stub 扩展为可定期 review 和后验归因的完整模块。
-- 将 agent 长期记忆写入从人工批准 stub 升级为可审计审批流。
+- 将 EvolutionGate V1 自动受控写回升级为更完整的人工/规则审批流、回滚 UI 和长期绩效归因。
 
 ## 可重复运行命令
 

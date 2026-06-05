@@ -1,0 +1,7 @@
+memory_writes: 0
+agent_writes: {}
+skipped_non_accepted: 1
+skipped_unsafe: 0
+skipped_existing: 0
+approval_mode: evolution_gate_v1_auto_controlled
+written_paths: []

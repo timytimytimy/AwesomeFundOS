@@ -1,5 +1,5 @@
 context_pack_id: ctx_position_trend_trader
-run_id: 2026-06-05-cn-topic-2
+run_id: 2026-06-05-cn-topic
 agent_id: position_trend_trader
 role: PositionTrendTrader
 agent_card:

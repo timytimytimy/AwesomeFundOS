@@ -27,6 +27,8 @@ class ReportingTests(unittest.TestCase):
         self.assertIn("real_trade_allowed", report)
         self.assertIn("overall_score", report)
         self.assertIn("## EvolutionGate", report)
+        self.assertIn("memory_writes", report)
+        self.assertIn("approval_mode", report)
         self.assertIn("quarantine", report)
         self.assertIn("研究分析，不构成投资建议", report)
 

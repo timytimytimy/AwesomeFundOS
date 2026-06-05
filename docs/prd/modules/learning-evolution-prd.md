@@ -80,6 +80,26 @@ Public Sources / Cases / Books / Courses
 - deleting_agents
 - changing_harness_standards
 
+### 5.1 V1 受控写回规则
+
+EvolutionGate 的 `accept` 不等于任意改写系统。V1 只允许将已接受候选写入可审计、可回滚的长期记忆与 ledger：
+
+- `memory/agents/{agent_id}/semantic_memory.md`
+- `memory/agents/{agent_id}/evolution-ledger.jsonl`
+- `memory/organization/evolution-ledger.jsonl`
+- `runs/{run_id}/evolution/memory-writeback-summary.yaml`
+
+V1 禁止自动写回：
+
+- core profile；
+- role / risk_preference；
+- tool permissions；
+- capital authority；
+- risk limits；
+- organization structure。
+
+每次写回必须包含：candidate_id、run_id、source_agent、target_agent、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、reversible、real_trade_allowed=false、broker_integration=disabled。
+
 ## 6. Self Reflection
 
 每个 Agent 在 run 结束后生成：
@@ -113,5 +133,5 @@ Public Sources / Cases / Books / Courses
 - 能从 run 生成 reflection 和 upgrade candidates。
 - 能标注学习源和 source tier。
 - 能通过 EvolutionGate 输出 accept / reject / quarantine / needs_more_evidence。
-- 被接受升级能版本化写入对应 Agent 的 memory / principles / skillset。
+- 被接受升级能版本化写入对应 Agent 的 memory 与 evolution-ledger；principles / skillset 的直接改写必须进入后续审批流。
 - 被拒绝升级保留拒绝理由，不能删除。

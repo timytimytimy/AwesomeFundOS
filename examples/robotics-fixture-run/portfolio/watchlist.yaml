@@ -1,9 +1,9 @@
 version: 0.1.0
 artifact_type: watchlist
-run_id: 2026-06-05-cn-topic-2
+run_id: 2026-06-05-cn-topic
 items:
-- watchlist_id: wl_2026-06-05-cn-topic-2
-  run_id: 2026-06-05-cn-topic-2
+- watchlist_id: wl_2026-06-05-cn-topic
+  run_id: 2026-06-05-cn-topic
   subject: 机器人产业链投资机会
   market: CN_A_SHARE
   status: active_research

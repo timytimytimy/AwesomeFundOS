@@ -1,5 +1,5 @@
 context_pack_id: ctx_fund_manager
-run_id: 2026-06-05-cn-topic-2
+run_id: 2026-06-05-cn-topic
 agent_id: fund_manager
 role: FundManagerAgent
 agent_card:

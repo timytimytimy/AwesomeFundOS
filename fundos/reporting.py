@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml
+from fundos.memory import load_memory_writeback_summary
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -27,6 +28,7 @@ def build_first_version_report(run_path: Path) -> str:
     watchlist = read_optional_yaml(run_path / "portfolio" / "watchlist.yaml", {"items": []})
     paper_portfolio = read_optional_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {"actions": []})
     evolution = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
+    memory_writeback = load_memory_writeback_summary(run_path)
     agent_outputs = load_agent_outputs(run_path)
 
     source_counts = count_by(evidence["evidence_items"], "source_type")
@@ -124,6 +126,10 @@ def build_first_version_report(run_path: Path) -> str:
         "## EvolutionGate",
         "",
         "- decision counts：" + inline_counts(evolution_counts),
+        f"- memory_writes：{memory_writeback.get('memory_writes', 0)}",
+        f"- approval_mode：{memory_writeback.get('approval_mode')}",
+        "- agent_writes：" + inline_counts(memory_writeback.get("agent_writes", {})),
+        "- written_paths：" + ("; ".join(memory_writeback.get("written_paths", [])) if memory_writeback.get("written_paths") else "none"),
     ]
     for row in evolution:
         lines.append(f"- {row['candidate_id']}：{row['decision']}，scores={inline_counts(row.get('scores', {}))}，memory_write_allowed={row.get('memory_write_allowed')}")
@@ -135,7 +141,7 @@ def build_first_version_report(run_path: Path) -> str:
         "- 接入真实行情/价格序列，支持买点、卖点、仓位和 drawdown 的可评测判断。",
         "- 实现历史案例回放 Harness，用于验证 pattern 和 EvolutionGate 中 quarantine 的候选。",
         "- 将 Paper Portfolio 从 stub 扩展为可定期 review 和后验归因的完整模块。",
-        "- 将 agent 长期记忆写入从人工批准 stub 升级为可审计审批流。",
+        "- 将 EvolutionGate V1 自动受控写回升级为更完整的人工/规则审批流、回滚 UI 和长期绩效归因。",
         "",
         "## 可重复运行命令",
         "",

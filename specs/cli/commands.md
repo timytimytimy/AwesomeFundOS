@@ -94,8 +94,18 @@ runs/{date}-{slug}/
 - rejected candidates；
 - quarantined candidates；
 - required follow-up tests。
+- memory-writeback-summary。
 
-默认不直接改写核心 Profile。
+默认不直接改写核心 Profile。V1 中仅当候选被 EvolutionGate 判定为 `accept`，且 target_scope / candidate_type 不涉及 core_profile、org_structure、tool_permission、risk_limit 等受保护范围时，才允许写入受控长期记忆：
+
+```text
+memory/agents/{agent_id}/semantic_memory.md
+memory/agents/{agent_id}/evolution-ledger.jsonl
+memory/organization/evolution-ledger.jsonl
+runs/{run_id}/evolution/memory-writeback-summary.yaml
+```
+
+写回必须记录 candidate_id、run_id、source_agent、target_agent、source_basis、required_tests、scores、controls、approval_mode，并保持可审计、可回滚、不触发真实交易。
 
 ## 6. `fundos inspect --run`
 
