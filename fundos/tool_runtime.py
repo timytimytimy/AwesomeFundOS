@@ -72,21 +72,23 @@ def run_fixture_tool_runtime(
     contract_lookup = adapter_lookup(load_tool_adapter_contracts())
     query = str(evidence_pack.get("query") or "market")
     run_id = str(evidence_pack.get("run_id") or read_run_id(run_path) or "run")
-    tools = requested_tools or infer_requested_tools(selected_agents, fixture_lookup)
+    tool_calls = requested_tool_calls(selected_agents, requested_tools, fixture_lookup)
     rows: list[dict[str, Any]] = []
     evidence_items: list[dict[str, Any]] = []
-    for index, tool_id in enumerate(tools, start=1):
-        canonical = canonical_tool_id(tool_id, fixture_lookup)
+    for index, call in enumerate(tool_calls, start=1):
+        agent_id = call.get("agent_id")
+        tool_id = call["tool_id"]
+        canonical = canonical_tool_id(tool_id, fixture_lookup) or canonical_contract_tool_id(tool_id, contract_lookup)
         contract = contract_lookup.get(tool_id) or contract_lookup.get(canonical or "")
-        fixture = fixture_lookup.get(canonical or "")
-        tool_result_id = f"{run_id}:{tool_id}:{index:03d}"
+        fixture = fixture_lookup.get(canonical or "") or fixture_from_contract(canonical or tool_id, contract)
+        tool_result_id = f"{run_id}:{agent_id or 'org'}:{canonical or tool_id}:{index:03d}"
         if not fixture or not contract or not contract_allowed(contract):
-            rows.append(blocked_call(run_id, tool_id, tool_result_id, query, "forbidden_or_unknown_tool"))
+            rows.append(blocked_call(run_id, tool_id, tool_result_id, query, "forbidden_or_unknown_tool", agent_id=agent_id))
             continue
         evidence_id = f"TR{index:03d}"
-        item = tool_runtime_evidence_item(evidence_id, tool_result_id, canonical or tool_id, fixture, query, run_id)
+        item = tool_runtime_evidence_item(evidence_id, tool_result_id, canonical or tool_id, fixture, query, run_id, agent_id=agent_id)
         evidence_items.append(item)
-        rows.append(succeeded_call(run_id, canonical or tool_id, tool_result_id, query, fixture, item))
+        rows.append(succeeded_call(run_id, canonical or tool_id, tool_result_id, query, fixture, item, agent_id=agent_id))
     write_jsonl(run_path / "tools" / "tool-call-ledger.jsonl", rows)
     merge_tool_evidence_into_memory(evidence_pack, evidence_items)
     merge_tool_evidence_into_pack(run_path, evidence_items)
@@ -172,15 +174,72 @@ def canonical_tool_id(tool_id: str, fixture_lookup: dict[str, dict[str, Any]]) -
     return None
 
 
-def infer_requested_tools(selected_agents: list[dict[str, Any]], fixture_lookup: dict[str, dict[str, Any]]) -> list[str]:
-    explicit: list[str] = []
+def canonical_contract_tool_id(tool_id: str, contract_lookup: dict[str, dict[str, Any]]) -> str | None:
+    contract = contract_lookup.get(tool_id)
+    if contract:
+        return contract.get("adapter_id", tool_id)
+    return None
+
+
+def fixture_from_contract(tool_id: str, contract: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not contract:
+        return None
+    source_tier = contract.get("source_tier_output")
+    if source_tier in {"tier_1_primary_fact", "tier_2_canonical_framework", "approved_memory"}:
+        tier = source_tier
+    elif source_tier in {"inherits_existing_evidence", "derived_from_inputs", "derived_from_market_data", "source_controlled_spec", "approved_evolution_output"}:
+        tier = "tier_2_canonical_framework"
+    elif source_tier in {"quarantined_candidate"}:
+        tier = "tier_6_unverified"
+    else:
+        tier = "tier_4_expert_opinion"
+    return {
+        "adapter_id": tool_id,
+        "source_type": contract.get("category", "tool_runtime"),
+        "source_tier": tier,
+        "default_summary": f"Fixture {tool_id} result for {contract.get('purpose', 'read-only analysis')}",
+    }
+
+
+def requested_tool_calls(selected_agents: list[dict[str, Any]], requested_tools: list[str] | None, fixture_lookup: dict[str, dict[str, Any]]) -> list[dict[str, str | None]]:
+    if requested_tools is not None:
+        agent_id = agent_id_of(selected_agents[0]) if len(selected_agents) == 1 else None
+        return [{"agent_id": agent_id, "tool_id": tool} for tool in requested_tools]
+    calls: list[dict[str, str | None]] = []
+    seen: set[tuple[str | None, str]] = set()
     for agent in selected_agents:
-        for tool in agent.get("tools", []) or []:
-            if tool in fixture_lookup and tool not in explicit:
-                explicit.append(tool)
-    if explicit:
-        return explicit
-    return list(DEFAULT_TOOL_SEQUENCE)
+        agent_id = agent_id_of(agent)
+        for tool in infer_agent_requested_tools(agent):
+            key = (agent_id, tool)
+            if key not in seen:
+                calls.append({"agent_id": agent_id, "tool_id": tool})
+                seen.add(key)
+    if calls:
+        return calls
+    return [{"agent_id": None, "tool_id": tool} for tool in DEFAULT_TOOL_SEQUENCE]
+
+
+def infer_agent_requested_tools(agent: dict[str, Any]) -> list[str]:
+    agent_id = agent_id_of(agent)
+    policy = load_agent_tool_policy(agent_id)
+    tools = list(policy.get("required_tools", [])) or list(agent.get("tools", []) or [])
+    for optional_tool in policy.get("optional_tools", []) or []:
+        if optional_tool in {"case_library_reader", "memory_retrieval"} and optional_tool not in tools:
+            tools.append(optional_tool)
+    return tools
+
+
+def load_agent_tool_policy(agent_id: str | None) -> dict[str, Any]:
+    if not agent_id:
+        return {}
+    path = REPO_ROOT / "specs" / "agents" / "tool-policies" / f"{agent_id}.yaml"
+    if not path.exists():
+        return {}
+    return read_yaml(path) or {}
+
+
+def agent_id_of(agent: dict[str, Any]) -> str | None:
+    return agent.get("agent_id") or agent.get("id")
 
 
 def contract_allowed(contract: dict[str, Any]) -> bool:
@@ -192,9 +251,10 @@ def contract_allowed(contract: dict[str, Any]) -> bool:
     )
 
 
-def blocked_call(run_id: str, adapter_id: str, tool_result_id: str, query: str, reason: str) -> dict[str, Any]:
+def blocked_call(run_id: str, adapter_id: str, tool_result_id: str, query: str, reason: str, agent_id: str | None = None) -> dict[str, Any]:
     return {
         "run_id": run_id,
+        "agent_id": agent_id,
         "adapter_id": adapter_id,
         "tool_result_id": tool_result_id,
         "query": query,
@@ -208,9 +268,10 @@ def blocked_call(run_id: str, adapter_id: str, tool_result_id: str, query: str, 
     }
 
 
-def succeeded_call(run_id: str, adapter_id: str, tool_result_id: str, query: str, fixture: dict[str, Any], evidence_item: dict[str, Any]) -> dict[str, Any]:
+def succeeded_call(run_id: str, adapter_id: str, tool_result_id: str, query: str, fixture: dict[str, Any], evidence_item: dict[str, Any], agent_id: str | None = None) -> dict[str, Any]:
     return {
         "run_id": run_id,
+        "agent_id": agent_id,
         "adapter_id": adapter_id,
         "tool_result_id": tool_result_id,
         "query": query,
@@ -225,7 +286,7 @@ def succeeded_call(run_id: str, adapter_id: str, tool_result_id: str, query: str
     }
 
 
-def tool_runtime_evidence_item(evidence_id: str, tool_result_id: str, adapter_id: str, fixture: dict[str, Any], query: str, run_id: str) -> dict[str, Any]:
+def tool_runtime_evidence_item(evidence_id: str, tool_result_id: str, adapter_id: str, fixture: dict[str, Any], query: str, run_id: str, agent_id: str | None = None) -> dict[str, Any]:
     source_tier = fixture.get("source_tier", "tier_4_expert_opinion")
     confidence = "high" if source_tier == "tier_1_primary_fact" else "medium" if source_tier in {"tier_2_canonical_framework", "tier_3_verified_public_practitioner", "approved_memory"} else "low"
     summary = f"{fixture.get('default_summary', '')} Subject: {query}."
@@ -234,6 +295,7 @@ def tool_runtime_evidence_item(evidence_id: str, tool_result_id: str, adapter_id
         "run_id": run_id,
         "tool_result_id": tool_result_id,
         "adapter_id": adapter_id,
+        "agent_id": agent_id,
         "source_id": "fixture_tool_runtime",
         "source_type": fixture.get("source_type", "tool_runtime"),
         "source_tier": source_tier,

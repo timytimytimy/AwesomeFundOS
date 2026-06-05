@@ -76,6 +76,7 @@ class FundosCliTests(unittest.TestCase):
                 "harness/pm-competition-harness.yaml",
                 "harness/skill-benchmark.yaml",
                 "harness/market-state.yaml",
+                "harness/agent-tool-use.yaml",
                 "committee/pm-competition.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
@@ -143,6 +144,11 @@ class FundosCliTests(unittest.TestCase):
             self.assertGreaterEqual(claim_graph["traceability_score"], 85)
             self.assertFalse(claim_graph["real_trade_allowed"])
             self.assertTrue((run_path / "evidence/claim-graph.yaml").exists())
+            agent_tool_use = yaml.safe_load((run_path / "harness/agent-tool-use.yaml").read_text())
+            self.assertEqual(agent_tool_use["artifact_type"], "agent_tool_use_report")
+            self.assertEqual(agent_tool_use["agent_count"], len(run_doc["selected_agents"]))
+            self.assertGreaterEqual(agent_tool_use["overall_score"], 85)
+            self.assertFalse(agent_tool_use["real_trade_allowed"])
             pm_competition = yaml.safe_load((run_path / "committee/pm-competition.yaml").read_text())
             self.assertEqual(pm_competition["artifact_type"], "pm_style_competition_report")
             self.assertGreaterEqual(pm_competition["style_count"], 4)
@@ -189,6 +195,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("tool_harness_quality", report)
             self.assertIn("tool_runtime_quality", report)
             self.assertIn("claim_graph_quality", report)
+            self.assertIn("agent_tool_use_quality", report)
             self.assertIn("pm_competition_quality", report)
             self.assertIn("skill_benchmark_quality", report)
             self.assertIn("market_state_quality", report)
@@ -196,6 +203,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("skill_benchmark", report["accepted_outputs"])
             self.assertIn("tool_runtime", report["accepted_outputs"])
             self.assertIn("claim_graph", report["accepted_outputs"])
+            self.assertIn("agent_tool_use", report["accepted_outputs"])
             self.assertIn("portfolio_review", report["accepted_outputs"])
             self.assertIn("agent_harness", report["accepted_outputs"])
 

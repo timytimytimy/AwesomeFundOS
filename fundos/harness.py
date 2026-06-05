@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.agent_harness import load_agent_harness
+from fundos.agent_tool_use import load_agent_tool_use_report
 from fundos.agent_governance import load_governance_summary
 from fundos.agent_threads import evaluate_thread_manifest
 from fundos.case_replay import load_case_replay
@@ -62,6 +63,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     task_dag = load_task_dag_harness(run_path)
     tool_runtime = load_tool_runtime_report(run_path)
     claim_graph = load_claim_graph_report(run_path)
+    agent_tool_use = load_agent_tool_use_report(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
@@ -111,6 +113,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("tool_runtime")
     if claim_graph.get("traceability_score", 0) > 0:
         accepted_outputs.append("claim_graph")
+    if agent_tool_use.get("overall_score", 0) > 0:
+        accepted_outputs.append("agent_tool_use")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -152,6 +156,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             blocking.append(issue)
     if claim_graph.get("real_trade_allowed"):
         blocking.append("Claim Graph 出现 real_trade_allowed=true，违反证据审计边界。")
+    for issue in agent_tool_use.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_agent_tool_use_report":
+            blocking.append(issue)
+    if agent_tool_use.get("real_trade_allowed"):
+        blocking.append("Agent Tool Use 出现 real_trade_allowed=true，违反工具使用边界。")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
@@ -180,6 +189,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "workflow_orchestration": task_dag.get("task_dag_quality_score", 0),
             "tool_runtime_quality": tool_runtime.get("tool_runtime_quality_score", 0),
             "claim_traceability": claim_graph.get("traceability_score", 0),
+            "agent_tool_use": agent_tool_use.get("overall_score", 0),
         },
         "context_quality_scores": {
             "relevance": 82,
@@ -275,6 +285,18 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "controls": tool_runtime.get("controls", []),
             "real_trade_allowed": tool_runtime.get("real_trade_allowed", False),
             "broker_integration": tool_runtime.get("broker_integration", "disabled"),
+        },
+        "agent_tool_use_quality": {
+            "overall_score": agent_tool_use.get("overall_score", 0),
+            "agent_count": agent_tool_use.get("agent_count", 0),
+            "agents_with_missing_required_tools": agent_tool_use.get("agents_with_missing_required_tools", 0),
+            "agents_with_forbidden_tool_calls": agent_tool_use.get("agents_with_forbidden_tool_calls", 0),
+            "succeeded_tool_calls": agent_tool_use.get("succeeded_tool_calls", 0),
+            "linked_tool_results": agent_tool_use.get("linked_tool_results", 0),
+            "blocking_issues": agent_tool_use.get("blocking_issues", []),
+            "controls": agent_tool_use.get("controls", []),
+            "real_trade_allowed": agent_tool_use.get("real_trade_allowed", False),
+            "broker_integration": agent_tool_use.get("broker_integration", "disabled"),
         },
         "source_ingestion_quality": {
             "status": source_ingestion.get("status", "present"),

@@ -1,0 +1,32 @@
+reconciliation_id: agent_tool_use_reconciliation_v1
+version: 0.1.0
+purpose: Reconcile each selected agent's declared tool policy with the runtime tool-call ledger and claim graph traceability.
+market_scope: CN_A_SHARE
+inputs:
+  - specs/agents/tool-policies/<agent_id>.yaml
+  - runs/<run_id>/tools/tool-call-ledger.jsonl
+  - runs/<run_id>/evidence/claim-graph.yaml
+  - runs/<run_id>/selected-agents.yaml
+outputs:
+  - runs/<run_id>/harness/agent-tool-use.yaml
+scoring_model:
+  start: 50
+  required_tool_coverage_bonus: 20
+  no_forbidden_tool_bonus: 10
+  claim_graph_linkage_bonus: 10
+  confidence_cap_correctness_bonus: 10
+  missing_required_tool_penalty_each: 12
+  forbidden_tool_penalty_each: 30
+  unlinked_tool_result_penalty_each: 8
+controls:
+  - agent_required_tools_must_be_reconciled_with_ledger
+  - forbidden_tool_use_blocks_agent_tool_quality
+  - missing_required_tool_caps_confidence
+  - tool_result_must_enter_claim_graph
+  - read_only_tools_only
+  - no_broker_integration
+  - no_real_trade_action
+  - paper_portfolio_only
+  - social_signal_hypothesis_only
+real_trade_allowed: false
+broker_integration: disabled

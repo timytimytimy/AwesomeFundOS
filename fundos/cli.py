@@ -12,6 +12,7 @@ from typing import Any
 from fundos.agent_outputs import write_agent_output
 from fundos.agent_governance import load_governance_summary, write_agent_governance
 from fundos.agent_harness import write_agent_harness
+from fundos.agent_tool_use import write_agent_tool_use_report
 from fundos.agent_performance import load_performance_summary, write_agent_performance
 from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
@@ -424,6 +425,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_portfolio_review(run_path)
     write_task_dag(run_path, selected, evidence_pack)
     write_claim_graph(run_path, evidence_pack)
+    write_agent_tool_use_report(run_path, selected)
 
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
@@ -459,6 +461,7 @@ def command_eval(args: argparse.Namespace) -> int:
     write_agent_harness(run_path, selected)
     write_task_dag(run_path, selected, evidence)
     write_claim_graph(run_path, evidence)
+    write_agent_tool_use_report(run_path, selected)
     run_skill_benchmark(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
