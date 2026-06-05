@@ -12,6 +12,7 @@ from typing import Any
 from fundos.agent_outputs import write_agent_output
 from fundos.agent_harness import write_agent_harness
 from fundos.agent_performance import load_performance_summary, write_agent_performance
+from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.case_replay import run_case_replay
 from fundos.case_library import build_case_library_index, load_case_library
@@ -64,8 +65,10 @@ def command_init(args: argparse.Namespace) -> int:
     roster = load_roster()
     materialized = materialize_agent_assets(cwd, roster)
     materialize_learning_assets(cwd)
+    thread_summary = materialize_agent_threads(cwd, roster)
     print(f"loaded {len(roster.get('agents', []))} agents from specs/agents/default-roster.yaml")
     print(f"materialized {materialized} agent asset sets")
+    print(f"materialized {thread_summary['created_or_existing_threads']} agent threads")
     return 0
 
 def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
@@ -344,7 +347,7 @@ def command_run(args: argparse.Namespace) -> int:
         run_path = Path(f"{base}-{suffix}")
         run_id = run_path.name
 
-    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution", "learning", "portfolio", "harness"]:
+    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution", "learning", "portfolio", "harness", "memory"]:
         (run_path / sub).mkdir(parents=True, exist_ok=True)
 
     roster = load_roster()
@@ -377,6 +380,8 @@ def command_run(args: argparse.Namespace) -> int:
         ],
     }
     write_yaml(run_path / "run.yaml", run_doc)
+    materialize_agent_threads(Path.cwd(), roster)
+    record_run_threads(run_path, selected, event_type="run_participation", payload={"input_type": input_type, "value": value})
     (run_path / "task-brief.md").write_text(f"# Task Brief\n\n{DISCLAIMER}\n\n- input_type: {input_type}\n- value: {value}\n", encoding="utf-8")
     write_yaml(run_path / "selected-agents.yaml", {"selected_agents": selected})
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
@@ -439,6 +444,9 @@ def command_evolve(args: argparse.Namespace) -> int:
     if not run_path.is_absolute():
         run_path = Path.cwd() / run_path
     results = run_evolution_gate(run_path)
+    run_doc = read_yaml(run_path / "run.yaml") if (run_path / "run.yaml").exists() else {"selected_agents": []}
+    if run_doc.get("selected_agents"):
+        record_run_threads(run_path, run_doc["selected_agents"], event_type="evolution", payload={"candidate_count": len(results)})
     write_agent_performance(run_path)
     failure_report = write_failure_patterns(run_path)
     memory_summary = load_memory_writeback_summary(run_path)
@@ -576,6 +584,24 @@ def command_sources_ingest(args: argparse.Namespace) -> int:
     print("real_trade_allowed=False")
     return 0
 
+def command_threads_show(args: argparse.Namespace) -> int:
+    try:
+        summary = load_agent_thread_summary(Path.cwd(), args.agent)
+    except FileNotFoundError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"agent_id={summary['agent_id']}")
+    print(f"thread_id={summary['thread_id']}")
+    print(f"thread_path={summary['thread_path']}")
+    print(f"event_log_path={summary['event_log_path']}")
+    print(f"event_count={summary['event_count']}")
+    print(f"latest_event_type={summary['latest_event_type']}")
+    print(f"latest_run_id={summary['latest_run_id']}")
+    print(f"continuity_scope={','.join(summary['continuity_scope'])}")
+    print(f"real_trade_allowed={summary['real_trade_allowed']}")
+    print(f"broker_integration={summary['broker_integration']}")
+    return 0
+
 def command_cases_list(args: argparse.Namespace) -> int:
     library = load_case_library()
     index = build_case_library_index(library)
@@ -666,6 +692,12 @@ def build_parser() -> argparse.ArgumentParser:
     cases_sub = p_cases.add_subparsers(dest="cases_command", required=True)
     p_cases_list = cases_sub.add_parser("list")
     p_cases_list.set_defaults(func=command_cases_list)
+
+    p_threads = sub.add_parser("threads")
+    threads_sub = p_threads.add_subparsers(dest="threads_command", required=True)
+    p_threads_show = threads_sub.add_parser("show")
+    p_threads_show.add_argument("--agent", required=True)
+    p_threads_show.set_defaults(func=command_threads_show)
 
     return parser
 

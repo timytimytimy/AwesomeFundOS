@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.agent_harness import load_agent_harness
+from fundos.agent_threads import evaluate_thread_manifest
 from fundos.case_replay import load_case_replay
 from fundos.capability_regression import load_capability_regression
 from fundos.committee import load_collaboration_harness
@@ -41,6 +42,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     }
     case_replay = load_case_replay(run_path) if run_path else {"patterns_replayed": 0, "case_results_total": 0, "case_replay_score": 0, "passed_results": 0, "high_overfit_results": 0}
     agent_harness = load_agent_harness(run_path)
+    agent_thread_quality = evaluate_thread_manifest(run_path)
     collaboration_harness = load_collaboration_harness(run_path)
     tool_harness = load_tool_harness(run_path)
     source_ingestion = load_ingestion_report(run_path)
@@ -67,6 +69,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("portfolio_review")
     if agent_harness.get("agent_count", 0):
         accepted_outputs.append("agent_harness")
+    if agent_thread_quality.get("manifest_present"):
+        accepted_outputs.append("agent_threads")
     if agent_harness.get("aggregate_scores", {}).get("context_management_quality", 0) > 0:
         accepted_outputs.append("context_management")
     if collaboration_harness.get("overall_score", 0) > 0:
@@ -84,6 +88,9 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             blocking.append(issue)
     for issue in collaboration_harness.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_collaboration_harness":
+            blocking.append(issue)
+    for issue in agent_thread_quality.get("blocking_issues", []):
+        if issue and issue not in blocking and issue != "missing_agent_thread_manifest":
             blocking.append(issue)
     if source_ingestion.get("real_trade_allowed"):
         blocking.append("Source Ingestion 出现 real_trade_allowed=true，违反学习源边界。")
@@ -130,6 +137,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "role_consistency": agent_harness_scores.get("role_consistency", 0),
             "overall": agent_harness_scores.get("overall", 0),
         },
+        "agent_thread_quality": agent_thread_quality,
         "context_management_quality": context_management,
         "collaboration_harness_quality": {
             "overall_score": collaboration_harness.get("overall_score", 0),

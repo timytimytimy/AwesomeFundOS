@@ -21,6 +21,8 @@ fundos capabilities apply cand_2026-06-05-robotics_002 --approver human-name
 fundos performance show --agent tech_growth_analyst
 fundos failures summary
 fundos sources ingest --run runs/2026-06-05-robotics --fixture examples/fixtures/source-candidates.yaml
+fundos cases list
+fundos threads show --agent fund_manager
 ```
 
 ## 2. `fundos init`
@@ -233,7 +235,26 @@ runs/{run_id}/evolution/candidates.jsonl
 - 进入 Evolution 的候选只能是 `status=proposed`，必须包含 historical case replay、primary evidence check、role drift check、evidence quality check 等 gates；
 - 不开启真实交易，不接券商，不自动下单。
 
-## 13. 全局合规要求
+## 13. `fundos cases list`
+
+展示 source-controlled Historical Case Library 摘要，包括 case_count、case_type_counts、agent_case_counts、real_trade_allowed=false 和 broker_integration=disabled。
+
+Case Library 只用于训练、复盘、评测和 EvolutionGate，不得把单个历史案例直接映射成买卖信号。
+
+## 14. `fundos threads show --agent`
+
+展示指定 Agent 的长期 Thread 摘要，读取：
+
+```text
+memory/agents/{agent_id}/thread.yaml
+memory/agents/{agent_id}/thread-events.jsonl
+```
+
+输出包括 thread_id、event_count、latest_event_type、latest_run_id、continuity_scope、real_trade_allowed 和 broker_integration。
+
+Agent Thread 是每个 Agent 的长期身份和连续性日志，不等同于自动记忆写入；能力或记忆升级仍必须通过 EvolutionGate / capability approval。
+
+## 15. 全局合规要求
 
 所有 `fundos run` 输出必须包含：
 
