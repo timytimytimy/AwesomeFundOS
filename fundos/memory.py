@@ -161,6 +161,10 @@ def infer_runtime_root(run_path: Path) -> Path:
 def is_safe_memory_write(result: dict[str, Any]) -> bool:
     if result.get("decision") != "accept":
         return False
+    if result.get("adoption_route") in {"managed_capability_pending_human_apply", "skill_patch_pending_human_apply", "forbidden_protected_mutation"}:
+        return False
+    if result.get("memory_write_policy") in {"no_direct_memory_write", "blocked"}:
+        return False
     target_scope = result.get("target_scope", "agent_memory")
     candidate_type = result.get("candidate_type", "unknown")
     if target_scope not in {"agent_memory", "skill", "workflow", "principle"}:

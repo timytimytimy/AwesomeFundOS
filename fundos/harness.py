@@ -314,6 +314,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "candidates_by_agent": agent_learning.get("candidates_by_agent", {}),
             "candidate_type_counts": agent_learning.get("candidate_type_counts", {}),
             "target_scope_counts": agent_learning.get("target_scope_counts", {}),
+            "route_counts": agent_learning.get("route_counts", {}),
             "blocking_issues": agent_learning.get("blocking_issues", []),
             "controls": agent_learning.get("controls", []),
             "real_trade_allowed": agent_learning.get("real_trade_allowed", False),

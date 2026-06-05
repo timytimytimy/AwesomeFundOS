@@ -73,6 +73,12 @@ def evaluate_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "required_follow_up_tests": follow_up_tests,
         "source_basis": candidate.get("source_basis", []),
         "proposal": candidate.get("proposal", ""),
+        "adoption_route": candidate.get("adoption_route"),
+        "memory_write_policy": candidate.get("memory_write_policy"),
+        "capability_kind": candidate.get("capability_kind"),
+        "human_approval_required": candidate.get("human_approval_required"),
+        "protected_mutation_allowed": candidate.get("protected_mutation_allowed", False),
+        "auto_apply_allowed": candidate.get("auto_apply_allowed", False),
         "rationale": rationale_for(decision, reasons),
     }
 

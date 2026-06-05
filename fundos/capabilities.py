@@ -110,6 +110,8 @@ def apply_capability_versions(run_path: Path, results: list[dict[str, Any]], roo
 
 
 def is_capability_candidate(result: dict[str, Any]) -> bool:
+    if result.get("adoption_route") in {"managed_capability_pending_human_apply", "skill_patch_pending_human_apply"}:
+        return True
     return result.get("candidate_type") in CAPABILITY_TYPES or result.get("target_scope") in {"skill", "workflow", "principle", "checklist", "tool_policy"}
 
 
@@ -120,6 +122,8 @@ def is_safe_capability_candidate(result: dict[str, Any]) -> bool:
     if "no_direct_profile_mutation" not in controls or "no_real_trade_action" not in controls:
         return False
     if result.get("target_scope") in {"core_profile", "org_structure", "risk_limit", "tool_permission"}:
+        return False
+    if result.get("adoption_route") == "forbidden_protected_mutation":
         return False
     return result.get("candidate_type") in CAPABILITY_TYPES
 
@@ -146,6 +150,10 @@ def make_queue_row(result: dict[str, Any]) -> dict[str, Any]:
         "required_follow_up_tests": result.get("required_follow_up_tests", []),
         "controls": result.get("controls", []),
         "approval_mode": APPROVAL_MODE,
+        "adoption_route": result.get("adoption_route"),
+        "memory_write_policy": result.get("memory_write_policy"),
+        "human_approval_required": bool(result.get("human_approval_required", True)),
+        "protected_mutation_allowed": bool(result.get("protected_mutation_allowed", False)),
         "application_status": "pending_review",
         "mutated_agent_card": False,
         "mutated_runtime_skill": False,
@@ -173,6 +181,10 @@ def make_version_row(result: dict[str, Any], target_agent: str, capability_kind:
         "scores": result.get("scores", {}),
         "controls": result.get("controls", []),
         "approval_mode": APPROVAL_MODE,
+        "adoption_route": result.get("adoption_route"),
+        "memory_write_policy": result.get("memory_write_policy"),
+        "human_approval_required": bool(result.get("human_approval_required", True)),
+        "protected_mutation_allowed": bool(result.get("protected_mutation_allowed", False)),
         "reversible": True,
         "mutated_agent_card": False,
         "mutated_runtime_skill": False,

@@ -9,8 +9,8 @@ from fundos.research_cache import stable_hash
 
 AGENT_LEARNING_VERSION = "0.1.0"
 SPEC_REL = "specs/learning/agent-learning-candidates.yaml"
-SAFE_TYPES = {"workflow_update", "principle_update", "checklist_update", "reflection_update"}
-SAFE_SCOPES = {"agent_memory", "workflow", "checklist", "principle"}
+SAFE_TYPES = {"workflow_update", "principle_update", "checklist_update", "reflection_update", "skill_update"}
+SAFE_SCOPES = {"agent_memory", "workflow", "checklist", "principle", "skill"}
 FORBIDDEN_TYPES = {"profile_update", "tool_permission_update", "risk_limit_update", "broker_update", "order_execution_update"}
 FORBIDDEN_SCOPES = {"core_profile", "tool_permission", "risk_limit", "broker_integration", "real_capital_authority"}
 CONTROLS = [
@@ -44,6 +44,7 @@ def default_agent_learning_report() -> dict[str, Any]:
         "candidate_count": 0,
         "merged_to_evolution": 0,
         "candidates_by_agent": {},
+        "route_counts": {},
         "blocking_issues": ["missing_agent_learning_report"],
         "controls": CONTROLS,
         "real_trade_allowed": False,
@@ -100,6 +101,7 @@ def generate_agent_learning_candidates(run_path: Path) -> dict[str, Any]:
         "candidates_by_agent": count_by(merged_learning, "target_agent"),
         "candidate_type_counts": count_by(merged_learning, "candidate_type"),
         "target_scope_counts": count_by(merged_learning, "target_scope"),
+        "route_counts": count_by(merged_learning, "adoption_route"),
         "candidates": merged_learning,
         "inputs": {
             "agent_tool_use": "harness/agent-tool-use.yaml",
@@ -315,7 +317,59 @@ def sanitize_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     candidate["origin"] = "agent_learning_generator_v1"
     candidate["controls"] = sorted(set(candidate.get("controls", []) + CONTROLS), key=(candidate.get("controls", []) + CONTROLS).index)
     candidate["required_tests"] = sorted(set(candidate.get("required_tests", []) + REQUIRED_TESTS), key=(candidate.get("required_tests", []) + REQUIRED_TESTS).index)
+    candidate.update(route_agent_learning_candidate(candidate))
     return candidate
+
+
+def route_agent_learning_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
+    """Classify how a learning candidate may be adopted after EvolutionGate.
+
+    The route is intentionally explicit because different artifacts have
+    different safety boundaries: reflections can write controlled memory after
+    an accepted EvolutionGate result, workflow/checklist/principle changes are
+    managed capability candidates requiring human apply, skill changes patch only
+    managed SKILL.md sections after human approval, and protected profile/tool/
+    risk mutations are blocked.
+    """
+    candidate_type = candidate.get("candidate_type")
+    target_scope = candidate.get("target_scope", "agent_memory")
+    protected = candidate_type in FORBIDDEN_TYPES or target_scope in FORBIDDEN_SCOPES
+    if protected:
+        return {
+            "adoption_route": "forbidden_protected_mutation",
+            "memory_write_policy": "blocked",
+            "capability_kind": None,
+            "human_approval_required": True,
+            "protected_mutation_allowed": False,
+            "auto_apply_allowed": False,
+        }
+    if candidate_type == "skill_update" or target_scope == "skill":
+        return {
+            "adoption_route": "skill_patch_pending_human_apply",
+            "memory_write_policy": "no_direct_memory_write",
+            "capability_kind": "skill",
+            "human_approval_required": True,
+            "protected_mutation_allowed": False,
+            "auto_apply_allowed": False,
+        }
+    if target_scope in {"workflow", "checklist", "principle"} or candidate_type in {"workflow_update", "checklist_update", "principle_update"}:
+        capability_kind = target_scope if target_scope in {"workflow", "checklist", "principle"} else str(candidate_type).replace("_update", "")
+        return {
+            "adoption_route": "managed_capability_pending_human_apply",
+            "memory_write_policy": "no_direct_memory_write",
+            "capability_kind": capability_kind,
+            "human_approval_required": True,
+            "protected_mutation_allowed": False,
+            "auto_apply_allowed": False,
+        }
+    return {
+        "adoption_route": "memory_writeback_after_evolution",
+        "memory_write_policy": "auto_after_evolution_accept",
+        "capability_kind": None,
+        "human_approval_required": False,
+        "protected_mutation_allowed": False,
+        "auto_apply_allowed": False,
+    }
 
 
 def blocking_issues(candidates: list[dict[str, Any]]) -> list[str]:
