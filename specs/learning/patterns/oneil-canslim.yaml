@@ -1,0 +1,20 @@
+id: oneil_canslim_growth
+name: CAN SLIM growth confirmation
+source_id: william_oneil_canslim
+source_tier: tier_2_canonical_framework
+pattern_type: growth_stock_screen
+tags: [company, trading, risk]
+target_agents: [quality_growth_company_analyst, position_trend_trader, swing_trader]
+summary: Require fundamental growth evidence, relative strength, institutional-quality leadership, and market direction confirmation before upgrading a growth-stock setup.
+checklist:
+  - Check current and recent growth evidence from filings or announcements.
+  - Verify whether the company is a leader in its group rather than a laggard.
+  - Require price-volume and relative strength confirmation for any simulated trading plan.
+  - Align the setup with the broader market direction.
+  - Define invalidation before position sizing.
+validation_gates:
+  - filing_growth_check
+  - price_volume_confirmation
+  - market_direction_gate
+not_allowed_outputs:
+  - buy_without_market_confirmation

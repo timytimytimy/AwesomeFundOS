@@ -14,6 +14,7 @@ from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
 from fundos.harness import make_evaluation
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
+from fundos.learning import write_run_learning_patterns
 from fundos.public_research import PublicResearchClient
 
 RUNTIME_DIRS = ["agents", "configs", "harness", "memory", "runs", "skills", "tools"]
@@ -290,7 +291,7 @@ def command_run(args: argparse.Namespace) -> int:
         run_path = Path(f"{base}-{suffix}")
         run_id = run_path.name
 
-    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution"]:
+    for sub in ["evidence", "context", "agent_work", "debate", "risk", "decision", "evaluations", "archive", "reflections", "evolution", "learning"]:
         (run_path / sub).mkdir(parents=True, exist_ok=True)
 
     roster = load_roster()
@@ -323,6 +324,7 @@ def command_run(args: argparse.Namespace) -> int:
     (run_path / "task-brief.md").write_text(f"# Task Brief\n\n{DISCLAIMER}\n\n- input_type: {input_type}\n- value: {value}\n", encoding="utf-8")
     write_yaml(run_path / "selected-agents.yaml", {"selected_agents": selected})
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
+    write_run_learning_patterns(run_path, [item["agent_id"] for item in selected])
 
     agent_outputs = []
     for item in selected:

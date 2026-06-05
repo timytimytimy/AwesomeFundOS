@@ -11,8 +11,8 @@ required_focus:
 - 流程完整性
 evidence_coverage:
   tier_1_primary_fact: 5
-  tier_2_canonical_framework: 6
-  tier_3_verified_public_practitioner: 2
+  tier_2_canonical_framework: 10
+  tier_3_verified_public_practitioner: 4
   tier_4_expert_opinion: 1
   tier_5_social_signal: 1
   tier_6_unverified: 0
@@ -22,6 +22,7 @@ source_type_coverage:
   market_data: 1
   practitioner_source: 2
   book_summary: 5
+  learning_pattern: 6
   announcement: 1
   web: 2
   case: 1
@@ -82,6 +83,61 @@ key_claims:
   claim_type: opinion
   confidence: medium
   claim_text: 趋势交易必须有明确止损和结构确认。
+learning_patterns:
+- pattern_id: a_share_theme_diffusion_case
+  name: A-share theme diffusion historical case pattern
+  source_id: historical_case_library
+  source_tier: tier_2_canonical_framework
+  pattern_type: historical_case_pattern
+  tags:
+  - industry
+  - trading
+  - risk
+  - bear_case
+  summary: Use historical theme diffusion cases to distinguish policy ignition, first-wave
+    leaders, second-wave suppliers, late-stage speculation, and breakdown risk.
+  checklist:
+  - Identify the ignition source: policy, order, technology, liquidity, or overseas
+      mapping.
+  - Separate first-wave leaders from late-stage sympathy names.
+  - Track diffusion breadth and evidence quality decay.
+  - Look for late-stage signs: low-quality names leading, excessive turnover, and
+      narrative repetition.
+  - Convert the case into falsifiable pattern tests rather than direct analogies.
+  validation_gates:
+  - historical_case_replay
+  - analogy_overfit_check
+  - evidence_quality_check
+  not_allowed_outputs:
+  - one_case_direct_mapping
+- pattern_id: howard_marks_cycle_risk
+  name: Second-level cycle and risk review
+  source_id: howard_marks
+  source_tier: tier_2_canonical_framework
+  pattern_type: risk_framework
+  tags:
+  - risk
+  - bear_case
+  - industry
+  summary: Compare consensus expectations, variant perception, odds, cycle position,
+    and downside before allowing conviction to rise.
+  checklist:
+  - State the consensus view and the variant view separately.
+  - Estimate what must already be priced in for the thesis to fail.
+  - List adverse scenarios and permanent-loss paths.
+  - Separate good asset from good price.
+  - Downgrade conviction when upside narrative dominates downside evidence.
+  validation_gates:
+  - downside_scenario_check
+  - valuation_or_expectation_check
+  - bear_case_review
+  not_allowed_outputs:
+  - upside_only_memo
+pattern_application_notes:
+- 'Apply a_share_theme_diffusion_case as checklist only; validate with gates: historical_case_replay,
+  analogy_overfit_check, evidence_quality_check.'
+- 'Apply howard_marks_cycle_risk as checklist only; validate with gates: downside_scenario_check,
+  valuation_or_expectation_check, bear_case_review.'
 analysis_points:
 - 综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。
 - 政策和监管口径必须优先于市场传言。

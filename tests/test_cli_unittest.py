@@ -53,6 +53,7 @@ class FundosCliTests(unittest.TestCase):
                 "task-brief.md",
                 "selected-agents.yaml",
                 "evidence/evidence-pack.yaml",
+                "learning/patterns.yaml",
                 "decision/final-decision-memo.md",
                 "decision/final-decision-memo.yaml",
                 "evaluations/evaluation-report.yaml",
@@ -76,6 +77,9 @@ class FundosCliTests(unittest.TestCase):
             evidence = yaml.safe_load((run_path / "evidence/evidence-pack.yaml").read_text())
             self.assertTrue(evidence["evidence_items"])
             self.assertTrue(any(item["source_tier"] == "tier_3_verified_public_practitioner" for item in evidence["evidence_items"]))
+            self.assertTrue(any(item.get("source_type") == "learning_pattern" for item in evidence["evidence_items"]))
+            learning = yaml.safe_load((run_path / "learning/patterns.yaml").read_text())
+            self.assertTrue(learning["patterns"])
 
             for agent_id in ids:
                 self.assertTrue((run_path / "context" / f"{agent_id}.context-pack.yaml").exists(), agent_id)

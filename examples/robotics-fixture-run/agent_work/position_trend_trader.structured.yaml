@@ -11,8 +11,8 @@ required_focus:
 - 仓位纪律
 evidence_coverage:
   tier_1_primary_fact: 5
-  tier_2_canonical_framework: 5
-  tier_3_verified_public_practitioner: 1
+  tier_2_canonical_framework: 9
+  tier_3_verified_public_practitioner: 2
   tier_4_expert_opinion: 1
   tier_5_social_signal: 1
   tier_6_unverified: 0
@@ -22,6 +22,7 @@ source_type_coverage:
   market_data: 1
   practitioner_source: 1
   book_summary: 4
+  learning_pattern: 5
   announcement: 1
   web: 2
   case: 1
@@ -82,6 +83,84 @@ key_claims:
   claim_type: opinion
   confidence: medium
   claim_text: 公司研究必须评估质量、激励和可理解性。
+learning_patterns:
+- pattern_id: lihai_a_share_market_state
+  name: A-share market state and position discipline
+  source_id: lihai_a_share
+  source_tier: tier_3_verified_public_practitioner
+  pattern_type: market_state_pattern
+  tags:
+  - trading
+  - risk
+  - bear_case
+  summary: Classify A-share market state, sentiment cycle, theme strength, and account
+    drawdown before allowing simulated position changes.
+  checklist:
+  - Classify current market state before analyzing individual entries.
+  - Identify whether theme emotion is early diffusion, acceleration, climax, or退潮.
+  - Keep position size conditional on market state and drawdown.
+  - Require sell/exit criteria before simulated buy criteria.
+  - Use review notes to update error-pattern memory only after gate approval.
+  validation_gates:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+  not_allowed_outputs:
+  - direct_buy_sell_order
+- pattern_id: minervini_trend_template
+  name: Trend template and VCP risk discipline
+  source_id: mark_minervini
+  source_tier: tier_2_canonical_framework
+  pattern_type: trading_checklist
+  tags:
+  - trading
+  - risk
+  summary: Treat trend leadership, volatility contraction, tight risk, and immediate
+    invalidation as preconditions for simulated trend trades.
+  checklist:
+  - Confirm higher-timeframe uptrend and leadership before discussing entry.
+  - Look for volatility contraction rather than broad, loose action.
+  - Avoid extended setups without a tight invalidation point.
+  - Size only after stop distance and portfolio risk are known.
+  - Exit quickly when the setup fails instead of rationalizing.
+  validation_gates:
+  - price_series_check
+  - stop_distance_check
+  - drawdown_check
+  not_allowed_outputs:
+  - trade_without_stop
+- pattern_id: oneil_canslim_growth
+  name: CAN SLIM growth confirmation
+  source_id: william_oneil_canslim
+  source_tier: tier_2_canonical_framework
+  pattern_type: growth_stock_screen
+  tags:
+  - company
+  - trading
+  - risk
+  summary: Require fundamental growth evidence, relative strength, institutional-quality
+    leadership, and market direction confirmation before upgrading a growth-stock
+    setup.
+  checklist:
+  - Check current and recent growth evidence from filings or announcements.
+  - Verify whether the company is a leader in its group rather than a laggard.
+  - Require price-volume and relative strength confirmation for any simulated trading
+    plan.
+  - Align the setup with the broader market direction.
+  - Define invalidation before position sizing.
+  validation_gates:
+  - filing_growth_check
+  - price_volume_confirmation
+  - market_direction_gate
+  not_allowed_outputs:
+  - buy_without_market_confirmation
+pattern_application_notes:
+- 'Apply lihai_a_share_market_state as checklist only; validate with gates: A_share_case_replay,
+  drawdown_check, role_consistency_check.'
+- 'Apply minervini_trend_template as checklist only; validate with gates: price_series_check,
+  stop_distance_check, drawdown_check.'
+- 'Apply oneil_canslim_growth as checklist only; validate with gates: filing_growth_check,
+  price_volume_confirmation, market_direction_gate.'
 analysis_points:
 - 只在一手事实和量价证据同时支持时讨论模拟入场触发。
 - 政策和监管口径必须优先于市场传言。

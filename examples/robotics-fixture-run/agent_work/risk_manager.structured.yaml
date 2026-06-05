@@ -11,8 +11,8 @@ required_focus:
 - 仓位上限
 evidence_coverage:
   tier_1_primary_fact: 5
-  tier_2_canonical_framework: 6
-  tier_3_verified_public_practitioner: 1
+  tier_2_canonical_framework: 10
+  tier_3_verified_public_practitioner: 3
   tier_4_expert_opinion: 1
   tier_5_social_signal: 1
   tier_6_unverified: 0
@@ -22,6 +22,7 @@ source_type_coverage:
   market_data: 1
   practitioner_source: 1
   book_summary: 5
+  learning_pattern: 6
   announcement: 1
   web: 2
   case: 1
@@ -82,6 +83,58 @@ key_claims:
   claim_type: opinion
   confidence: medium
   claim_text: 公司研究必须评估质量、激励和可理解性。
+learning_patterns:
+- pattern_id: howard_marks_cycle_risk
+  name: Second-level cycle and risk review
+  source_id: howard_marks
+  source_tier: tier_2_canonical_framework
+  pattern_type: risk_framework
+  tags:
+  - risk
+  - bear_case
+  - industry
+  summary: Compare consensus expectations, variant perception, odds, cycle position,
+    and downside before allowing conviction to rise.
+  checklist:
+  - State the consensus view and the variant view separately.
+  - Estimate what must already be priced in for the thesis to fail.
+  - List adverse scenarios and permanent-loss paths.
+  - Separate good asset from good price.
+  - Downgrade conviction when upside narrative dominates downside evidence.
+  validation_gates:
+  - downside_scenario_check
+  - valuation_or_expectation_check
+  - bear_case_review
+  not_allowed_outputs:
+  - upside_only_memo
+- pattern_id: lihai_a_share_market_state
+  name: A-share market state and position discipline
+  source_id: lihai_a_share
+  source_tier: tier_3_verified_public_practitioner
+  pattern_type: market_state_pattern
+  tags:
+  - trading
+  - risk
+  - bear_case
+  summary: Classify A-share market state, sentiment cycle, theme strength, and account
+    drawdown before allowing simulated position changes.
+  checklist:
+  - Classify current market state before analyzing individual entries.
+  - Identify whether theme emotion is early diffusion, acceleration, climax, or退潮.
+  - Keep position size conditional on market state and drawdown.
+  - Require sell/exit criteria before simulated buy criteria.
+  - Use review notes to update error-pattern memory only after gate approval.
+  validation_gates:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+  not_allowed_outputs:
+  - direct_buy_sell_order
+pattern_application_notes:
+- 'Apply howard_marks_cycle_risk as checklist only; validate with gates: downside_scenario_check,
+  valuation_or_expectation_check, bear_case_review.'
+- 'Apply lihai_a_share_market_state as checklist only; validate with gates: A_share_case_replay,
+  drawdown_check, role_consistency_check.'
 analysis_points:
 - 优先检查一手证据覆盖、低等级来源占比和仓位边界。
 - 政策和监管口径必须优先于市场传言。

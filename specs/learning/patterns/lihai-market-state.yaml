@@ -1,0 +1,20 @@
+id: lihai_a_share_market_state
+name: A-share market state and position discipline
+source_id: lihai_a_share
+source_tier: tier_3_verified_public_practitioner
+pattern_type: market_state_pattern
+tags: [trading, risk, bear_case]
+target_agents: [position_trend_trader, swing_trader, event_driven_trader, defensive_execution_trader, risk_manager]
+summary: Classify A-share market state, sentiment cycle, theme strength, and account drawdown before allowing simulated position changes.
+checklist:
+  - Classify current market state before analyzing individual entries.
+  - Identify whether theme emotion is early diffusion, acceleration, climax, or退潮.
+  - Keep position size conditional on market state and drawdown.
+  - Require sell/exit criteria before simulated buy criteria.
+  - Use review notes to update error-pattern memory only after gate approval.
+validation_gates:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+not_allowed_outputs:
+  - direct_buy_sell_order

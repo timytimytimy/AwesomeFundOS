@@ -11,8 +11,8 @@ required_focus:
 - 需求验证
 evidence_coverage:
   tier_1_primary_fact: 4
-  tier_2_canonical_framework: 4
-  tier_3_verified_public_practitioner: 1
+  tier_2_canonical_framework: 7
+  tier_3_verified_public_practitioner: 2
   tier_4_expert_opinion: 1
   tier_5_social_signal: 1
   tier_6_unverified: 0
@@ -21,6 +21,7 @@ source_type_coverage:
   financial_report: 1
   practitioner_source: 1
   book_summary: 3
+  learning_pattern: 4
   announcement: 1
   web: 2
   case: 1
@@ -69,18 +70,53 @@ key_claims:
   claim_text: 公司故事需要渠道和经营事实验证。
 - evidence_id: E011
   claim_id: C011
-  source_tier: tier_1_primary_fact
-  source_type: policy
-  claim_type: fact
-  confidence: high
-  claim_text: 政策文件提出前瞻部署未来制造、未来信息、未来材料等方向，为机器人、智能制造和人工智能相关产业提供政策背景。
+  source_tier: tier_2_canonical_framework
+  source_type: learning_pattern
+  claim_type: methodology_pattern
+  confidence: medium
+  claim_text: 可复用方法论模式：Use historical theme diffusion cases to distinguish policy
+    ignition, first-wave leaders, second-wave suppliers, late-stage speculation, and
+    breakdown risk.
 - evidence_id: E012
   claim_id: C012
-  source_tier: tier_1_primary_fact
-  source_type: announcement
-  claim_type: fact
-  confidence: high
-  claim_text: 公告类来源应作为验证上市公司机器人业务、订单、客户、产能和收入确认的一手证据入口。
+  source_tier: tier_2_canonical_framework
+  source_type: learning_pattern
+  claim_type: methodology_pattern
+  confidence: medium
+  claim_text: 可复用方法论模式：Compare consensus expectations, variant perception, odds, cycle
+    position, and downside before allowing conviction to rise.
+learning_patterns:
+- pattern_id: serenity_scheme_first_chokepoint
+  name: Scheme-first chokepoint mapping
+  source_id: serenity_aleabitoreddit
+  source_tier: tier_3_verified_public_practitioner
+  pattern_type: research_lens
+  tags:
+  - industry
+  - company
+  - bear_case
+  summary: Start from a concrete downstream system architecture, derive bottlenecks
+    through subsystems and constraints, then map companies only after primary evidence
+    checks.
+  checklist:
+  - Name the downstream system and deployment scenario before naming stocks.
+  - Break the system into BOM, process, software, data, and distribution constraints.
+  - Identify bottleneck-in-bottleneck links where supply, know-how, qualification,
+    or customer validation is scarce.
+  - Ask what market consensus is missing and what evidence would reveal that gap.
+  - Map A-share companies only after announcements, filings, customer evidence, or
+    revenue exposure validate the link.
+  validation_gates:
+  - primary_evidence_check
+  - target_market_adaptation
+  - bear_case_review
+  - historical_case_replay
+  not_allowed_outputs:
+  - direct_a_share_buy_signal
+  - unverified_company_fact
+pattern_application_notes:
+- 'Apply serenity_scheme_first_chokepoint as checklist only; validate with gates:
+  primary_evidence_check, target_market_adaptation, bear_case_review.'
 analysis_points:
 - 产业链/chokepoint 假设必须从政策、公告、产业资料逐层验证。
 - 政策和监管口径必须优先于市场传言。

@@ -11,8 +11,8 @@ required_focus:
 - 流程完整性
 evidence_coverage:
   tier_1_primary_fact: 5
-  tier_2_canonical_framework: 6
-  tier_3_verified_public_practitioner: 2
+  tier_2_canonical_framework: 10
+  tier_3_verified_public_practitioner: 4
   tier_4_expert_opinion: 1
   tier_5_social_signal: 1
   tier_6_unverified: 0
@@ -22,6 +22,7 @@ source_type_coverage:
   market_data: 1
   practitioner_source: 2
   book_summary: 5
+  learning_pattern: 6
   announcement: 1
   web: 2
   case: 1
@@ -82,6 +83,9 @@ key_claims:
   claim_type: opinion
   confidence: medium
   claim_text: 趋势交易必须有明确止损和结构确认。
+learning_patterns: []
+pattern_application_notes:
+- No role-specific distilled learning pattern selected for this agent.
 analysis_points:
 - 综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。
 - 政策和监管口径必须优先于市场传言。

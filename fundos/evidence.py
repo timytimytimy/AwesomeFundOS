@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fundos.io import REPO_ROOT, read_yaml
+from fundos.learning import load_learning_patterns
 from fundos.public_research import tool_result_to_evidence
 
 
@@ -42,6 +43,9 @@ def make_evidence_pack(run_id: str, input_type: str, value: str, public_results:
     for eid, source_id, source_type, summary, claim, claim_type, relevant_to in seed_claims:
         items.append(seed_evidence_item(eid, source_id, source_type, summary, claim, claim_type, retrieved_at, relevant_to))
     next_id = 11
+    for pattern in load_learning_patterns():
+        items.append(learning_pattern_evidence_item(f"E{next_id:03d}", pattern, retrieved_at))
+        next_id += 1
     for result in public_results or []:
         items.append(tool_result_to_evidence(f"E{next_id:03d}", result, retrieved_at, base_relevance))
         next_id += 1
@@ -110,3 +114,26 @@ def evidence_item(eid: str, source_type: str, tier: str, title: str, summary: st
             }
         ],
     }
+
+
+def learning_pattern_evidence_item(eid: str, pattern: dict[str, Any], retrieved_at: str) -> dict[str, Any]:
+    item = evidence_item(
+        eid,
+        "learning_pattern",
+        pattern.get("source_tier", "tier_3_verified_public_practitioner"),
+        f"{pattern.get('name', pattern['id'])} 蒸馏模式",
+        pattern.get("summary", ""),
+        f"可复用方法论模式：{pattern.get('summary', '')}",
+        "methodology_pattern",
+        retrieved_at,
+        pattern.get("tags", []),
+    )
+    item["source_id"] = pattern.get("source_id")
+    item["pattern_id"] = pattern["id"]
+    item["pattern_type"] = pattern.get("pattern_type")
+    item["checklist"] = pattern.get("checklist", [])
+    item["validation_gates"] = pattern.get("validation_gates", [])
+    item["not_allowed_outputs"] = pattern.get("not_allowed_outputs", [])
+    item["target_agents"] = pattern.get("target_agents", [])
+    item["claims"][0]["relevant_to"] = pattern.get("tags", [])
+    return item

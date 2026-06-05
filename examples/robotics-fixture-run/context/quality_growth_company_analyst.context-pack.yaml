@@ -52,29 +52,68 @@ included_evidence:
   - C010
 - evidence_id: E011
   reason: relevant to QualityGrowthCompanyAnalyst
-  compressed_summary: 政策文件提出前瞻部署未来制造、未来信息、未来材料等方向，为机器人、智能制造和人工智能相关产业提供政策背景。
+  compressed_summary: Use historical theme diffusion cases to distinguish policy ignition,
+    first-wave leaders, second-wave suppliers, late-stage speculation, and breakdown
+    risk.
   allowed_claims:
   - C011
 - evidence_id: E012
   reason: relevant to QualityGrowthCompanyAnalyst
-  compressed_summary: 公告类来源应作为验证上市公司机器人业务、订单、客户、产能和收入确认的一手证据入口。
+  compressed_summary: Compare consensus expectations, variant perception, odds, cycle
+    position, and downside before allowing conviction to rise.
   allowed_claims:
   - C012
 - evidence_id: E013
   reason: relevant to QualityGrowthCompanyAnalyst
-  compressed_summary: 产业链研究通常关注执行器、控制器、传感器、减速器、丝杠、伺服系统和整机集成等环节，但需要公告和财务数据验证公司映射。
+  compressed_summary: Classify A-share market state, sentiment cycle, theme strength,
+    and account drawdown before allowing simulated position changes.
   allowed_claims:
   - C013
 - evidence_id: E014
   reason: relevant to QualityGrowthCompanyAnalyst
-  compressed_summary: 社媒讨论显示机器人主题热度上升，但此类来源只能作为叙事和情绪线索，不能作为最终事实依据。
+  compressed_summary: Treat trend leadership, volatility contraction, tight risk,
+    and immediate invalidation as preconditions for simulated trend trades.
   allowed_claims:
   - C014
 - evidence_id: E015
   reason: relevant to QualityGrowthCompanyAnalyst
-  compressed_summary: 包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。
+  compressed_summary: Require fundamental growth evidence, relative strength, institutional-quality
+    leadership, and market direction confirmation before upgrading a growth-stock
+    setup.
   allowed_claims:
   - C015
+- evidence_id: E016
+  reason: relevant to QualityGrowthCompanyAnalyst
+  compressed_summary: Start from a concrete downstream system architecture, derive
+    bottlenecks through subsystems and constraints, then map companies only after
+    primary evidence checks.
+  allowed_claims:
+  - C016
+- evidence_id: E017
+  reason: relevant to QualityGrowthCompanyAnalyst
+  compressed_summary: 政策文件提出前瞻部署未来制造、未来信息、未来材料等方向，为机器人、智能制造和人工智能相关产业提供政策背景。
+  allowed_claims:
+  - C017
+- evidence_id: E018
+  reason: relevant to QualityGrowthCompanyAnalyst
+  compressed_summary: 公告类来源应作为验证上市公司机器人业务、订单、客户、产能和收入确认的一手证据入口。
+  allowed_claims:
+  - C018
+- evidence_id: E019
+  reason: relevant to QualityGrowthCompanyAnalyst
+  compressed_summary: 产业链研究通常关注执行器、控制器、传感器、减速器、丝杠、伺服系统和整机集成等环节，但需要公告和财务数据验证公司映射。
+  allowed_claims:
+  - C019
+- evidence_id: E020
+  reason: relevant to QualityGrowthCompanyAnalyst
+  compressed_summary: 社媒讨论显示机器人主题热度上升，但此类来源只能作为叙事和情绪线索，不能作为最终事实依据。
+  allowed_claims:
+  - C020
+- evidence_id: E021
+  reason: relevant to QualityGrowthCompanyAnalyst
+  compressed_summary: 包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。
+  allowed_claims:
+  - C021
 contradiction_table:
 - issue: 方法论来源不能替代一手事实
   supporting_claims:

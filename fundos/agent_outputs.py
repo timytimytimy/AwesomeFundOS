@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, write_yaml
+from fundos.learning import compact_pattern, patterns_for_agent
 
 
 def evidence_lookup(evidence_pack: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -71,6 +72,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     primary = summary["coverage"].get("tier_1_primary_fact", 0)
     low_tier = summary["coverage"].get("tier_5_social_signal", 0) + summary["coverage"].get("tier_6_unverified", 0)
     confidence = "medium" if primary >= 1 else "low"
+    learning_patterns = [compact_pattern(pattern) for pattern in patterns_for_agent(agent["id"], context_focus_tags(context))]
     return {
         "run_id": context["run_id"],
         "agent_id": agent["id"],
@@ -83,12 +85,41 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "evidence_coverage": summary["coverage"],
         "source_type_coverage": summary["source_types"],
         "key_claims": summary["key_claims"][:8],
+        "learning_patterns": learning_patterns,
+        "pattern_application_notes": pattern_application_notes(agent, learning_patterns),
         "analysis_points": analysis_points_for(agent, summary),
         "risks_or_gaps": context.get("missing_evidence", []) + risk_gaps_for(agent, primary, low_tier),
         "forbidden_actions_checked": context.get("forbidden_focus", []),
         "disclaimer": DISCLAIMER,
     }
 
+
+
+def context_focus_tags(context: dict[str, Any]) -> list[str]:
+    tags = set()
+    for included in context.get("included_evidence", []):
+        reason = included.get("reason", "")
+        if "Trader" in reason:
+            tags.update(["trading", "risk"])
+        elif "Risk" in reason:
+            tags.update(["risk", "company", "trading"])
+        elif "Bear" in reason:
+            tags.update(["bear_case", "risk", "company"])
+        elif "Analyst" in reason:
+            tags.update(["industry", "company"])
+    if not tags:
+        tags.update(["industry", "company", "trading", "risk", "bear_case"])
+    return sorted(tags)
+
+
+def pattern_application_notes(agent: dict[str, Any], patterns: list[dict[str, Any]]) -> list[str]:
+    if not patterns:
+        return ["No role-specific distilled learning pattern selected for this agent."]
+    notes = []
+    for pattern in patterns[:3]:
+        gates = ", ".join(pattern.get("validation_gates", [])[:3])
+        notes.append(f"Apply {pattern['pattern_id']} as checklist only; validate with gates: {gates}.")
+    return notes
 
 def analysis_points_for(agent: dict[str, Any], summary: dict[str, Any]) -> list[str]:
     role = agent.get("role", "")

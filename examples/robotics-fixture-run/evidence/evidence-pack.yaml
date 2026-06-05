@@ -1,7 +1,7 @@
 run_id: 2026-06-05-cn-topic
 market: CN_A_SHARE
 query: 机器人产业链投资机会
-retrieved_at: '2026-06-05T14:44:18+00:00'
+retrieved_at: '2026-06-05T14:56:02+00:00'
 retrieval_plan:
 - search primary announcements and filings
 - search policy and news sources
@@ -15,7 +15,7 @@ evidence_items:
   title: A股公开政策与监管材料检索占位
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 公开政策和交易所材料应作为事实验证的一手来源。
   summary: 公开政策和交易所材料应作为事实验证的一手来源。
   confidence: high
@@ -35,7 +35,7 @@ evidence_items:
   title: 公司公告与财报检索占位
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。
   summary: 公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。
   confidence: high
@@ -55,7 +55,7 @@ evidence_items:
   title: 行情与量价摘要占位
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 价格、成交额、相对强弱和波动用于交易结构判断。
   summary: 价格、成交额、相对强弱和波动用于交易结构判断。
   confidence: high
@@ -75,7 +75,7 @@ evidence_items:
   title: Serenity / aleabitoreddit 学习源
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 学习 secular trend、supply-chain chokepoint、research gap、anti-consensus
     和 falsification。
   summary: 学习 secular trend、supply-chain chokepoint、research gap、anti-consensus 和
@@ -123,7 +123,7 @@ evidence_items:
   title: 里海 A股交易框架 学习源
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 学习市场状态、情绪周期、买卖点、仓位和复盘纪律。
   summary: 学习市场状态、情绪周期、买卖点、仓位和复盘纪律。
   confidence: medium
@@ -164,7 +164,7 @@ evidence_items:
   title: Howard Marks / Oaktree memos 学习源
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 学习 second-level thinking、周期和风险控制。
   summary: 学习 second-level thinking、周期和风险控制。
   confidence: medium
@@ -197,7 +197,7 @@ evidence_items:
   title: William O'Neil / CAN SLIM 学习源
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 学习成长股基本面和量价确认结合。
   summary: 学习成长股基本面和量价确认结合。
   confidence: medium
@@ -230,7 +230,7 @@ evidence_items:
   title: Mark Minervini / Trend Template / SEPA 学习源
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 学习 trend template、VCP 和风险纪律。
   summary: 学习 trend template、VCP 和风险纪律。
   confidence: medium
@@ -263,7 +263,7 @@ evidence_items:
   title: Buffett / Munger 学习源
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 学习商业质量、护城河、能力圈和管理层激励。
   summary: 学习商业质量、护城河、能力圈和管理层激励。
   confidence: medium
@@ -297,7 +297,7 @@ evidence_items:
   title: Peter Lynch 学习源
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 学习 scuttlebutt、公司故事和增长分类。
   summary: 学习 scuttlebutt、公司故事和增长分类。
   confidence: medium
@@ -324,6 +324,283 @@ evidence_items:
   not_allowed_outputs: []
   validation_required: []
 - id: E011
+  source_type: learning_pattern
+  source_tier: tier_2_canonical_framework
+  title: A-share theme diffusion historical case pattern 蒸馏模式
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:56:02+00:00'
+  raw_excerpt: Use historical theme diffusion cases to distinguish policy ignition,
+    first-wave leaders, second-wave suppliers, late-stage speculation, and breakdown
+    risk.
+  summary: Use historical theme diffusion cases to distinguish policy ignition, first-wave
+    leaders, second-wave suppliers, late-stage speculation, and breakdown risk.
+  confidence: medium
+  claims:
+  - claim_id: C011
+    claim_text: 可复用方法论模式：Use historical theme diffusion cases to distinguish policy
+      ignition, first-wave leaders, second-wave suppliers, late-stage speculation,
+      and breakdown risk.
+    claim_type: methodology_pattern
+    confidence: medium
+    relevant_to:
+    - industry
+    - trading
+    - risk
+    - bear_case
+    supports: []
+    contradicts: []
+  source_id: historical_case_library
+  pattern_id: a_share_theme_diffusion_case
+  pattern_type: historical_case_pattern
+  checklist:
+  - Identify the ignition source: policy, order, technology, liquidity, or overseas
+      mapping.
+  - Separate first-wave leaders from late-stage sympathy names.
+  - Track diffusion breadth and evidence quality decay.
+  - Look for late-stage signs: low-quality names leading, excessive turnover, and
+      narrative repetition.
+  - Convert the case into falsifiable pattern tests rather than direct analogies.
+  validation_gates:
+  - historical_case_replay
+  - analogy_overfit_check
+  - evidence_quality_check
+  not_allowed_outputs:
+  - one_case_direct_mapping
+  target_agents:
+  - policy_event_analyst
+  - swing_trader
+  - bear_debater
+  - fund_manager
+- id: E012
+  source_type: learning_pattern
+  source_tier: tier_2_canonical_framework
+  title: Second-level cycle and risk review 蒸馏模式
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:56:02+00:00'
+  raw_excerpt: Compare consensus expectations, variant perception, odds, cycle position,
+    and downside before allowing conviction to rise.
+  summary: Compare consensus expectations, variant perception, odds, cycle position,
+    and downside before allowing conviction to rise.
+  confidence: medium
+  claims:
+  - claim_id: C012
+    claim_text: 可复用方法论模式：Compare consensus expectations, variant perception, odds,
+      cycle position, and downside before allowing conviction to rise.
+    claim_type: methodology_pattern
+    confidence: medium
+    relevant_to:
+    - risk
+    - bear_case
+    - industry
+    supports: []
+    contradicts: []
+  source_id: howard_marks
+  pattern_id: howard_marks_cycle_risk
+  pattern_type: risk_framework
+  checklist:
+  - State the consensus view and the variant view separately.
+  - Estimate what must already be priced in for the thesis to fail.
+  - List adverse scenarios and permanent-loss paths.
+  - Separate good asset from good price.
+  - Downgrade conviction when upside narrative dominates downside evidence.
+  validation_gates:
+  - downside_scenario_check
+  - valuation_or_expectation_check
+  - bear_case_review
+  not_allowed_outputs:
+  - upside_only_memo
+  target_agents:
+  - fund_manager
+  - risk_manager
+  - bear_debater
+- id: E013
+  source_type: learning_pattern
+  source_tier: tier_3_verified_public_practitioner
+  title: A-share market state and position discipline 蒸馏模式
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:56:02+00:00'
+  raw_excerpt: Classify A-share market state, sentiment cycle, theme strength, and
+    account drawdown before allowing simulated position changes.
+  summary: Classify A-share market state, sentiment cycle, theme strength, and account
+    drawdown before allowing simulated position changes.
+  confidence: medium
+  claims:
+  - claim_id: C013
+    claim_text: 可复用方法论模式：Classify A-share market state, sentiment cycle, theme strength,
+      and account drawdown before allowing simulated position changes.
+    claim_type: methodology_pattern
+    confidence: medium
+    relevant_to:
+    - trading
+    - risk
+    - bear_case
+    supports: []
+    contradicts: []
+  source_id: lihai_a_share
+  pattern_id: lihai_a_share_market_state
+  pattern_type: market_state_pattern
+  checklist:
+  - Classify current market state before analyzing individual entries.
+  - Identify whether theme emotion is early diffusion, acceleration, climax, or退潮.
+  - Keep position size conditional on market state and drawdown.
+  - Require sell/exit criteria before simulated buy criteria.
+  - Use review notes to update error-pattern memory only after gate approval.
+  validation_gates:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+  not_allowed_outputs:
+  - direct_buy_sell_order
+  target_agents:
+  - position_trend_trader
+  - swing_trader
+  - event_driven_trader
+  - defensive_execution_trader
+  - risk_manager
+- id: E014
+  source_type: learning_pattern
+  source_tier: tier_2_canonical_framework
+  title: Trend template and VCP risk discipline 蒸馏模式
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:56:02+00:00'
+  raw_excerpt: Treat trend leadership, volatility contraction, tight risk, and immediate
+    invalidation as preconditions for simulated trend trades.
+  summary: Treat trend leadership, volatility contraction, tight risk, and immediate
+    invalidation as preconditions for simulated trend trades.
+  confidence: medium
+  claims:
+  - claim_id: C014
+    claim_text: 可复用方法论模式：Treat trend leadership, volatility contraction, tight risk,
+      and immediate invalidation as preconditions for simulated trend trades.
+    claim_type: methodology_pattern
+    confidence: medium
+    relevant_to:
+    - trading
+    - risk
+    supports: []
+    contradicts: []
+  source_id: mark_minervini
+  pattern_id: minervini_trend_template
+  pattern_type: trading_checklist
+  checklist:
+  - Confirm higher-timeframe uptrend and leadership before discussing entry.
+  - Look for volatility contraction rather than broad, loose action.
+  - Avoid extended setups without a tight invalidation point.
+  - Size only after stop distance and portfolio risk are known.
+  - Exit quickly when the setup fails instead of rationalizing.
+  validation_gates:
+  - price_series_check
+  - stop_distance_check
+  - drawdown_check
+  not_allowed_outputs:
+  - trade_without_stop
+  target_agents:
+  - position_trend_trader
+  - swing_trader
+  - defensive_execution_trader
+- id: E015
+  source_type: learning_pattern
+  source_tier: tier_2_canonical_framework
+  title: CAN SLIM growth confirmation 蒸馏模式
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:56:02+00:00'
+  raw_excerpt: Require fundamental growth evidence, relative strength, institutional-quality
+    leadership, and market direction confirmation before upgrading a growth-stock
+    setup.
+  summary: Require fundamental growth evidence, relative strength, institutional-quality
+    leadership, and market direction confirmation before upgrading a growth-stock
+    setup.
+  confidence: medium
+  claims:
+  - claim_id: C015
+    claim_text: 可复用方法论模式：Require fundamental growth evidence, relative strength, institutional-quality
+      leadership, and market direction confirmation before upgrading a growth-stock
+      setup.
+    claim_type: methodology_pattern
+    confidence: medium
+    relevant_to:
+    - company
+    - trading
+    - risk
+    supports: []
+    contradicts: []
+  source_id: william_oneil_canslim
+  pattern_id: oneil_canslim_growth
+  pattern_type: growth_stock_screen
+  checklist:
+  - Check current and recent growth evidence from filings or announcements.
+  - Verify whether the company is a leader in its group rather than a laggard.
+  - Require price-volume and relative strength confirmation for any simulated trading
+    plan.
+  - Align the setup with the broader market direction.
+  - Define invalidation before position sizing.
+  validation_gates:
+  - filing_growth_check
+  - price_volume_confirmation
+  - market_direction_gate
+  not_allowed_outputs:
+  - buy_without_market_confirmation
+  target_agents:
+  - quality_growth_company_analyst
+  - position_trend_trader
+  - swing_trader
+- id: E016
+  source_type: learning_pattern
+  source_tier: tier_3_verified_public_practitioner
+  title: Scheme-first chokepoint mapping 蒸馏模式
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:56:02+00:00'
+  raw_excerpt: Start from a concrete downstream system architecture, derive bottlenecks
+    through subsystems and constraints, then map companies only after primary evidence
+    checks.
+  summary: Start from a concrete downstream system architecture, derive bottlenecks
+    through subsystems and constraints, then map companies only after primary evidence
+    checks.
+  confidence: medium
+  claims:
+  - claim_id: C016
+    claim_text: 可复用方法论模式：Start from a concrete downstream system architecture, derive
+      bottlenecks through subsystems and constraints, then map companies only after
+      primary evidence checks.
+    claim_type: methodology_pattern
+    confidence: medium
+    relevant_to:
+    - industry
+    - company
+    - bear_case
+    supports: []
+    contradicts: []
+  source_id: serenity_aleabitoreddit
+  pattern_id: serenity_scheme_first_chokepoint
+  pattern_type: research_lens
+  checklist:
+  - Name the downstream system and deployment scenario before naming stocks.
+  - Break the system into BOM, process, software, data, and distribution constraints.
+  - Identify bottleneck-in-bottleneck links where supply, know-how, qualification,
+    or customer validation is scarce.
+  - Ask what market consensus is missing and what evidence would reveal that gap.
+  - Map A-share companies only after announcements, filings, customer evidence, or
+    revenue exposure validate the link.
+  validation_gates:
+  - primary_evidence_check
+  - target_market_adaptation
+  - bear_case_review
+  - historical_case_replay
+  not_allowed_outputs:
+  - direct_a_share_buy_signal
+  - unverified_company_fact
+  target_agents:
+  - tech_growth_analyst
+  - advanced_manufacturing_analyst
+  - bear_debater
+  - learning_curator
+- id: E017
   source_type: policy
   source_tier: tier_1_primary_fact
   source_id: public_research
@@ -331,12 +608,12 @@ evidence_items:
   url: https://www.gov.cn/zhengce/zhengceku/202401/content_6929021.htm
   source_url: https://www.gov.cn/zhengce/zhengceku/202401/content_6929021.htm
   published_at: '2024-01-29'
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 政策文件提出前瞻部署未来制造、未来信息、未来材料等方向，为机器人、智能制造和人工智能相关产业提供政策背景。
   summary: 政策文件提出前瞻部署未来制造、未来信息、未来材料等方向，为机器人、智能制造和人工智能相关产业提供政策背景。
   confidence: high
   claims:
-  - claim_id: C011
+  - claim_id: C017
     claim_text: 政策文件提出前瞻部署未来制造、未来信息、未来材料等方向，为机器人、智能制造和人工智能相关产业提供政策背景。
     claim_type: fact
     confidence: high
@@ -348,7 +625,7 @@ evidence_items:
     - bear_case
     supports: []
     contradicts: []
-- id: E012
+- id: E018
   source_type: announcement
   source_tier: tier_1_primary_fact
   source_id: public_research
@@ -356,19 +633,19 @@ evidence_items:
   url: https://www.cninfo.com.cn/new/disclosure/detail
   source_url: https://www.cninfo.com.cn/new/disclosure/detail
   published_at: '2026-06-01'
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 公告类来源应作为验证上市公司机器人业务、订单、客户、产能和收入确认的一手证据入口。
   summary: 公告类来源应作为验证上市公司机器人业务、订单、客户、产能和收入确认的一手证据入口。
   confidence: high
   claims:
-  - claim_id: C012
+  - claim_id: C018
     claim_text: 公告类来源应作为验证上市公司机器人业务、订单、客户、产能和收入确认的一手证据入口。
     claim_type: fact
     confidence: high
     relevant_to: *id001
     supports: []
     contradicts: []
-- id: E013
+- id: E019
   source_type: web
   source_tier: tier_4_expert_opinion
   source_id: public_research
@@ -376,19 +653,19 @@ evidence_items:
   url: https://example.com/research/robotics-supply-chain
   source_url: https://example.com/research/robotics-supply-chain
   published_at: '2026-05-20'
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 产业链研究通常关注执行器、控制器、传感器、减速器、丝杠、伺服系统和整机集成等环节，但需要公告和财务数据验证公司映射。
   summary: 产业链研究通常关注执行器、控制器、传感器、减速器、丝杠、伺服系统和整机集成等环节，但需要公告和财务数据验证公司映射。
   confidence: low
   claims:
-  - claim_id: C013
+  - claim_id: C019
     claim_text: 产业链研究通常关注执行器、控制器、传感器、减速器、丝杠、伺服系统和整机集成等环节，但需要公告和财务数据验证公司映射。
     claim_type: hypothesis
     confidence: low
     relevant_to: *id001
     supports: []
     contradicts: []
-- id: E014
+- id: E020
   source_type: web
   source_tier: tier_5_social_signal
   source_id: public_research
@@ -396,30 +673,30 @@ evidence_items:
   url: https://x.com/example/status/robotics
   source_url: https://x.com/example/status/robotics
   published_at: '2026-06-02'
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 社媒讨论显示机器人主题热度上升，但此类来源只能作为叙事和情绪线索，不能作为最终事实依据。
   summary: 社媒讨论显示机器人主题热度上升，但此类来源只能作为叙事和情绪线索，不能作为最终事实依据。
   confidence: low
   claims:
-  - claim_id: C014
+  - claim_id: C020
     claim_text: 社媒讨论显示机器人主题热度上升，但此类来源只能作为叙事和情绪线索，不能作为最终事实依据。
     claim_type: hypothesis
     confidence: low
     relevant_to: *id001
     supports: []
     contradicts: []
-- id: E015
+- id: E021
   source_type: case
   source_tier: tier_2_canonical_framework
   title: 经典历史案例库种子
   url: ''
   published_at: ''
-  retrieved_at: '2026-06-05T14:44:18+00:00'
+  retrieved_at: '2026-06-05T14:56:02+00:00'
   raw_excerpt: 包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。
   summary: 包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。
   confidence: medium
   claims:
-  - claim_id: C015
+  - claim_id: C021
     claim_text: 历史案例用于形成可测试模式，不可单案过拟合。
     claim_type: inference
     confidence: medium

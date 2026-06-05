@@ -14,8 +14,8 @@
 ## 证据覆盖
 
 - tier_1_primary_fact: 5
-- tier_2_canonical_framework: 5
-- tier_3_verified_public_practitioner: 1
+- tier_2_canonical_framework: 9
+- tier_3_verified_public_practitioner: 2
 - tier_4_expert_opinion: 1
 - tier_5_social_signal: 1
 - tier_6_unverified: 0

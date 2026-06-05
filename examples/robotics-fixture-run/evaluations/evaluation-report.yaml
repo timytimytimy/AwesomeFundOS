@@ -1,7 +1,7 @@
 run_id: 2026-06-05-cn-topic
 overall_score: 77.7
 source_coverage:
-  total_items: 15
+  total_items: 21
   public_research_items: 4
   tier_1_primary_fact: 5
   low_tier_items: 1

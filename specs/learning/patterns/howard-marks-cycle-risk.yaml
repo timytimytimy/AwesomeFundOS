@@ -1,0 +1,20 @@
+id: howard_marks_cycle_risk
+name: Second-level cycle and risk review
+source_id: howard_marks
+source_tier: tier_2_canonical_framework
+pattern_type: risk_framework
+tags: [risk, bear_case, industry]
+target_agents: [fund_manager, risk_manager, bear_debater]
+summary: Compare consensus expectations, variant perception, odds, cycle position, and downside before allowing conviction to rise.
+checklist:
+  - State the consensus view and the variant view separately.
+  - Estimate what must already be priced in for the thesis to fail.
+  - List adverse scenarios and permanent-loss paths.
+  - Separate good asset from good price.
+  - Downgrade conviction when upside narrative dominates downside evidence.
+validation_gates:
+  - downside_scenario_check
+  - valuation_or_expectation_check
+  - bear_case_review
+not_allowed_outputs:
+  - upside_only_memo

@@ -1,0 +1,22 @@
+id: serenity_scheme_first_chokepoint
+name: Scheme-first chokepoint mapping
+source_id: serenity_aleabitoreddit
+source_tier: tier_3_verified_public_practitioner
+pattern_type: research_lens
+tags: [industry, company, bear_case]
+target_agents: [tech_growth_analyst, advanced_manufacturing_analyst, bear_debater, learning_curator]
+summary: Start from a concrete downstream system architecture, derive bottlenecks through subsystems and constraints, then map companies only after primary evidence checks.
+checklist:
+  - Name the downstream system and deployment scenario before naming stocks.
+  - Break the system into BOM, process, software, data, and distribution constraints.
+  - Identify bottleneck-in-bottleneck links where supply, know-how, qualification, or customer validation is scarce.
+  - Ask what market consensus is missing and what evidence would reveal that gap.
+  - Map A-share companies only after announcements, filings, customer evidence, or revenue exposure validate the link.
+validation_gates:
+  - primary_evidence_check
+  - target_market_adaptation
+  - bear_case_review
+  - historical_case_replay
+not_allowed_outputs:
+  - direct_a_share_buy_signal
+  - unverified_company_fact

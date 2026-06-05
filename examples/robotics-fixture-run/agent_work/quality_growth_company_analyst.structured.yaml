@@ -11,8 +11,8 @@ required_focus:
 - 治理风险
 evidence_coverage:
   tier_1_primary_fact: 5
-  tier_2_canonical_framework: 6
-  tier_3_verified_public_practitioner: 1
+  tier_2_canonical_framework: 10
+  tier_3_verified_public_practitioner: 3
   tier_4_expert_opinion: 1
   tier_5_social_signal: 1
   tier_6_unverified: 0
@@ -22,6 +22,7 @@ source_type_coverage:
   market_data: 1
   practitioner_source: 1
   book_summary: 5
+  learning_pattern: 6
   announcement: 1
   web: 2
   case: 1
@@ -82,6 +83,35 @@ key_claims:
   claim_type: opinion
   confidence: medium
   claim_text: 公司研究必须评估质量、激励和可理解性。
+learning_patterns:
+- pattern_id: oneil_canslim_growth
+  name: CAN SLIM growth confirmation
+  source_id: william_oneil_canslim
+  source_tier: tier_2_canonical_framework
+  pattern_type: growth_stock_screen
+  tags:
+  - company
+  - trading
+  - risk
+  summary: Require fundamental growth evidence, relative strength, institutional-quality
+    leadership, and market direction confirmation before upgrading a growth-stock
+    setup.
+  checklist:
+  - Check current and recent growth evidence from filings or announcements.
+  - Verify whether the company is a leader in its group rather than a laggard.
+  - Require price-volume and relative strength confirmation for any simulated trading
+    plan.
+  - Align the setup with the broader market direction.
+  - Define invalidation before position sizing.
+  validation_gates:
+  - filing_growth_check
+  - price_volume_confirmation
+  - market_direction_gate
+  not_allowed_outputs:
+  - buy_without_market_confirmation
+pattern_application_notes:
+- 'Apply oneil_canslim_growth as checklist only; validate with gates: filing_growth_check,
+  price_volume_confirmation, market_direction_gate.'
 analysis_points:
 - 公司映射必须由公告、财报、订单、客户或收入证据验证。
 - 政策和监管口径必须优先于市场传言。

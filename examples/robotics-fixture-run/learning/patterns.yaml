@@ -1,0 +1,184 @@
+version: 0.1.0
+purpose: Run-scoped distilled learning patterns available to selected agents.
+patterns:
+- id: a_share_theme_diffusion_case
+  name: A-share theme diffusion historical case pattern
+  source_id: historical_case_library
+  source_tier: tier_2_canonical_framework
+  pattern_type: historical_case_pattern
+  tags:
+  - industry
+  - trading
+  - risk
+  - bear_case
+  target_agents:
+  - policy_event_analyst
+  - swing_trader
+  - bear_debater
+  - fund_manager
+  summary: Use historical theme diffusion cases to distinguish policy ignition, first-wave
+    leaders, second-wave suppliers, late-stage speculation, and breakdown risk.
+  checklist:
+  - Identify the ignition source: policy, order, technology, liquidity, or overseas
+      mapping.
+  - Separate first-wave leaders from late-stage sympathy names.
+  - Track diffusion breadth and evidence quality decay.
+  - Look for late-stage signs: low-quality names leading, excessive turnover, and
+      narrative repetition.
+  - Convert the case into falsifiable pattern tests rather than direct analogies.
+  validation_gates:
+  - historical_case_replay
+  - analogy_overfit_check
+  - evidence_quality_check
+  not_allowed_outputs:
+  - one_case_direct_mapping
+  pattern_path: specs/learning/patterns/a-share-theme-diffusion-case.yaml
+- id: howard_marks_cycle_risk
+  name: Second-level cycle and risk review
+  source_id: howard_marks
+  source_tier: tier_2_canonical_framework
+  pattern_type: risk_framework
+  tags:
+  - risk
+  - bear_case
+  - industry
+  target_agents:
+  - fund_manager
+  - risk_manager
+  - bear_debater
+  summary: Compare consensus expectations, variant perception, odds, cycle position,
+    and downside before allowing conviction to rise.
+  checklist:
+  - State the consensus view and the variant view separately.
+  - Estimate what must already be priced in for the thesis to fail.
+  - List adverse scenarios and permanent-loss paths.
+  - Separate good asset from good price.
+  - Downgrade conviction when upside narrative dominates downside evidence.
+  validation_gates:
+  - downside_scenario_check
+  - valuation_or_expectation_check
+  - bear_case_review
+  not_allowed_outputs:
+  - upside_only_memo
+  pattern_path: specs/learning/patterns/howard-marks-cycle-risk.yaml
+- id: lihai_a_share_market_state
+  name: A-share market state and position discipline
+  source_id: lihai_a_share
+  source_tier: tier_3_verified_public_practitioner
+  pattern_type: market_state_pattern
+  tags:
+  - trading
+  - risk
+  - bear_case
+  target_agents:
+  - position_trend_trader
+  - swing_trader
+  - event_driven_trader
+  - defensive_execution_trader
+  - risk_manager
+  summary: Classify A-share market state, sentiment cycle, theme strength, and account
+    drawdown before allowing simulated position changes.
+  checklist:
+  - Classify current market state before analyzing individual entries.
+  - Identify whether theme emotion is early diffusion, acceleration, climax, or退潮.
+  - Keep position size conditional on market state and drawdown.
+  - Require sell/exit criteria before simulated buy criteria.
+  - Use review notes to update error-pattern memory only after gate approval.
+  validation_gates:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+  not_allowed_outputs:
+  - direct_buy_sell_order
+  pattern_path: specs/learning/patterns/lihai-market-state.yaml
+- id: serenity_scheme_first_chokepoint
+  name: Scheme-first chokepoint mapping
+  source_id: serenity_aleabitoreddit
+  source_tier: tier_3_verified_public_practitioner
+  pattern_type: research_lens
+  tags:
+  - industry
+  - company
+  - bear_case
+  target_agents:
+  - tech_growth_analyst
+  - advanced_manufacturing_analyst
+  - bear_debater
+  - learning_curator
+  summary: Start from a concrete downstream system architecture, derive bottlenecks
+    through subsystems and constraints, then map companies only after primary evidence
+    checks.
+  checklist:
+  - Name the downstream system and deployment scenario before naming stocks.
+  - Break the system into BOM, process, software, data, and distribution constraints.
+  - Identify bottleneck-in-bottleneck links where supply, know-how, qualification,
+    or customer validation is scarce.
+  - Ask what market consensus is missing and what evidence would reveal that gap.
+  - Map A-share companies only after announcements, filings, customer evidence, or
+    revenue exposure validate the link.
+  validation_gates:
+  - primary_evidence_check
+  - target_market_adaptation
+  - bear_case_review
+  - historical_case_replay
+  not_allowed_outputs:
+  - direct_a_share_buy_signal
+  - unverified_company_fact
+  pattern_path: specs/learning/patterns/serenity-chokepoint.yaml
+- id: oneil_canslim_growth
+  name: CAN SLIM growth confirmation
+  source_id: william_oneil_canslim
+  source_tier: tier_2_canonical_framework
+  pattern_type: growth_stock_screen
+  tags:
+  - company
+  - trading
+  - risk
+  target_agents:
+  - quality_growth_company_analyst
+  - position_trend_trader
+  - swing_trader
+  summary: Require fundamental growth evidence, relative strength, institutional-quality
+    leadership, and market direction confirmation before upgrading a growth-stock
+    setup.
+  checklist:
+  - Check current and recent growth evidence from filings or announcements.
+  - Verify whether the company is a leader in its group rather than a laggard.
+  - Require price-volume and relative strength confirmation for any simulated trading
+    plan.
+  - Align the setup with the broader market direction.
+  - Define invalidation before position sizing.
+  validation_gates:
+  - filing_growth_check
+  - price_volume_confirmation
+  - market_direction_gate
+  not_allowed_outputs:
+  - buy_without_market_confirmation
+  pattern_path: specs/learning/patterns/oneil-canslim.yaml
+- id: minervini_trend_template
+  name: Trend template and VCP risk discipline
+  source_id: mark_minervini
+  source_tier: tier_2_canonical_framework
+  pattern_type: trading_checklist
+  tags:
+  - trading
+  - risk
+  target_agents:
+  - position_trend_trader
+  - swing_trader
+  - defensive_execution_trader
+  summary: Treat trend leadership, volatility contraction, tight risk, and immediate
+    invalidation as preconditions for simulated trend trades.
+  checklist:
+  - Confirm higher-timeframe uptrend and leadership before discussing entry.
+  - Look for volatility contraction rather than broad, loose action.
+  - Avoid extended setups without a tight invalidation point.
+  - Size only after stop distance and portfolio risk are known.
+  - Exit quickly when the setup fails instead of rationalizing.
+  validation_gates:
+  - price_series_check
+  - stop_distance_check
+  - drawdown_check
+  not_allowed_outputs:
+  - trade_without_stop
+  pattern_path: specs/learning/patterns/minervini-trend-template.yaml

@@ -84,6 +84,6 @@ evidence_references:
 - evidence_id: E005
   claim_id: C005
   usage: supports simulated committee memo
-- evidence_id: E011
-  claim_id: C011
+- evidence_id: E013
+  claim_id: C013
   usage: supports simulated committee memo
