@@ -105,7 +105,14 @@ class SystemAuditTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             cwd = Path(d)
             fixture = cwd / 'research.json'
-            fixture.write_text('[{"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"}]', encoding='utf-8')
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
             run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
             self.assertEqual(run_result.returncode, 0, run_result.stderr)
             run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]

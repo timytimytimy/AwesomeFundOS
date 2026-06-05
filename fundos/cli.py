@@ -295,6 +295,22 @@ def selection_reason(agent_id: str, input_type: str, value: str) -> str:
         return "mandatory governance and committee role"
     return f"matched {input_type} task: {value}"
 
+def research_plan_coverage(public_results: list[dict[str, Any]], research_plan: list[dict[str, Any]]) -> dict[str, Any]:
+    planned = {row.get("category") for row in research_plan if row.get("category")}
+    covered = {row.get("research_category") for row in public_results if row.get("research_category")}
+    category_counts: dict[str, int] = {}
+    for row in public_results:
+        category = row.get("research_category")
+        if category:
+            category_counts[str(category)] = category_counts.get(str(category), 0) + 1
+    return {
+        "planned_categories": len(planned),
+        "categories_covered": len(covered),
+        "missing_categories": sorted(planned - covered),
+        "category_counts": category_counts,
+        "plan_step_count": len(research_plan),
+    }
+
 def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: str) -> None:
     ref_dir = run_path / "reflections"
     ref_dir.mkdir(parents=True, exist_ok=True)
@@ -372,6 +388,7 @@ def command_run(args: argparse.Namespace) -> int:
     research_plan = build_research_plan(value, input_type=input_type)
     public_results = research_client.search_plan(value, input_type=input_type)
     evidence_pack = make_evidence_pack(run_id, input_type, value, public_results=public_results)
+    evidence_pack["research_plan_coverage"] = research_plan_coverage(public_results, research_plan)
 
     run_doc = {
         "run_id": run_id,

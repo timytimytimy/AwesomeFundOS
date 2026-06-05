@@ -174,6 +174,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
     tool_harness_adapter = tool_harness.get("adapter_coverage", {})
+    research_plan_coverage = tool_harness.get("research_plan_coverage") or evidence_pack.get("research_plan_coverage") or default_research_plan_coverage()
+    next_research_tasks = build_next_research_tasks(research_plan_coverage, run_id)
     context_management = summarize_context_management(agent_harness)
     return {
         "run_id": run_id,
@@ -184,6 +186,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "tier_1_primary_fact": primary_count,
             "low_tier_items": low_count,
         },
+        "research_plan_coverage": research_plan_coverage,
+        "next_research_tasks": next_research_tasks,
         "dimension_scores": {
             "evidence_quality": evidence_quality,
             "reasoning_quality": 70,
@@ -263,9 +267,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         },
         "tool_harness_quality": {
             "overall_score": tool_harness.get("overall_score", 0),
+            "adapter_coverage_score": tool_harness.get("adapter_coverage_score", 0),
             "public_research_items": tool_harness_adapter.get("public_research_items", 0),
             "primary_public_items": tool_harness_adapter.get("primary_public_items", 0),
             "low_tier_public_items": tool_harness_adapter.get("low_tier_public_items", 0),
+            "research_plan_coverage": research_plan_coverage,
             "high_confidence_allowed": tool_harness.get("high_confidence_allowed", False),
             "blocking_issues": tool_harness.get("blocking_issues", []),
         },
@@ -436,6 +442,35 @@ def summarize_context_management(agent_harness: dict[str, Any]) -> dict[str, Any
         "estimated_tokens_after": sum(int(item.get("estimated_tokens_after", 0) or 0) for item in qualities),
         "drop_reasons": sorted({reason for item in qualities for reason in item.get("drop_reasons", [])}),
     }
+
+
+def default_research_plan_coverage() -> dict[str, Any]:
+    return {"planned_categories": 0, "categories_covered": 0, "missing_categories": [], "category_counts": {}, "plan_step_count": 0}
+
+
+def build_next_research_tasks(coverage: dict[str, Any], run_id: str) -> list[dict[str, Any]]:
+    tasks = []
+    priority_map = {"market_data": "high", "case_library": "medium", "announcement": "high", "policy": "high", "news": "medium", "social_signal": "low"}
+    owner_map = {
+        "market_data": "position_trend_trader",
+        "case_library": "review_archivist",
+        "announcement": "quality_growth_company_analyst",
+        "policy": "policy_event_analyst",
+        "news": "tech_growth_analyst",
+        "social_signal": "bear_debater",
+    }
+    for index, category in enumerate(coverage.get("missing_categories", []) or [], start=1):
+        tasks.append(
+            {
+                "task_id": f"{run_id}:research_gap:{index:03d}",
+                "category": category,
+                "owner_agent": owner_map.get(category, "chief_of_staff"),
+                "priority": priority_map.get(category, "medium"),
+                "reason": f"research plan category {category} had no accepted public research evidence",
+                "real_trade_allowed": False,
+            }
+        )
+    return tasks
 
 
 def count_market_states(report: dict[str, Any]) -> dict[str, int]:

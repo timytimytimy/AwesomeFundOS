@@ -27,9 +27,10 @@ def evaluate_tool_harness(evidence_pack: dict[str, Any]) -> dict[str, Any]:
         "policy_items": source_type_counts.get("policy", 0),
         "market_data_items": source_type_counts.get("market_data", 0),
     }
+    research_plan = evidence_pack.get("research_plan_coverage") or infer_research_plan_coverage(public_items)
     boundary = source_boundary_quality(items)
-    blocking = blocking_issues(adapter_coverage, boundary)
-    adapter_score = score_adapter_coverage(adapter_coverage)
+    blocking = blocking_issues(adapter_coverage, boundary, research_plan)
+    adapter_score = score_adapter_coverage(adapter_coverage, research_plan)
     boundary_score = boundary["score"]
     overall = round((adapter_score + boundary_score) / 2, 1)
     return {
@@ -37,7 +38,9 @@ def evaluate_tool_harness(evidence_pack: dict[str, Any]) -> dict[str, Any]:
         "artifact_type": "tool_harness_report",
         "run_id": evidence_pack.get("run_id"),
         "overall_score": overall,
+        "adapter_coverage_score": adapter_score,
         "adapter_coverage": adapter_coverage,
+        "research_plan_coverage": research_plan,
         "source_tier_counts": source_tier_counts,
         "source_type_counts": source_type_counts,
         "source_boundary_quality": boundary,
@@ -76,6 +79,7 @@ def default_report() -> dict[str, Any]:
         "artifact_type": "tool_harness_report",
         "overall_score": 0,
         "adapter_coverage": {"public_research_items": 0, "primary_public_items": 0, "low_tier_public_items": 0},
+        "research_plan_coverage": {"planned_categories": 0, "categories_covered": 0, "missing_categories": [], "category_counts": {}, "plan_step_count": 0},
         "source_tier_counts": {},
         "source_type_counts": {},
         "source_boundary_quality": {"score": 0, "kol_sources_downgraded": False, "controls": []},
@@ -113,7 +117,7 @@ def source_boundary_quality(items: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def score_adapter_coverage(adapter: dict[str, int]) -> int:
+def score_adapter_coverage(adapter: dict[str, int], research_plan: dict[str, Any] | None = None) -> int:
     score = 40
     if adapter.get("public_research_items", 0):
         score += 20
@@ -125,10 +129,17 @@ def score_adapter_coverage(adapter: dict[str, int]) -> int:
         score += 5
     if adapter.get("low_tier_public_items", 0) > adapter.get("primary_public_items", 0):
         score -= 20
+    missing = set((research_plan or {}).get("missing_categories", []))
+    if "market_data" in missing:
+        score -= 10
+    if "case_library" in missing:
+        score -= 5
+    if len(missing) >= 3:
+        score -= 10
     return max(0, min(100, score))
 
 
-def blocking_issues(adapter: dict[str, int], boundary: dict[str, Any]) -> list[str]:
+def blocking_issues(adapter: dict[str, int], boundary: dict[str, Any], research_plan: dict[str, Any] | None = None) -> list[str]:
     issues = []
     if adapter.get("public_research_items", 0) == 0:
         issues.append("missing_public_research_adapter")
@@ -140,12 +151,33 @@ def blocking_issues(adapter: dict[str, int], boundary: dict[str, Any]) -> list[s
         issues.append("kol_source_tier_boundary_missing")
     if not boundary.get("social_claims_low_confidence", False):
         issues.append("social_signal_confidence_too_high")
+    missing = list((research_plan or {}).get("missing_categories", []))
+    if missing:
+        issues.append("missing_research_plan_categories:" + ",".join(missing))
     return issues
+
+
+def infer_research_plan_coverage(public_items: list[dict[str, Any]]) -> dict[str, Any]:
+    categories = [str(item.get("research_category")) for item in public_items if item.get("research_category")]
+    return {
+        "planned_categories": 0,
+        "categories_covered": len(set(categories)),
+        "missing_categories": [],
+        "category_counts": count_values(categories),
+        "plan_step_count": len({item.get("research_plan_id") for item in public_items if item.get("research_plan_id")}),
+    }
 
 
 def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
     counts: dict[str, int] = {}
     for row in rows:
         value = str(row.get(key, "unknown"))
+        counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
+def count_values(values: list[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
         counts[value] = counts.get(value, 0) + 1
     return counts

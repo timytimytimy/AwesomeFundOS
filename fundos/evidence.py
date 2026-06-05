@@ -50,6 +50,7 @@ def make_evidence_pack(run_id: str, input_type: str, value: str, public_results:
         items.append(tool_result_to_evidence(f"E{next_id:03d}", result, retrieved_at, base_relevance))
         next_id += 1
     items.append(evidence_item(f"E{next_id:03d}", "case", "tier_2_canonical_framework", "经典历史案例库种子", "包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。", "历史案例用于形成可测试模式，不可单案过拟合。", "inference", retrieved_at, base_relevance))
+    public_results = public_results or []
     pack = {
         "run_id": run_id,
         "market": "CN_A_SHARE",
@@ -66,6 +67,7 @@ def make_evidence_pack(run_id: str, input_type: str, value: str, public_results:
             "V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。"
         ],
     }
+    pack["research_plan_coverage"] = build_research_plan_coverage(public_results)
     enrich_evidence_pack(pack)
     return pack
 
@@ -111,6 +113,17 @@ def build_source_coverage(items: list[dict[str, Any]]) -> dict[str, Any]:
         "type_counts": count_by(items, "source_type"),
         "claim_type_counts": count_claims_by(items, "claim_type"),
         "confidence_counts": count_by(items, "confidence"),
+    }
+
+
+def build_research_plan_coverage(public_results: list[dict[str, Any]]) -> dict[str, Any]:
+    categories = [str(row.get("research_category")) for row in public_results if row.get("research_category")]
+    return {
+        "planned_categories": 0,
+        "categories_covered": len(set(categories)),
+        "missing_categories": [],
+        "category_counts": count_values(categories),
+        "plan_step_count": len({row.get("research_plan_id") for row in public_results if row.get("research_plan_id")}),
     }
 
 
@@ -173,6 +186,13 @@ def count_claims_by(items: list[dict[str, Any]], key: str) -> dict[str, int]:
         for claim in item.get("claims", []) or []:
             value = str(claim.get(key) or "unknown")
             counts[value] = counts.get(value, 0) + 1
+    return counts
+
+
+def count_values(values: list[str]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
     return counts
 
 

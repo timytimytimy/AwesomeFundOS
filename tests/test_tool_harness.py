@@ -61,6 +61,67 @@ class ToolHarnessTests(unittest.TestCase):
         self.assertIn("public_research_without_primary_source", report["blocking_issues"])
         self.assertEqual(report["high_confidence_allowed"], False)
 
+    def test_tool_harness_penalizes_missing_research_plan_categories(self):
+        pack = make_evidence_pack(
+            "run-tool-harness",
+            "topic",
+            "机器人产业链投资机会",
+            public_results=[
+                {
+                    "title": "机器人公告",
+                    "url": "https://www.cninfo.com.cn/new/disclosure/detail",
+                    "snippet": "公告验证机器人订单。",
+                    "research_category": "announcement",
+                    "research_plan_id": "rq_001",
+                },
+                {
+                    "title": "机器人政策",
+                    "url": "https://www.gov.cn/zhengce/content/test.htm",
+                    "snippet": "政策支持机器人。",
+                    "research_category": "policy",
+                    "research_plan_id": "rq_002",
+                },
+            ],
+        )
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 2,
+            "missing_categories": ["market_data", "case_library", "news", "social_signal"],
+            "category_counts": {"announcement": 1, "policy": 1},
+            "plan_step_count": 6,
+        }
+
+        report = evaluate_tool_harness(pack)
+
+        self.assertEqual(report["research_plan_coverage"]["categories_covered"], 2)
+        self.assertIn("missing_research_plan_categories:market_data,case_library,news,social_signal", report["blocking_issues"])
+        self.assertFalse(report["high_confidence_allowed"])
+        self.assertLess(report["adapter_coverage_score"], 90)
+
+    def test_evaluation_exposes_research_plan_coverage_and_next_research_tasks(self):
+        pack = make_evidence_pack(
+            "run-tool-harness",
+            "topic",
+            "机器人产业链投资机会",
+            public_results=[{"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证订单。", "research_category": "announcement", "research_plan_id": "rq_001"}],
+        )
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 1,
+            "missing_categories": ["market_data", "case_library"],
+            "category_counts": {"announcement": 1},
+            "plan_step_count": 6,
+        }
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_tool_harness(run_path, pack)
+            evaluation = make_evaluation_for_run("run-tool-harness", [], pack, run_path)
+
+        self.assertEqual(evaluation["research_plan_coverage"]["categories_covered"], 1)
+        self.assertIn("market_data", evaluation["research_plan_coverage"]["missing_categories"])
+        self.assertTrue(any(task["category"] == "market_data" for task in evaluation["next_research_tasks"]))
+        self.assertIn("missing_research_plan_categories:market_data,case_library", evaluation["blocking_issues"])
+
 
 if __name__ == "__main__":
     unittest.main()
