@@ -6,6 +6,7 @@ source_policy:
 sources:
   - id: serenity_aleabitoreddit
     display_name: Serenity / aleabitoreddit
+    source_url: https://aleabitoreddit.substack.com
     source_tier: tier_3_verified_public_practitioner
     source_type: public_practitioner
     public_handles:
@@ -48,6 +49,7 @@ sources:
 
   - id: lihai_a_share
     display_name: 里海 A股交易框架
+    source_url: local://skills/lihai-stock
     source_tier: tier_3_verified_public_practitioner
     source_type: public_practitioner
     primary_value:
@@ -78,6 +80,7 @@ sources:
 
   - id: howard_marks
     display_name: Howard Marks / Oaktree memos
+    source_url: https://www.oaktreecapital.com/insights
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:
@@ -101,6 +104,7 @@ sources:
 
   - id: druckenmiller
     display_name: Stan Druckenmiller
+    source_url: https://www.druckenmillerfoundation.org
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:
@@ -117,6 +121,7 @@ sources:
 
   - id: soros_reflexivity
     display_name: George Soros / Reflexivity
+    source_url: https://www.georgesoros.com
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:
@@ -133,6 +138,7 @@ sources:
 
   - id: livermore
     display_name: Jesse Livermore
+    source_url: https://www.gutenberg.org/ebooks/60979
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:
@@ -150,6 +156,7 @@ sources:
 
   - id: william_oneil_canslim
     display_name: William O'Neil / CAN SLIM
+    source_url: https://www.investors.com/ibd-university/can-slim/
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:
@@ -168,6 +175,7 @@ sources:
 
   - id: mark_minervini
     display_name: Mark Minervini / Trend Template / SEPA
+    source_url: https://www.minervini.com
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:
@@ -186,6 +194,7 @@ sources:
 
   - id: peter_lynch
     display_name: Peter Lynch
+    source_url: https://www.simonandschuster.com/books/One-Up-On-Wall-Street/Peter-Lynch/9780743200400
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:
@@ -203,6 +212,7 @@ sources:
 
   - id: buffett_munger
     display_name: Buffett / Munger
+    source_url: https://www.berkshirehathaway.com/letters/letters.html
     source_tier: tier_2_canonical_framework
     source_type: canonical_framework
     primary_value:

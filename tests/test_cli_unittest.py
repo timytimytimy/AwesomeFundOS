@@ -108,6 +108,42 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(rows)
             self.assertIn(rows[0]["decision"], {"accept", "reject", "quarantine", "needs_more_evidence"})
 
+    def test_init_materializes_agent_profiles_and_context_policies(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["init"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            profile = tmp_path / "agents" / "fund_manager" / "profile.yaml"
+            context_policy = tmp_path / "agents" / "fund_manager" / "context-policy.yaml"
+            model_policy = tmp_path / "agents" / "fund_manager" / "model-policy.yaml"
+            memory = tmp_path / "memory" / "agents" / "fund_manager" / "semantic_memory.md"
+            self.assertTrue(profile.exists())
+            self.assertTrue(context_policy.exists())
+            self.assertTrue(model_policy.exists())
+            self.assertTrue(memory.exists())
+            profile_doc = yaml.safe_load(profile.read_text())
+            self.assertEqual(profile_doc["id"], "fund_manager")
+            self.assertIn("decision_principles", profile_doc)
+            policy_doc = yaml.safe_load(context_policy.read_text())
+            self.assertIn("must_preserve", policy_doc)
+            self.assertIn("contradictions", policy_doc["must_preserve"])
+
+    def test_run_evidence_pack_uses_seed_library_source_metadata(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            evidence = yaml.safe_load((tmp_path / run_rel / "evidence" / "evidence-pack.yaml").read_text())
+            source_ids = {item.get("source_id") for item in evidence["evidence_items"]}
+            self.assertIn("serenity_aleabitoreddit", source_ids)
+            self.assertIn("howard_marks", source_ids)
+            serenity_item = next(item for item in evidence["evidence_items"] if item.get("source_id") == "serenity_aleabitoreddit")
+            self.assertEqual(serenity_item["source_tier"], "tier_3_verified_public_practitioner")
+            self.assertIn("not_allowed_outputs", serenity_item)
+            self.assertIn("direct_a_share_buy_signal", serenity_item["not_allowed_outputs"])
+            self.assertTrue(serenity_item["source_url"])
+
     def test_seed_library_contains_verified_practitioner_and_classics(self):
         seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"
         self.assertTrue(seed_path.exists())

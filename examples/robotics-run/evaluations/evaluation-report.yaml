@@ -1,0 +1,79 @@
+run_id: 2026-06-05-cn-topic
+overall_score: 72
+dimension_scores:
+  evidence_quality: 65
+  reasoning_quality: 70
+  role_consistency: 82
+  decision_quality: 68
+  collaboration_quality: 75
+  tool_usage_quality: 50
+  context_quality: 78
+context_quality_scores:
+  relevance: 80
+  compression_fidelity: 75
+  evidence_traceability: 82
+  role_specificity: 80
+  information_sufficiency: 60
+  noise_control: 85
+  leakage_control: 85
+  contradiction_preservation: 78
+agent_scores:
+- agent_id: chief_of_staff
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: fund_manager
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: risk_manager
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: bear_debater
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: evaluation_harness
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: review_archivist
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: tech_growth_analyst
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: quality_growth_company_analyst
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+- agent_id: position_trend_trader
+  role_consistency: 80
+  contribution_quality: 70
+  context_fit: 78
+  improvement_suggestions:
+  - 接入真实工具后提升证据密度
+blocking_issues:
+- 真实公开数据检索工具尚未接入，当前为 EvidencePack stub。
+accepted_outputs:
+- final-decision-memo
+rejected_outputs: []

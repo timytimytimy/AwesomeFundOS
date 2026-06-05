@@ -1,0 +1,83 @@
+context_pack_id: ctx_evaluation_harness
+run_id: 2026-06-05-cn-topic
+agent_id: evaluation_harness
+role: EvaluationHarnessAgent
+task_stage: specialist_analysis
+context_budget_tokens: 8000
+included_evidence:
+- evidence_id: E001
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 公开政策和交易所材料应作为事实验证的一手来源。
+  allowed_claims:
+  - C001
+- evidence_id: E002
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。
+  allowed_claims:
+  - C002
+- evidence_id: E003
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 价格、成交额、相对强弱和波动用于交易结构判断。
+  allowed_claims:
+  - C003
+- evidence_id: E004
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 学习 secular trend、supply-chain chokepoint、research gap、anti-consensus
+    和 falsification。
+  allowed_claims:
+  - C004
+- evidence_id: E005
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 学习市场状态、情绪周期、买卖点、仓位和复盘纪律。
+  allowed_claims:
+  - C005
+- evidence_id: E006
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 学习 second-level thinking、周期和风险控制。
+  allowed_claims:
+  - C006
+- evidence_id: E007
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 学习成长股基本面和量价确认结合。
+  allowed_claims:
+  - C007
+- evidence_id: E008
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 学习 trend template、VCP 和风险纪律。
+  allowed_claims:
+  - C008
+- evidence_id: E009
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 学习商业质量、护城河、能力圈和管理层激励。
+  allowed_claims:
+  - C009
+- evidence_id: E010
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 学习 scuttlebutt、公司故事和增长分类。
+  allowed_claims:
+  - C010
+- evidence_id: E011
+  reason: relevant to EvaluationHarnessAgent
+  compressed_summary: 包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。
+  allowed_claims:
+  - C011
+contradiction_table:
+- issue: 方法论来源不能替代一手事实
+  supporting_claims:
+  - C004
+  opposing_claims:
+  - C001
+  - C002
+missing_evidence:
+- V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。
+excluded_evidence_summary:
+- category: irrelevant noise
+  reason: V1 context router excludes non-role evidence by relevance tags
+required_focus:
+- 综合判断
+- 证据追溯
+- 流程完整性
+forbidden_focus:
+- 不要输出真实交易指令
+- 不要把低等级来源当作一手事实
+output_schema: EvaluationHarnessAgentOutput

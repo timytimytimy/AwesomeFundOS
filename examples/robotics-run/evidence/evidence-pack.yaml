@@ -1,0 +1,349 @@
+run_id: 2026-06-05-cn-topic
+market: CN_A_SHARE
+query: 机器人产业链投资机会
+retrieved_at: '2026-06-05T14:31:36+00:00'
+retrieval_plan:
+- search primary announcements and filings
+- search policy and news sources
+- query market data summary
+- load seed practitioner and historical case library
+evidence_items:
+- id: E001
+  source_type: policy
+  source_tier: tier_1_primary_fact
+  title: A股公开政策与监管材料检索占位
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 公开政策和交易所材料应作为事实验证的一手来源。
+  summary: 公开政策和交易所材料应作为事实验证的一手来源。
+  confidence: high
+  claims:
+  - claim_id: C001
+    claim_text: 政策和监管口径必须优先于市场传言。
+    claim_type: fact
+    confidence: high
+    relevant_to:
+    - industry
+    - risk
+    supports: []
+    contradicts: []
+- id: E002
+  source_type: financial_report
+  source_tier: tier_1_primary_fact
+  title: 公司公告与财报检索占位
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。
+  summary: 公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。
+  confidence: high
+  claims:
+  - claim_id: C002
+    claim_text: 公司层面判断必须回到公告和财报。
+    claim_type: fact
+    confidence: high
+    relevant_to:
+    - company
+    - risk
+    supports: []
+    contradicts: []
+- id: E003
+  source_type: market_data
+  source_tier: tier_1_primary_fact
+  title: 行情与量价摘要占位
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 价格、成交额、相对强弱和波动用于交易结构判断。
+  summary: 价格、成交额、相对强弱和波动用于交易结构判断。
+  confidence: high
+  claims:
+  - claim_id: C003
+    claim_text: 交易判断必须和量价结构绑定。
+    claim_type: fact
+    confidence: high
+    relevant_to:
+    - trading
+    - risk
+    supports: []
+    contradicts: []
+- id: E004
+  source_type: practitioner_source
+  source_tier: tier_3_verified_public_practitioner
+  title: Serenity / aleabitoreddit 学习源
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 学习 secular trend、supply-chain chokepoint、research gap、anti-consensus
+    和 falsification。
+  summary: 学习 secular trend、supply-chain chokepoint、research gap、anti-consensus 和
+    falsification。
+  confidence: medium
+  claims:
+  - claim_id: C004
+    claim_text: Serenity 可用于方法论蒸馏，不能直接作为 A 股买卖依据。
+    claim_type: opinion
+    confidence: medium
+    relevant_to:
+    - industry
+    - bear_case
+    supports: []
+    contradicts: []
+  source_id: serenity_aleabitoreddit
+  source_url: https://aleabitoreddit.substack.com
+  primary_value:
+  - secular trend recognition
+  - AI and semiconductor supply-chain chokepoint mapping
+  - research gap identification
+  - anti-consensus framing
+  - falsification discipline
+  allowed_learning_outputs:
+  - research_lens
+  - decision_principle_candidate
+  - skill_candidate
+  - case_pattern
+  - checklist
+  not_allowed_outputs:
+  - direct_a_share_buy_signal
+  - unverified_company_fact
+  - copied_target_price
+  - copied_position_size
+  - copied_option_trade
+  validation_required:
+  - source_trace
+  - target_market_adaptation
+  - primary_evidence_check
+  - historical_case_replay
+  - bear_case_review
+- id: E005
+  source_type: practitioner_source
+  source_tier: tier_3_verified_public_practitioner
+  title: 里海 A股交易框架 学习源
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 学习市场状态、情绪周期、买卖点、仓位和复盘纪律。
+  summary: 学习市场状态、情绪周期、买卖点、仓位和复盘纪律。
+  confidence: medium
+  claims:
+  - claim_id: C005
+    claim_text: 交易计划需要市场状态和仓位纪律约束。
+    claim_type: opinion
+    confidence: medium
+    relevant_to:
+    - trading
+    - risk
+    supports: []
+    contradicts: []
+  source_id: lihai_a_share
+  source_url: local://skills/lihai-stock
+  primary_value:
+  - A-share market state recognition
+  - sentiment cycle
+  - entry and exit discipline
+  - position management
+  - post-trade review
+  allowed_learning_outputs:
+  - market_state_pattern
+  - trading_checklist
+  - position_management_rule_candidate
+  - review_template
+  not_allowed_outputs:
+  - direct_buy_sell_order
+  - personal_financial_advice
+  - unverified_chat_record_as_fact
+  validation_required:
+  - A_share_case_replay
+  - drawdown_check
+  - role_consistency_check
+- id: E006
+  source_type: book_summary
+  source_tier: tier_2_canonical_framework
+  title: Howard Marks / Oaktree memos 学习源
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 学习 second-level thinking、周期和风险控制。
+  summary: 学习 second-level thinking、周期和风险控制。
+  confidence: medium
+  claims:
+  - claim_id: C006
+    claim_text: 风险评估必须关注赔率、周期位置和下行情景。
+    claim_type: opinion
+    confidence: medium
+    relevant_to:
+    - risk
+    - bear_case
+    supports: []
+    contradicts: []
+  source_id: howard_marks
+  source_url: https://www.oaktreecapital.com/insights
+  primary_value:
+  - second-level thinking
+  - risk control
+  - market cycles
+  - investor psychology
+  allowed_learning_outputs:
+  - risk_principle_candidate
+  - cycle_checklist
+  - decision_memo_review_rule
+  not_allowed_outputs: []
+  validation_required: []
+- id: E007
+  source_type: book_summary
+  source_tier: tier_2_canonical_framework
+  title: William O'Neil / CAN SLIM 学习源
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 学习成长股基本面和量价确认结合。
+  summary: 学习成长股基本面和量价确认结合。
+  confidence: medium
+  claims:
+  - claim_id: C007
+    claim_text: 成长股观察需要基本面增长和市场方向共同确认。
+    claim_type: opinion
+    confidence: medium
+    relevant_to:
+    - company
+    - trading
+    supports: []
+    contradicts: []
+  source_id: william_oneil_canslim
+  source_url: https://www.investors.com/ibd-university/can-slim/
+  primary_value:
+  - growth stock selection
+  - fundamental plus technical confirmation
+  - relative strength
+  - market direction
+  allowed_learning_outputs:
+  - growth_stock_screen_checklist
+  - price_volume_confirmation_rule
+  - market_direction_gate
+  not_allowed_outputs: []
+  validation_required: []
+- id: E008
+  source_type: book_summary
+  source_tier: tier_2_canonical_framework
+  title: Mark Minervini / Trend Template / SEPA 学习源
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 学习 trend template、VCP 和风险纪律。
+  summary: 学习 trend template、VCP 和风险纪律。
+  confidence: medium
+  claims:
+  - claim_id: C008
+    claim_text: 趋势交易必须有明确止损和结构确认。
+    claim_type: opinion
+    confidence: medium
+    relevant_to:
+    - trading
+    - risk
+    supports: []
+    contradicts: []
+  source_id: mark_minervini
+  source_url: https://www.minervini.com
+  primary_value:
+  - trend template
+  - volatility contraction
+  - risk discipline
+  - leadership screening
+  allowed_learning_outputs:
+  - trend_template_checklist
+  - vcp_pattern_candidate
+  - stop_and_position_rule_candidate
+  not_allowed_outputs: []
+  validation_required: []
+- id: E009
+  source_type: book_summary
+  source_tier: tier_2_canonical_framework
+  title: Buffett / Munger 学习源
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 学习商业质量、护城河、能力圈和管理层激励。
+  summary: 学习商业质量、护城河、能力圈和管理层激励。
+  confidence: medium
+  claims:
+  - claim_id: C009
+    claim_text: 公司研究必须评估质量、激励和可理解性。
+    claim_type: opinion
+    confidence: medium
+    relevant_to:
+    - company
+    - risk
+    supports: []
+    contradicts: []
+  source_id: buffett_munger
+  source_url: https://www.berkshirehathaway.com/letters/letters.html
+  primary_value:
+  - business quality
+  - moat
+  - circle of competence
+  - patience
+  - incentives
+  allowed_learning_outputs:
+  - moat_checklist
+  - management_quality_checklist
+  - circle_of_competence_gate
+  not_allowed_outputs: []
+  validation_required: []
+- id: E010
+  source_type: book_summary
+  source_tier: tier_2_canonical_framework
+  title: Peter Lynch 学习源
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 学习 scuttlebutt、公司故事和增长分类。
+  summary: 学习 scuttlebutt、公司故事和增长分类。
+  confidence: medium
+  claims:
+  - claim_id: C010
+    claim_text: 公司故事需要渠道和经营事实验证。
+    claim_type: opinion
+    confidence: medium
+    relevant_to:
+    - company
+    - industry
+    supports: []
+    contradicts: []
+  source_id: peter_lynch
+  source_url: https://www.simonandschuster.com/books/One-Up-On-Wall-Street/Peter-Lynch/9780743200400
+  primary_value:
+  - scuttlebutt
+  - growth classification
+  - consumer observation
+  - company story validation
+  allowed_learning_outputs:
+  - company_story_checklist
+  - channel_observation_prompt
+  not_allowed_outputs: []
+  validation_required: []
+- id: E011
+  source_type: case
+  source_tier: tier_2_canonical_framework
+  title: 经典历史案例库种子
+  url: ''
+  published_at: ''
+  retrieved_at: '2026-06-05T14:31:36+00:00'
+  raw_excerpt: 包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。
+  summary: 包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。
+  confidence: medium
+  claims:
+  - claim_id: C011
+    claim_text: 历史案例用于形成可测试模式，不可单案过拟合。
+    claim_type: inference
+    confidence: medium
+    relevant_to:
+    - industry
+    - company
+    - trading
+    - risk
+    - bear_case
+    supports: []
+    contradicts: []
+unresolved_gaps:
+- V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。

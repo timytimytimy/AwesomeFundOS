@@ -45,6 +45,17 @@ def load_roster() -> dict[str, Any]:
     return read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
 
 
+def load_seed_library() -> dict[str, Any]:
+    return read_yaml(REPO_ROOT / "specs" / "learning" / "seed-library.yaml")
+
+
+def source_by_id(source_id: str) -> dict[str, Any]:
+    for source in load_seed_library().get("sources", []):
+        if source.get("id") == source_id:
+            return source
+    raise KeyError(source_id)
+
+
 def command_init(args: argparse.Namespace) -> int:
     cwd = Path.cwd()
     for name in RUNTIME_DIRS:
@@ -55,8 +66,140 @@ def command_init(args: argparse.Namespace) -> int:
             path.mkdir(parents=True)
             print(f"created {name}/")
     roster = load_roster()
+    materialized = materialize_agent_assets(cwd, roster)
+    materialize_learning_assets(cwd)
     print(f"loaded {len(roster.get('agents', []))} agents from specs/agents/default-roster.yaml")
+    print(f"materialized {materialized} agent asset sets")
     return 0
+
+
+def materialize_agent_assets(root: Path, roster: dict[str, Any]) -> int:
+    count = 0
+    for agent in roster.get("agents", []):
+        agent_dir = root / "agents" / agent["id"]
+        memory_dir = root / "memory" / "agents" / agent["id"]
+        agent_dir.mkdir(parents=True, exist_ok=True)
+        memory_dir.mkdir(parents=True, exist_ok=True)
+        profile_path = agent_dir / "profile.yaml"
+        context_path = agent_dir / "context-policy.yaml"
+        model_path = agent_dir / "model-policy.yaml"
+        memory_path = memory_dir / "semantic_memory.md"
+        profile = build_agent_profile(agent)
+        context_policy = build_context_policy(agent)
+        model_policy = build_model_policy(agent)
+        for path, data in [(profile_path, profile), (context_path, context_policy), (model_path, model_policy)]:
+            if not path.exists():
+                write_yaml(path, data)
+        if not memory_path.exists():
+            memory_path.write_text(f"# {agent['name']} / {agent['role']} Long-term Memory\n\nNo accepted lessons yet. EvolutionGate must approve updates before they are written here.\n", encoding="utf-8")
+        count += 1
+    return count
+
+
+def build_agent_profile(agent: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": agent["id"],
+        "name": agent["name"],
+        "role": agent["role"],
+        "mandate": agent.get("mandate", ""),
+        "investment_style": agent.get("investment_style", ""),
+        "risk_preference": agent.get("risk_preference", "medium"),
+        "time_horizon": agent.get("time_horizon", "cross_horizon"),
+        "personality": personality_for(agent),
+        "decision_principles": principles_for(agent),
+        "capability_boundaries": [
+            "Do not produce real investment advice or real trade orders.",
+            "Use assigned ContextPack only; cite Evidence ID and Claim ID for important claims.",
+            "Treat practitioner sources as learning sources unless verified by primary evidence.",
+        ],
+        "biases": biases_for(agent),
+        "weaknesses": ["V1 profile is bootstrapped from roster and requires future performance calibration."],
+        "skills": agent.get("skills", []),
+        "tools": agent.get("tools", []),
+        "context_policy_id": agent.get("context_policy_id"),
+        "model_policy_id": agent.get("model_policy_id"),
+        "memory_namespace": f"memory/agents/{agent['id']}",
+        "performance_metrics": ["role_consistency", "evidence_traceability", "contribution_quality", "learning_quality"],
+    }
+
+
+def personality_for(agent: dict[str, Any]) -> list[str]:
+    role = agent.get("role", "")
+    if "Bear" in role or "Risk" in role or "Governance" in role:
+        return ["skeptical", "evidence-demanding", "risk-aware"]
+    if "Trader" in role:
+        return ["disciplined", "timing-sensitive", "loss-aware"]
+    if "Analyst" in role:
+        return ["curious", "structured", "source-driven"]
+    return ["calm", "process-oriented", "accountable"]
+
+
+def principles_for(agent: dict[str, Any]) -> list[str]:
+    role = agent.get("role", "")
+    base = [
+        "No source, no confidence.",
+        "Separate fact, opinion, inference, and hypothesis.",
+        "Preserve uncertainty and contradictions instead of smoothing them away.",
+    ]
+    if "Trader" in role:
+        base.append("A trade view must include trigger, invalidation, and risk boundary.")
+    if "Risk" in role:
+        base.append("Downside and liquidity constraints override narrative strength.")
+    if "Bear" in role:
+        base.append("Attack the strongest version of the thesis, not a straw man.")
+    if "Analyst" in role:
+        base.append("Map claims from public evidence before upgrading a thesis.")
+    return base
+
+
+def biases_for(agent: dict[str, Any]) -> list[str]:
+    role = agent.get("role", "")
+    if "Trader" in role:
+        return ["May over-weight recent price action."]
+    if "Analyst" in role:
+        return ["May over-build narratives from incomplete evidence."]
+    if "Bear" in role or "Risk" in role:
+        return ["May under-weight strong trend persistence."]
+    return ["May overweight well-structured team inputs."]
+
+
+def build_context_policy(agent: dict[str, Any]) -> dict[str, Any]:
+    focus = context_focus(agent["id"], agent["role"])
+    return {
+        "id": agent.get("context_policy_id"),
+        "agent_id": agent["id"],
+        "preferred_context_tags": focus["tags"],
+        "preferred_evidence_tiers": ["tier_1_primary_fact", "tier_2_canonical_framework", "tier_3_verified_public_practitioner"],
+        "preferred_claim_types": ["fact", "inference", "hypothesis", "opinion"],
+        "max_token_budget": 8000,
+        "compression_style": ["claim_table", "bullet_summary", "contradiction_table"],
+        "must_preserve": ["evidence_ids", "claim_ids", "contradictions", "low_confidence_claims", "missing_evidence"],
+        "required_focus": focus["required"],
+        "forbidden_focus": ["real_trade_orders", "personal_financial_advice", "uncited_high_confidence_claims"],
+    }
+
+
+def build_model_policy(agent: dict[str, Any]) -> dict[str, Any]:
+    role = agent.get("role", "")
+    effort = "high" if any(key in role for key in ["FundManager", "Risk", "Bear", "Evaluation", "Governance"]) else "medium"
+    return {
+        "id": agent.get("model_policy_id"),
+        "provider": "codex",
+        "default_model": "codex-default",
+        "reasoning_effort": effort,
+        "context_budget_tokens": 8000,
+        "tool_use_allowed": True,
+        "code_execution_allowed": agent["id"] in {"chief_of_staff", "evaluation_harness", "review_archivist"},
+        "web_research_allowed": True,
+        "task_overrides": {"final_decision": {"reasoning_effort": "high"}, "self_reflection": {"reasoning_effort": "medium"}},
+    }
+
+
+def materialize_learning_assets(root: Path) -> None:
+    target = root / "memory" / "organization" / "seed-library.yaml"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        write_yaml(target, load_seed_library())
 
 
 def command_roster_list(args: argparse.Namespace) -> int:
@@ -143,10 +286,19 @@ def make_evidence_pack(run_id: str, input_type: str, value: str) -> dict[str, An
         evidence_item("E001", "policy", "tier_1_primary_fact", "A股公开政策与监管材料检索占位", "公开政策和交易所材料应作为事实验证的一手来源。", "政策和监管口径必须优先于市场传言。", "fact", retrieved_at, ["industry", "risk"]),
         evidence_item("E002", "financial_report", "tier_1_primary_fact", "公司公告与财报检索占位", "公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。", "公司层面判断必须回到公告和财报。", "fact", retrieved_at, ["company", "risk"]),
         evidence_item("E003", "market_data", "tier_1_primary_fact", "行情与量价摘要占位", "价格、成交额、相对强弱和波动用于交易结构判断。", "交易判断必须和量价结构绑定。", "fact", retrieved_at, ["trading", "risk"]),
-        evidence_item("E004", "practitioner_source", "tier_3_verified_public_practitioner", "Serenity / aleabitoreddit 方法论种子", "学习 secular trend、supply-chain chokepoint、research gap、anti-consensus 和 falsification。", "Serenity 可用于方法论蒸馏，不能直接作为 A 股买卖依据。", "opinion", retrieved_at, ["industry", "bear_case"]),
-        evidence_item("E005", "practitioner_source", "tier_3_verified_public_practitioner", "里海 A股交易框架种子", "学习市场状态、情绪周期、买卖点、仓位和复盘纪律。", "交易计划需要市场状态和仓位纪律约束。", "opinion", retrieved_at, ["trading", "risk"]),
-        evidence_item("E006", "case", "tier_2_canonical_framework", "经典历史案例库种子", "包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。", "历史案例用于形成可测试模式，不可单案过拟合。", "inference", retrieved_at, base_relevance),
     ]
+    seed_claims = [
+        ("E004", "serenity_aleabitoreddit", "practitioner_source", "学习 secular trend、supply-chain chokepoint、research gap、anti-consensus 和 falsification。", "Serenity 可用于方法论蒸馏，不能直接作为 A 股买卖依据。", "opinion", ["industry", "bear_case"]),
+        ("E005", "lihai_a_share", "practitioner_source", "学习市场状态、情绪周期、买卖点、仓位和复盘纪律。", "交易计划需要市场状态和仓位纪律约束。", "opinion", ["trading", "risk"]),
+        ("E006", "howard_marks", "book_summary", "学习 second-level thinking、周期和风险控制。", "风险评估必须关注赔率、周期位置和下行情景。", "opinion", ["risk", "bear_case"]),
+        ("E007", "william_oneil_canslim", "book_summary", "学习成长股基本面和量价确认结合。", "成长股观察需要基本面增长和市场方向共同确认。", "opinion", ["company", "trading"]),
+        ("E008", "mark_minervini", "book_summary", "学习 trend template、VCP 和风险纪律。", "趋势交易必须有明确止损和结构确认。", "opinion", ["trading", "risk"]),
+        ("E009", "buffett_munger", "book_summary", "学习商业质量、护城河、能力圈和管理层激励。", "公司研究必须评估质量、激励和可理解性。", "opinion", ["company", "risk"]),
+        ("E010", "peter_lynch", "book_summary", "学习 scuttlebutt、公司故事和增长分类。", "公司故事需要渠道和经营事实验证。", "opinion", ["company", "industry"]),
+    ]
+    for eid, source_id, source_type, summary, claim, claim_type, relevant_to in seed_claims:
+        items.append(seed_evidence_item(eid, source_id, source_type, summary, claim, claim_type, retrieved_at, relevant_to))
+    items.append(evidence_item("E011", "case", "tier_2_canonical_framework", "经典历史案例库种子", "包含大牛股早期识别、主题扩散、产业链瓶颈、泡沫破裂、财务爆雷和政策驱动案例类型。", "历史案例用于形成可测试模式，不可单案过拟合。", "inference", retrieved_at, base_relevance))
     return {
         "run_id": run_id,
         "market": "CN_A_SHARE",
@@ -163,6 +315,28 @@ def make_evidence_pack(run_id: str, input_type: str, value: str) -> dict[str, An
             "V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。"
         ],
     }
+
+
+def seed_evidence_item(eid: str, source_id: str, source_type: str, summary: str, claim: str, claim_type: str, retrieved_at: str, relevant_to: list[str]) -> dict[str, Any]:
+    source = source_by_id(source_id)
+    item = evidence_item(
+        eid,
+        source_type,
+        source["source_tier"],
+        f"{source['display_name']} 学习源",
+        summary,
+        claim,
+        claim_type,
+        retrieved_at,
+        relevant_to,
+    )
+    item["source_id"] = source_id
+    item["source_url"] = source.get("source_url", "")
+    item["primary_value"] = source.get("primary_value", [])
+    item["allowed_learning_outputs"] = source.get("allowed_learning_outputs", [])
+    item["not_allowed_outputs"] = source.get("not_allowed_outputs", [])
+    item["validation_required"] = source.get("validation_required", [])
+    return item
 
 
 def evidence_item(eid: str, source_type: str, tier: str, title: str, summary: str, claim: str, claim_type: str, retrieved_at: str, relevant_to: list[str]) -> dict[str, Any]:

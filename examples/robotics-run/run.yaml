@@ -1,0 +1,109 @@
+run_id: 2026-06-05-cn-topic
+created_at: '2026-06-05T14:31:36+00:00'
+input:
+  input_type: topic
+  value: 机器人产业链投资机会
+market: CN_A_SHARE
+selected_agents:
+- agent_id: chief_of_staff
+  role: ChiefOfStaffAgent
+  reason: mandatory governance and committee role
+  context_pack_id: ctx_chief_of_staff
+- agent_id: fund_manager
+  role: FundManagerAgent
+  reason: mandatory governance and committee role
+  context_pack_id: ctx_fund_manager
+- agent_id: risk_manager
+  role: RiskManagerAgent
+  reason: mandatory governance and committee role
+  context_pack_id: ctx_risk_manager
+- agent_id: bear_debater
+  role: BearDebaterAgent
+  reason: mandatory governance and committee role
+  context_pack_id: ctx_bear_debater
+- agent_id: evaluation_harness
+  role: EvaluationHarnessAgent
+  reason: mandatory governance and committee role
+  context_pack_id: ctx_evaluation_harness
+- agent_id: review_archivist
+  role: ReviewArchivistAgent
+  reason: mandatory governance and committee role
+  context_pack_id: ctx_review_archivist
+- agent_id: tech_growth_analyst
+  role: TechGrowthAnalyst
+  reason: 'matched topic task: 机器人产业链投资机会'
+  context_pack_id: ctx_tech_growth_analyst
+- agent_id: quality_growth_company_analyst
+  role: QualityGrowthCompanyAnalyst
+  reason: 'matched topic task: 机器人产业链投资机会'
+  context_pack_id: ctx_quality_growth_company_analyst
+- agent_id: position_trend_trader
+  role: PositionTrendTrader
+  reason: 'matched topic task: 机器人产业链投资机会'
+  context_pack_id: ctx_position_trend_trader
+status: archived
+artifacts: []
+model_records:
+- agent_id: chief_of_staff
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: fund_manager
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: risk_manager
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: bear_debater
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: evaluation_harness
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: review_archivist
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: tech_growth_analyst
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: quality_growth_company_analyst
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
+- agent_id: position_trend_trader
+  model: codex-default-stub
+  reasoning_effort: medium
+  skill_versions:
+  - v0.1.0
+  tool_versions:
+  - stub-v0.1.0
