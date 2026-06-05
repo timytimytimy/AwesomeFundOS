@@ -6,13 +6,28 @@
 
 攻击核心假设, 替代解释, 证据缺口
 
-## 初步结论
+## 立场与置信度
 
-基于当前 EvidencePack stub，本 Agent 认为该议题应进入模拟研究流程，但需要真实公告、财报、新闻和行情工具进一步验证。
+- stance: cautious_attack
+- confidence: medium
+
+## 证据覆盖
+
+- tier_1_primary_fact: 5
+- tier_2_canonical_framework: 6
+- tier_3_verified_public_practitioner: 2
+- tier_4_expert_opinion: 1
+- tier_5_social_signal: 1
+- tier_6_unverified: 0
+
+## 分析要点
+
+- 攻击方法论源替代事实源、社媒热度替代订单验证的风险。
+- 政策和监管口径必须优先于市场传言。
 
 ## 证据引用
 
-E001:C001, E002:C002, E003:C003
+E001:C001, E002:C002, E003:C003, E004:C004, E005:C005
 
 ## 边界
 

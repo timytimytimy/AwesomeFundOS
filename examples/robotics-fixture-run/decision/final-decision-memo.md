@@ -5,28 +5,41 @@
 ## 最终标签
 
 - label: continue_research
-- stance: neutral
+- stance: constructive
 - conviction: low
 - hypothetical_position_range: 0%，仅进入观察和研究队列
 
 ## Thesis
 
-机器人产业链投资机会 需要通过一手公告、财报、行情和产业证据继续验证。
+机器人产业链投资机会 已有 2 条 fixture/public 一手证据线索和 4 条公开检索结果进入 EvidencePack；仍需真实公告、财报、行情和案例回放继续验证。
 
 ## Bull Case
 
-若公开证据确认需求、订单、产业瓶颈和量价趋势，研究优先级可提升。
+若一手公告、政策和产业证据继续确认需求、订单、核心零部件瓶颈和公司映射，研究优先级可提升。
 
 ## Bear Case
 
-当前真实外部数据接口尚未接入，证据完整性不足，不得形成高置信结论。
+社媒热度和方法论源不能替代订单、收入、客户和价格行为验证；若只有叙事则不得升级。
 
 ## Risk Review
 
-主要风险是数据不足、叙事过强、方法论源被误用为事实源。
+主要风险是证据链不完整、低等级信号污染、产业链映射过度推断、价格序列缺失。
+
+## Agent Output Summary
+
+- chief_of_staff: constructive_but_evidence_capped / medium / primary=5
+- fund_manager: continue_research / medium / primary=5
+- risk_manager: risk_control_first / medium / primary=5
+- bear_debater: cautious_attack / medium / primary=5
+- evaluation_harness: constructive_but_evidence_capped / medium / primary=5
+- review_archivist: constructive_but_evidence_capped / medium / primary=5
+- tech_growth_analyst: constructive_but_evidence_capped / medium / primary=4
+- quality_growth_company_analyst: constructive_but_evidence_capped / medium / primary=5
+- position_trend_trader: wait_for_price_confirmation / medium / primary=5
 
 ## Kill Criteria
 
 - 缺少一手证据
 - 关键假设被公告或财报证伪
 - 反方和风控提出未解决阻断项
+- 社媒热度成为主要依据

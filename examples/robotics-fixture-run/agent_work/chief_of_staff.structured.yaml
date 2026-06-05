@@ -1,0 +1,94 @@
+run_id: 2026-06-05-cn-topic
+agent_id: chief_of_staff
+agent_name: 顾行舟
+role: ChiefOfStaffAgent
+query: 机器人产业链投资机会
+stance: constructive_but_evidence_capped
+confidence: medium
+required_focus:
+- 综合判断
+- 证据追溯
+- 流程完整性
+evidence_coverage:
+  tier_1_primary_fact: 5
+  tier_2_canonical_framework: 6
+  tier_3_verified_public_practitioner: 2
+  tier_4_expert_opinion: 1
+  tier_5_social_signal: 1
+  tier_6_unverified: 0
+source_type_coverage:
+  policy: 2
+  financial_report: 1
+  market_data: 1
+  practitioner_source: 2
+  book_summary: 5
+  announcement: 1
+  web: 2
+  case: 1
+key_claims:
+- evidence_id: E001
+  claim_id: C001
+  source_tier: tier_1_primary_fact
+  source_type: policy
+  claim_type: fact
+  confidence: high
+  claim_text: 政策和监管口径必须优先于市场传言。
+- evidence_id: E002
+  claim_id: C002
+  source_tier: tier_1_primary_fact
+  source_type: financial_report
+  claim_type: fact
+  confidence: high
+  claim_text: 公司层面判断必须回到公告和财报。
+- evidence_id: E003
+  claim_id: C003
+  source_tier: tier_1_primary_fact
+  source_type: market_data
+  claim_type: fact
+  confidence: high
+  claim_text: 交易判断必须和量价结构绑定。
+- evidence_id: E004
+  claim_id: C004
+  source_tier: tier_3_verified_public_practitioner
+  source_type: practitioner_source
+  claim_type: opinion
+  confidence: medium
+  claim_text: Serenity 可用于方法论蒸馏，不能直接作为 A 股买卖依据。
+- evidence_id: E005
+  claim_id: C005
+  source_tier: tier_3_verified_public_practitioner
+  source_type: practitioner_source
+  claim_type: opinion
+  confidence: medium
+  claim_text: 交易计划需要市场状态和仓位纪律约束。
+- evidence_id: E006
+  claim_id: C006
+  source_tier: tier_2_canonical_framework
+  source_type: book_summary
+  claim_type: opinion
+  confidence: medium
+  claim_text: 风险评估必须关注赔率、周期位置和下行情景。
+- evidence_id: E007
+  claim_id: C007
+  source_tier: tier_2_canonical_framework
+  source_type: book_summary
+  claim_type: opinion
+  confidence: medium
+  claim_text: 成长股观察需要基本面增长和市场方向共同确认。
+- evidence_id: E008
+  claim_id: C008
+  source_tier: tier_2_canonical_framework
+  source_type: book_summary
+  claim_type: opinion
+  confidence: medium
+  claim_text: 趋势交易必须有明确止损和结构确认。
+analysis_points:
+- 综合各角色证据覆盖和未解决争议后再形成模拟投委会结论。
+- 政策和监管口径必须优先于市场传言。
+risks_or_gaps:
+- V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。
+- 存在 tier_5/tier_6 低等级信号，只能用于情绪或线索。
+forbidden_actions_checked:
+- 不要输出真实交易指令
+- 不要把低等级来源当作一手事实
+disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。

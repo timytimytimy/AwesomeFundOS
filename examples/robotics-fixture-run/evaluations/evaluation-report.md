@@ -1,6 +1,5 @@
 # Evaluation Report
 
-Overall score: 72
+Overall score: 77.7
 
 Blocking issues:
-- 真实公开数据检索工具尚未接入，当前为 EvidencePack stub。

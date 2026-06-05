@@ -1,79 +1,92 @@
 run_id: 2026-06-05-cn-topic
-overall_score: 72
+overall_score: 77.7
+source_coverage:
+  total_items: 15
+  public_research_items: 4
+  tier_1_primary_fact: 5
+  low_tier_items: 1
 dimension_scores:
-  evidence_quality: 65
+  evidence_quality: 95
   reasoning_quality: 70
   role_consistency: 82
-  decision_quality: 68
+  decision_quality: 72
   collaboration_quality: 75
-  tool_usage_quality: 50
-  context_quality: 78
+  tool_usage_quality: 70
+  context_quality: 80
 context_quality_scores:
-  relevance: 80
-  compression_fidelity: 75
-  evidence_traceability: 82
-  role_specificity: 80
-  information_sufficiency: 60
-  noise_control: 85
+  relevance: 82
+  compression_fidelity: 78
+  evidence_traceability: 86
+  role_specificity: 82
+  information_sufficiency: 70
+  noise_control: 84
   leakage_control: 85
-  contradiction_preservation: 78
+  contradiction_preservation: 80
 agent_scores:
 - agent_id: chief_of_staff
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: fund_manager
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: risk_manager
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: bear_debater
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: evaluation_harness
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: review_archivist
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: tech_growth_analyst
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: quality_growth_company_analyst
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
 - agent_id: position_trend_trader
-  role_consistency: 80
-  contribution_quality: 70
-  context_fit: 78
+  role_consistency: 82
+  contribution_quality: 74
+  context_fit: 80
   improvement_suggestions:
-  - 接入真实工具后提升证据密度
-blocking_issues:
-- 真实公开数据检索工具尚未接入，当前为 EvidencePack stub。
+  - 继续提高一手证据密度
+  - 接入真实价格序列和公告解析
+blocking_issues: []
 accepted_outputs:
 - final-decision-memo
 rejected_outputs: []

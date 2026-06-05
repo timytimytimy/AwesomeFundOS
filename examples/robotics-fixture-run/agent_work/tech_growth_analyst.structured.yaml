@@ -1,0 +1,93 @@
+run_id: 2026-06-05-cn-topic
+agent_id: tech_growth_analyst
+agent_name: 林知远
+role: TechGrowthAnalyst
+query: 机器人产业链投资机会
+stance: constructive_but_evidence_capped
+confidence: medium
+required_focus:
+- 产业链
+- chokepoint
+- 需求验证
+evidence_coverage:
+  tier_1_primary_fact: 4
+  tier_2_canonical_framework: 4
+  tier_3_verified_public_practitioner: 1
+  tier_4_expert_opinion: 1
+  tier_5_social_signal: 1
+  tier_6_unverified: 0
+source_type_coverage:
+  policy: 2
+  financial_report: 1
+  practitioner_source: 1
+  book_summary: 3
+  announcement: 1
+  web: 2
+  case: 1
+key_claims:
+- evidence_id: E001
+  claim_id: C001
+  source_tier: tier_1_primary_fact
+  source_type: policy
+  claim_type: fact
+  confidence: high
+  claim_text: 政策和监管口径必须优先于市场传言。
+- evidence_id: E002
+  claim_id: C002
+  source_tier: tier_1_primary_fact
+  source_type: financial_report
+  claim_type: fact
+  confidence: high
+  claim_text: 公司层面判断必须回到公告和财报。
+- evidence_id: E004
+  claim_id: C004
+  source_tier: tier_3_verified_public_practitioner
+  source_type: practitioner_source
+  claim_type: opinion
+  confidence: medium
+  claim_text: Serenity 可用于方法论蒸馏，不能直接作为 A 股买卖依据。
+- evidence_id: E007
+  claim_id: C007
+  source_tier: tier_2_canonical_framework
+  source_type: book_summary
+  claim_type: opinion
+  confidence: medium
+  claim_text: 成长股观察需要基本面增长和市场方向共同确认。
+- evidence_id: E009
+  claim_id: C009
+  source_tier: tier_2_canonical_framework
+  source_type: book_summary
+  claim_type: opinion
+  confidence: medium
+  claim_text: 公司研究必须评估质量、激励和可理解性。
+- evidence_id: E010
+  claim_id: C010
+  source_tier: tier_2_canonical_framework
+  source_type: book_summary
+  claim_type: opinion
+  confidence: medium
+  claim_text: 公司故事需要渠道和经营事实验证。
+- evidence_id: E011
+  claim_id: C011
+  source_tier: tier_1_primary_fact
+  source_type: policy
+  claim_type: fact
+  confidence: high
+  claim_text: 政策文件提出前瞻部署未来制造、未来信息、未来材料等方向，为机器人、智能制造和人工智能相关产业提供政策背景。
+- evidence_id: E012
+  claim_id: C012
+  source_tier: tier_1_primary_fact
+  source_type: announcement
+  claim_type: fact
+  confidence: high
+  claim_text: 公告类来源应作为验证上市公司机器人业务、订单、客户、产能和收入确认的一手证据入口。
+analysis_points:
+- 产业链/chokepoint 假设必须从政策、公告、产业资料逐层验证。
+- 政策和监管口径必须优先于市场传言。
+risks_or_gaps:
+- V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。
+- 存在 tier_5/tier_6 低等级信号，只能用于情绪或线索。
+forbidden_actions_checked:
+- 不要输出真实交易指令
+- 不要把低等级来源当作一手事实
+disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。

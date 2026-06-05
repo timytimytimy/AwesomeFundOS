@@ -161,6 +161,43 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(all(item["source_tier"] == "tier_1_primary_fact" for item in public_items))
             self.assertIn("public_research", evidence["retrieval_plan"])
 
+    def test_agent_outputs_are_evidence_aware_structured_yaml(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "X讨论", "url": "https://x.com/example/status/robotics", "snippet": "社媒显示机器人热度。"}
+            ], ensure_ascii=False))
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            agent_yaml = tmp_path / run_rel / "agent_work" / "tech_growth_analyst.structured.yaml"
+            self.assertTrue(agent_yaml.exists())
+            doc = yaml.safe_load(agent_yaml.read_text())
+            self.assertEqual(doc["agent_id"], "tech_growth_analyst")
+            self.assertIn("evidence_coverage", doc)
+            self.assertGreaterEqual(doc["evidence_coverage"]["tier_1_primary_fact"], 1)
+            self.assertGreaterEqual(doc["evidence_coverage"]["tier_5_social_signal"], 1)
+            self.assertTrue(doc["key_claims"])
+            self.assertTrue(all("evidence_id" in claim and "claim_id" in claim for claim in doc["key_claims"]))
+
+    def test_evaluation_scores_reflect_public_evidence_coverage(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"}
+            ], ensure_ascii=False))
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            report = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
+            self.assertGreaterEqual(report["dimension_scores"]["evidence_quality"], 75)
+            self.assertNotIn("真实公开数据检索工具尚未接入，当前为 EvidencePack stub。", report["blocking_issues"])
+            self.assertIn("source_coverage", report)
+            self.assertGreaterEqual(report["source_coverage"]["public_research_items"], 1)
+
     def test_seed_library_contains_verified_practitioner_and_classics(self):
         seed_path = ROOT / "specs" / "learning" / "seed-library.yaml"
         self.assertTrue(seed_path.exists())

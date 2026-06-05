@@ -3,26 +3,71 @@ memo_type: simulated_investment_committee_memo
 disclaimer: 研究分析，不构成投资建议；不接真实交易，不自动下单。
 final_decision:
   label: continue_research
-  stance: neutral
+  stance: constructive
   conviction: low
   hypothetical_position_range: 0%，仅进入观察和研究队列
-thesis: 机器人产业链投资机会 需要通过一手公告、财报、行情和产业证据继续验证。
-bull_case: 若公开证据确认需求、订单、产业瓶颈和量价趋势，研究优先级可提升。
-bear_case: 当前真实外部数据接口尚未接入，证据完整性不足，不得形成高置信结论。
-risk_review: 主要风险是数据不足、叙事过强、方法论源被误用为事实源。
+thesis: 机器人产业链投资机会 已有 2 条 fixture/public 一手证据线索和 4 条公开检索结果进入 EvidencePack；仍需真实公告、财报、行情和案例回放继续验证。
+bull_case: 若一手公告、政策和产业证据继续确认需求、订单、核心零部件瓶颈和公司映射，研究优先级可提升。
+bear_case: 社媒热度和方法论源不能替代订单、收入、客户和价格行为验证；若只有叙事则不得升级。
+risk_review: 主要风险是证据链不完整、低等级信号污染、产业链映射过度推断、价格序列缺失。
 trading_plan:
   entry_conditions:
-  - 真实行情与基本面证据接入后再评估
+  - 真实行情趋势确认
+  - 公告/财报验证订单或收入
+  - 风控确认模拟仓位上限
   add_conditions:
   - 核心假设被多源验证
+  - 价格强度和板块扩散同步
   reduce_conditions:
-  - 证据等级下降或量价结构恶化
+  - 证据等级下降
+  - 量价结构恶化
+  - 主题拥挤且基本面未兑现
   exit_conditions:
   - 核心假设被证伪
+  - 公告/财报不支持产业链映射
+  - 风控触发退出
 kill_criteria:
 - 缺少一手证据
 - 关键假设被公告或财报证伪
 - 反方和风控提出未解决阻断项
+- 社媒热度成为主要依据
+agent_output_summary:
+- agent_id: chief_of_staff
+  stance: constructive_but_evidence_capped
+  confidence: medium
+  primary_evidence_count: 5
+- agent_id: fund_manager
+  stance: continue_research
+  confidence: medium
+  primary_evidence_count: 5
+- agent_id: risk_manager
+  stance: risk_control_first
+  confidence: medium
+  primary_evidence_count: 5
+- agent_id: bear_debater
+  stance: cautious_attack
+  confidence: medium
+  primary_evidence_count: 5
+- agent_id: evaluation_harness
+  stance: constructive_but_evidence_capped
+  confidence: medium
+  primary_evidence_count: 5
+- agent_id: review_archivist
+  stance: constructive_but_evidence_capped
+  confidence: medium
+  primary_evidence_count: 5
+- agent_id: tech_growth_analyst
+  stance: constructive_but_evidence_capped
+  confidence: medium
+  primary_evidence_count: 4
+- agent_id: quality_growth_company_analyst
+  stance: constructive_but_evidence_capped
+  confidence: medium
+  primary_evidence_count: 5
+- agent_id: position_trend_trader
+  stance: wait_for_price_confirmation
+  confidence: medium
+  primary_evidence_count: 5
 evidence_references:
 - evidence_id: E001
   claim_id: C001
@@ -35,4 +80,10 @@ evidence_references:
   usage: supports simulated committee memo
 - evidence_id: E004
   claim_id: C004
+  usage: supports simulated committee memo
+- evidence_id: E005
+  claim_id: C005
+  usage: supports simulated committee memo
+- evidence_id: E011
+  claim_id: C011
   usage: supports simulated committee memo
