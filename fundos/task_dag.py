@@ -67,6 +67,111 @@ def load_research_gap_task_manifest(run_path: Path) -> dict[str, Any]:
     return loaded
 
 
+def write_research_gap_followup_result(run_path: Path, task_id: str) -> dict[str, Any]:
+    manifest = load_research_gap_task_manifest(run_path)
+    task = next((row for row in manifest.get("tasks", []) if row.get("task_id") == task_id), None)
+    if not task:
+        raise KeyError(task_id)
+    result = build_research_gap_followup_result(run_path, manifest, task)
+    out_dir = run_path / "follow_up" / "results"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stem = safe_filename(task_id.replace(":", "_"))
+    write_yaml(out_dir / f"{stem}.yaml", result)
+    write_research_gap_result_markdown(out_dir / f"{stem}.md", result)
+    return result
+
+
+def build_research_gap_followup_result(run_path: Path, manifest: dict[str, Any], task: dict[str, Any]) -> dict[str, Any]:
+    brief_rel = task.get("brief_path", "")
+    brief_path = run_path / brief_rel
+    brief_text = brief_path.read_text(encoding="utf-8") if brief_path.exists() else ""
+    category = task.get("category")
+    owner = task.get("owner_agent_id") or task.get("owner_agent")
+    return {
+        "artifact_type": "research_gap_followup_result",
+        "run_id": manifest.get("run_id"),
+        "task_id": task.get("task_id"),
+        "category": category,
+        "owner_agent_id": owner,
+        "source_brief_path": brief_rel,
+        "status": "needs_evidence",
+        "agent_position": "Cannot close the research gap until accepted evidence is retrieved and reconciled.",
+        "evidence_requests": evidence_requests_for_category(str(category)),
+        "source_quality_rules": [
+            "prefer tier_1_primary_fact before opinion or social signal",
+            "label practitioner/KOL material as methodology or signal unless verified by primary evidence",
+            "preserve contradictions and unresolved gaps for context compression",
+        ],
+        "context_update_request": {
+            "target_context_pack": owner,
+            "must_preserve": ["evidence_ids", "claim_ids", "missing_evidence", "contradictions", "source_tiers"],
+            "reason": task.get("reason"),
+        },
+        "next_action": "retrieve_evidence_then_rerun_tool_harness_and_evaluation",
+        "brief_excerpt": brief_text[:500],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+        "disclaimer": DISCLAIMER,
+    }
+
+
+def evidence_requests_for_category(category: str) -> list[dict[str, str]]:
+    templates = {
+        "market_data": [
+            {"source_type": "market_data", "required_evidence": "price, volume, liquidity, relative strength, and drawdown context"},
+            {"source_type": "chart_summary", "required_evidence": "trend phase, trigger, invalidation, and volatility regime"},
+        ],
+        "case_library": [
+            {"source_type": "historical_case", "required_evidence": "comparable market episodes, failure cases, and analogy limits"},
+        ],
+        "announcement": [
+            {"source_type": "announcement", "required_evidence": "issuer filings, exchange disclosures, and financial statement facts"},
+        ],
+        "policy": [
+            {"source_type": "policy", "required_evidence": "official policy text, implementation body, and funding or enforcement mechanism"},
+        ],
+        "news": [
+            {"source_type": "news", "required_evidence": "multi-source current news with event date and affected entities"},
+        ],
+        "social_signal": [
+            {"source_type": "social_signal", "required_evidence": "KOL or crowd signal labeled as low-tier hypothesis, not direct trade evidence"},
+        ],
+    }
+    return templates.get(category, [{"source_type": category, "required_evidence": "accepted evidence for the missing research category"}])
+
+
+def write_research_gap_result_markdown(path: Path, result: dict[str, Any]) -> None:
+    lines = [
+        f"# Follow-up Result: {result.get('category')}",
+        "",
+        f"task_id: {result.get('task_id')}",
+        f"owner_agent_id: {result.get('owner_agent_id')}",
+        f"status: {result.get('status')}",
+        "",
+        "## Agent Position",
+        "",
+        str(result.get("agent_position")),
+        "",
+        "## Evidence Requests",
+        "",
+    ]
+    for item in result.get("evidence_requests", []):
+        lines.append(f"- {item.get('source_type')}: {item.get('required_evidence')}")
+    lines.extend(
+        [
+            "",
+            "## Safety",
+            "",
+            "- real_trade_allowed: False",
+            "- broker_integration: disabled",
+            "",
+            DISCLAIMER,
+            "",
+        ]
+    )
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
     spec = load_task_dag_spec()
     selected_ids = [row["agent_id"] for row in selected_agents]

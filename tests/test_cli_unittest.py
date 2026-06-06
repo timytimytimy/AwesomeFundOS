@@ -482,6 +482,36 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("brief_path=", show_result.stdout)
             self.assertIn("No real trade instruction", show_result.stdout)
 
+    def test_followups_answer_cli_writes_structured_owner_agent_result(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人产业。"}
+            ], ensure_ascii=False))
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            task = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"][0]
+
+            answer_result = run_cli(["followups", "answer", "--run", run_rel, "--task-id", task["task_id"]], tmp_path)
+
+            self.assertEqual(answer_result.returncode, 0, answer_result.stderr)
+            self.assertIn("followup_result=", answer_result.stdout)
+            result_path = tmp_path / run_rel / "follow_up" / "results" / f"{task['task_id'].replace(':', '_')}.yaml"
+            self.assertTrue(result_path.exists())
+            doc = yaml.safe_load(result_path.read_text())
+            self.assertEqual(doc["artifact_type"], "research_gap_followup_result")
+            self.assertEqual(doc["task_id"], task["task_id"])
+            self.assertEqual(doc["owner_agent_id"], task["owner_agent_id"])
+            self.assertEqual(doc["status"], "needs_evidence")
+            self.assertIn("evidence_requests", doc)
+            self.assertTrue(doc["evidence_requests"])
+            self.assertFalse(doc["real_trade_allowed"])
+            self.assertEqual(doc["broker_integration"], "disabled")
+            self.assertTrue((tmp_path / run_rel / "follow_up" / "results" / f"{task['task_id'].replace(':', '_')}.md").exists())
+
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

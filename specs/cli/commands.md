@@ -24,6 +24,7 @@ fundos sources ingest --run runs/2026-06-05-robotics --fixture examples/fixtures
 fundos cases list
 fundos followups list --run runs/2026-06-05-robotics
 fundos followups show --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001
+fundos followups answer --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001
 fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
 ```
@@ -194,6 +195,15 @@ agents/{agent_id}/performance/promotion_history.jsonl
 `fundos followups list --run <run>` 读取 `workflow/research-gap-tasks.yaml`，列出由 Evaluation / Research Task DAG 生成的后续研究缺口任务，包括 task_id、category、owner_agent_id、priority 和 brief_path。
 
 `fundos followups show --run <run> --task-id <task_id>` 展示单个 follow-up task 的元数据和 `follow_up/research_gap_<category>.md` brief 正文，方便调度器或人类 operator 把任务交给对应 Agent 继续研究。
+
+`fundos followups answer --run <run> --task-id <task_id>` 让任务归属 Agent 产出一个结构化 follow-up result，写入：
+
+```text
+follow_up/results/{task_id}.yaml
+follow_up/results/{task_id}.md
+```
+
+V1 的 answer 不伪造缺失数据，只输出 `status=needs_evidence`、evidence_requests、source_quality_rules、context_update_request 和下一步需要 rerun 的 Harness。它用于把缺口研究变成可执行的 Agent work item，而不是直接补全事实或形成买卖结论。
 
 约束：
 
