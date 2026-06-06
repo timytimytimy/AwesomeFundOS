@@ -498,6 +498,7 @@ def command_eval(args: argparse.Namespace) -> int:
     refresh_agent_outputs_with_tool_use(run_path)
     write_agent_harness(run_path, selected)
     run_skill_benchmark(run_path)
+    write_failure_patterns(run_path)
     generate_agent_learning_candidates(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
@@ -508,6 +509,7 @@ def command_evolve(args: argparse.Namespace) -> int:
     run_path = Path(args.run)
     if not run_path.is_absolute():
         run_path = Path.cwd() / run_path
+    failure_report = write_failure_patterns(run_path)
     generate_agent_learning_candidates(run_path)
     results = run_evolution_gate(run_path)
     run_doc = read_yaml(run_path / "run.yaml") if (run_path / "run.yaml").exists() else {"selected_agents": []}
@@ -516,7 +518,6 @@ def command_evolve(args: argparse.Namespace) -> int:
     run_skill_benchmark(run_path)
     write_agent_performance(run_path)
     governance = write_agent_governance(run_path)
-    failure_report = write_failure_patterns(run_path)
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")

@@ -278,6 +278,34 @@ class FundosCliTests(unittest.TestCase):
             self.assertGreaterEqual(cap_summary["approved_candidates"], 1)
             self.assertGreaterEqual(cap_summary["pending_human_apply"], 1)
 
+    def test_eval_routes_new_agent_harness_guardrail_failures_to_learning_candidates(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            run_path = tmp_path / run_rel
+            structured_path = sorted((run_path / "agent_work").glob("*.structured.yaml"))[0]
+            structured = load_yaml(structured_path)
+            target_agent = structured["agent_id"]
+            structured["skill_guardrails_applied"] = []
+            structured["guardrail_checks"]["real_trade_disabled"] = False
+            structured_path.write_text(yaml.safe_dump(structured, allow_unicode=True), encoding="utf-8")
+
+            eval_result = run_cli(["eval", "--run", run_rel], tmp_path)
+
+            self.assertEqual(eval_result.returncode, 0, eval_result.stderr)
+            failures = load_yaml(run_path / "learning" / "failure-patterns.yaml")
+            learning = load_yaml(run_path / "learning" / "agent-learning-report.yaml")
+            self.assertTrue(any(row["category"] == "skill_guardrail_violation" for row in failures["patterns"]))
+            guardrail_candidates = [row for row in learning["candidates"] if row["metadata"].get("category") == "skill_guardrail_violation"]
+            self.assertEqual(len(guardrail_candidates), 1)
+            self.assertEqual(guardrail_candidates[0]["target_agent"], target_agent)
+            self.assertEqual(guardrail_candidates[0]["metadata"]["source"], "agent_harness")
+            self.assertFalse(guardrail_candidates[0]["metadata"]["guardrails_applied"])
+            self.assertFalse(guardrail_candidates[0]["real_trade_allowed"])
+            self.assertEqual(guardrail_candidates[0]["broker_integration"], "disabled")
+
     def test_init_materializes_agent_profiles_and_context_policies(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)
