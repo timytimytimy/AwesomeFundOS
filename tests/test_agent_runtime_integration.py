@@ -87,6 +87,49 @@ class AgentRuntimeIntegrationTests(unittest.TestCase):
         self.assertFalse(output["thread_memory_influence"]["real_trade_allowed"])
         self.assertEqual(output["thread_memory_influence"]["broker_integration"], "disabled")
 
+    def test_agent_output_separates_current_evidence_memory_influence_and_hypotheses(self):
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        agent = next(item for item in roster["agents"] if item["id"] == "tech_growth_analyst")
+        pack = make_evidence_pack(
+            "run-agent-reasoning-layers",
+            "topic",
+            "机器人产业链投资机会",
+            public_results=[
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "X讨论", "url": "https://x.com/example/status/robotics", "snippet": "社媒显示机器人热度。"},
+            ],
+        )
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            thread_dir = root / "memory" / "agents" / "tech_growth_analyst"
+            thread_dir.mkdir(parents=True, exist_ok=True)
+            (thread_dir / "thread-events.jsonl").write_text(json.dumps({
+                "timestamp": "2026-06-06T00:00:00+00:00",
+                "event_type": "memory_writeback_applied",
+                "agent_id": "tech_growth_analyst",
+                "run_id": "run-agent-reasoning-layers",
+                "payload": {"candidate_id": "cand_chokepoint_lesson", "approval_mode": "evolution_gate_v1_auto_controlled"},
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            }, ensure_ascii=False) + "\n", encoding="utf-8")
+            context = make_context_pack("run-agent-reasoning-layers", agent, pack, runtime_root=root)
+
+            output = make_structured_agent_output(agent, context, pack, "机器人产业链投资机会")
+
+        layers = output["reasoning_layers"]
+        self.assertIn("current_evidence_conclusions", layers)
+        self.assertIn("thread_memory_influences", layers)
+        self.assertIn("hypotheses_to_validate", layers)
+        self.assertTrue(layers["current_evidence_conclusions"])
+        self.assertTrue(all(row["layer"] == "current_evidence" for row in layers["current_evidence_conclusions"]))
+        self.assertTrue(all("evidence_id" in row and "claim_id" in row for row in layers["current_evidence_conclusions"]))
+        self.assertEqual(layers["thread_memory_influences"][0]["candidate_id"], "cand_chokepoint_lesson")
+        self.assertEqual(layers["thread_memory_influences"][0]["usage"], "retrieval_context_only")
+        self.assertTrue(layers["hypotheses_to_validate"])
+        self.assertTrue(all(row["layer"] == "hypothesis_to_validate" for row in layers["hypotheses_to_validate"]))
+        self.assertFalse(layers["real_trade_allowed"])
+        self.assertEqual(layers["broker_integration"], "disabled")
+
     def test_written_markdown_shows_agent_card_and_skill_used(self):
         roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
         agent = next(item for item in roster["agents"] if item["id"] == "bear_debater")

@@ -104,6 +104,37 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertGreaterEqual(evaluation["agent_harness_quality"]["memory_lesson_traceability_quality"], 90)
             self.assertIn("memory_lesson_traceability", evaluation["accepted_outputs"])
 
+    def test_agent_harness_scores_reasoning_layer_separation(self):
+        pack = make_evidence_pack(
+            "run-agent-reasoning-layer-harness",
+            "topic",
+            "机器人产业链投资机会",
+            public_results=[
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "X讨论", "url": "https://x.com/example/status/robotics", "snippet": "社媒显示机器人热度。"},
+            ],
+        )
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            context = make_context_pack("run-agent-reasoning-layer-harness", AGENT, pack, runtime_root=run_path)
+            write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
+            write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+
+            report = write_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
+            evaluation = make_evaluation_for_run("run-agent-reasoning-layer-harness", [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], pack, run_path)
+
+            self.assertIn("reasoning_layer_separation", report["aggregate_scores"])
+            self.assertGreaterEqual(report["aggregate_scores"]["reasoning_layer_separation"], 90)
+            quality = report["agent_results"][0]["reasoning_layer_separation_quality"]
+            self.assertTrue(quality["current_evidence_layer_present"])
+            self.assertTrue(quality["hypothesis_layer_present"])
+            self.assertTrue(quality["current_evidence_has_traceable_claims"])
+            self.assertTrue(quality["hypotheses_have_validation_requirements"])
+            self.assertTrue(quality["safety_boundaries_respected"])
+            self.assertIn("reasoning_layer_separation_quality", evaluation["agent_harness_quality"])
+            self.assertGreaterEqual(evaluation["agent_harness_quality"]["reasoning_layer_separation_quality"], 90)
+            self.assertIn("reasoning_layer_separation", evaluation["accepted_outputs"])
+
 
 if __name__ == "__main__":
     unittest.main()

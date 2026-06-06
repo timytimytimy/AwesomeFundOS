@@ -31,6 +31,7 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
             "context_loss_accounting_required",
             "thread_summary_quality_required",
             "memory_lesson_traceability_required",
+            "reasoning_layer_separation_required",
             "skill_contract_required",
             "agent_card_required",
             "evidence_traceability_required",
@@ -67,6 +68,7 @@ def default_report() -> dict[str, Any]:
             "context_management_quality": 0,
             "thread_memory_summary": 0,
             "memory_lesson_traceability": 0,
+            "reasoning_layer_separation": 0,
             "memory_policy": 0,
             "tool_policy": 0,
             "skill_invocation": 0,
@@ -84,11 +86,12 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
     context_management_quality = evaluate_context_management(context)
     thread_memory_summary_quality = evaluate_thread_memory_summary(context)
     memory_lesson_traceability_quality = evaluate_memory_lesson_traceability(context, output)
+    reasoning_layer_separation_quality = evaluate_reasoning_layer_separation(output)
     memory_policy_quality = evaluate_memory_policy(context, output)
     tool_policy_quality = evaluate_tool_policy(context, output)
     skill_quality = evaluate_skill_invocation(context, output)
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + thread_memory_summary_quality["score"] + memory_lesson_traceability_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 9, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + thread_memory_summary_quality["score"] + memory_lesson_traceability_quality["score"] + reasoning_layer_separation_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 10, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
@@ -98,11 +101,12 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
         "context_management_quality": context_management_quality,
         "thread_memory_summary_quality": thread_memory_summary_quality,
         "memory_lesson_traceability_quality": memory_lesson_traceability_quality,
+        "reasoning_layer_separation_quality": reasoning_layer_separation_quality,
         "memory_policy_quality": memory_policy_quality,
         "tool_policy_quality": tool_policy_quality,
         "skill_invocation_quality": skill_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_lesson_traceability_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_lesson_traceability_quality, reasoning_layer_separation_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
     }
 
 
@@ -241,6 +245,49 @@ def evaluate_memory_lesson_traceability(context: dict[str, Any], output: dict[st
         "summary_availability_matches": summary_availability_matches,
         "context_candidate_ids": sorted(context_ids),
         "output_candidate_ids": sorted(output_ids),
+    }
+
+
+def evaluate_reasoning_layer_separation(output: dict[str, Any]) -> dict[str, Any]:
+    layers = output.get("reasoning_layers", {}) or {}
+    current = layers.get("current_evidence_conclusions", []) or []
+    memory = layers.get("thread_memory_influences", []) or []
+    hypotheses = layers.get("hypotheses_to_validate", []) or []
+    controls = set(layers.get("controls", []))
+    current_evidence_layer_present = bool(current)
+    hypothesis_layer_present = bool(hypotheses)
+    current_evidence_has_traceable_claims = all(row.get("layer") == "current_evidence" and row.get("evidence_id") and row.get("claim_id") for row in current)
+    memory_influences_retrieval_only = all(row.get("usage") == "retrieval_context_only" for row in memory)
+    hypotheses_have_validation_requirements = all(row.get("layer") == "hypothesis_to_validate" and row.get("validation_required") for row in hypotheses)
+    controls_present = {"separate_current_evidence_from_memory", "hypotheses_require_validation", "memory_is_retrieval_context_only"} <= controls
+    safety_boundaries_respected = layers.get("real_trade_allowed") is False and layers.get("broker_integration") == "disabled"
+    score = 10
+    if current_evidence_layer_present:
+        score += 15
+    if hypothesis_layer_present:
+        score += 15
+    if current_evidence_has_traceable_claims:
+        score += 20
+    if memory_influences_retrieval_only:
+        score += 15
+    if hypotheses_have_validation_requirements:
+        score += 15
+    if controls_present:
+        score += 10
+    if safety_boundaries_respected:
+        score += 10
+    return {
+        "score": min(100, score),
+        "current_evidence_count": len(current),
+        "memory_influence_count": len(memory),
+        "hypothesis_count": len(hypotheses),
+        "current_evidence_layer_present": current_evidence_layer_present,
+        "hypothesis_layer_present": hypothesis_layer_present,
+        "current_evidence_has_traceable_claims": current_evidence_has_traceable_claims,
+        "memory_influences_retrieval_only": memory_influences_retrieval_only,
+        "hypotheses_have_validation_requirements": hypotheses_have_validation_requirements,
+        "controls_present": controls_present,
+        "safety_boundaries_respected": safety_boundaries_respected,
     }
 
 
@@ -484,12 +531,13 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "reasoning_layer_separation": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
     context_management_score = avg(row["context_management_quality"]["score"] for row in agent_results)
     thread_summary_score = avg(row["thread_memory_summary_quality"]["score"] for row in agent_results)
     memory_lesson_score = avg(row["memory_lesson_traceability_quality"]["score"] for row in agent_results)
+    reasoning_layer_score = avg(row["reasoning_layer_separation_quality"]["score"] for row in agent_results)
     memory_score = avg(row["memory_policy_quality"]["score"] for row in agent_results)
     tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
@@ -500,11 +548,12 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
         "context_management_quality": context_management_score,
         "thread_memory_summary": thread_summary_score,
         "memory_lesson_traceability": memory_lesson_score,
+        "reasoning_layer_separation": reasoning_layer_score,
         "memory_policy": memory_score,
         "tool_policy": tool_score,
         "skill_invocation": skill_score,
         "role_consistency": role_score,
-        "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_lesson_score + memory_score + tool_score + skill_score + role_score) / 9, 1),
+        "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_lesson_score + reasoning_layer_score + memory_score + tool_score + skill_score + role_score) / 10, 1),
     }
 
 

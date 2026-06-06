@@ -62,6 +62,8 @@ ContextPack 是某个 Agent 在某个阶段看到的上下文包。
 
 Agent 输出必须通过 `thread_memory_influence` 显式声明哪些 accepted memory lessons 被用作本轮推理的只读上下文影响。该字段至少记录 candidate_id、semantic_memory_path、approval_mode、usage=`retrieval_context_only`、controls 和安全边界。未声明的长期记忆不得隐式影响结论。
 
+Agent 输出还必须通过 `reasoning_layers` 明确分离：`current_evidence_conclusions`、`thread_memory_influences` 和 `hypotheses_to_validate`。当前证据结论必须能回链 Evidence ID / Claim ID；历史记忆只能作为 retrieval context；假设必须带 validation_required，不得被当作事实或买卖信号。
+
 ## 5. 角色化上下文策略
 
 ### FundManager
@@ -110,6 +112,7 @@ V1 的 Context Quality Harness 不只给全局平均分，还必须按 Agent 输
 - contradiction_table、missing_evidence、excluded_evidence_summary 是否保留；
 - thread_memory_summary 是否保留已接受经验、隔离/拒绝候选和未关闭证据缺口，且只作为 retrieval input；
 - Agent 输出中的 thread_memory_influence 是否能回链到 ContextPack 的 accepted memory lessons；
+- Agent 输出中的 reasoning_layers 是否把当前证据、记忆影响和待验证假设分层，并保持证据回链和安全边界；
 - Skill 的 Context Management 规则是否进入运行时 Skill Contract。
 
 产物路径：`runs/{run_id}/harness/agent-harness.yaml`。

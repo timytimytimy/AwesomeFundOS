@@ -82,6 +82,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     forbidden_tool_actions = forbidden_tool_actions_for(tool_policy)
     tool_permission_checks = tool_permission_checks_for(agent_card, tool_policy, missing_tool_calls, forbidden_tool_actions)
     memory_permission_checks = memory_permission_checks_for(memory_policy)
+    thread_influence = thread_memory_influence(thread_memory_summary)
     return {
         "run_id": context["run_id"],
         "agent_id": agent["id"],
@@ -112,7 +113,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "memory_writeback_rules": memory_policy.get("writeback_rules", {}),
         "memory_permission_checks": memory_permission_checks,
         "forbidden_memory_writes": memory_policy.get("forbidden_memory_writes", []),
-        "thread_memory_influence": thread_memory_influence(thread_memory_summary),
+        "thread_memory_influence": thread_influence,
         "tool_policy": compact_tool_policy(tool_policy),
         "allowed_tools": tool_policy.get("allowed_tools", []),
         "required_tools": tool_policy.get("required_tools", []),
@@ -123,6 +124,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "evidence_coverage": summary["coverage"],
         "source_type_coverage": summary["source_types"],
         "key_claims": summary["key_claims"][:8],
+        "reasoning_layers": reasoning_layers(summary, thread_influence, context),
         "learning_patterns": learning_patterns,
         "pattern_application_notes": pattern_application_notes(agent, learning_patterns),
         "analysis_points": analysis_points_for(agent, summary),
@@ -153,6 +155,48 @@ def thread_memory_influence(summary: dict[str, Any]) -> dict[str, Any]:
         "quarantined_candidate_count": len(summary.get("quarantined_candidates", []) or []),
         "rejected_candidate_count": len(summary.get("rejected_candidates", []) or []),
         "controls": summary.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def reasoning_layers(summary: dict[str, Any], thread_influence: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+    conclusions = []
+    hypotheses = []
+    for claim in summary.get("key_claims", [])[:8]:
+        row = {
+            "evidence_id": claim.get("evidence_id"),
+            "claim_id": claim.get("claim_id"),
+            "source_tier": claim.get("source_tier"),
+            "source_type": claim.get("source_type"),
+            "claim_type": claim.get("claim_type"),
+            "confidence": claim.get("confidence"),
+            "claim_text": claim.get("claim_text"),
+        }
+        if claim.get("claim_type") == "fact" and claim.get("source_tier") == "tier_1_primary_fact":
+            conclusions.append({"layer": "current_evidence", **row})
+        else:
+            hypotheses.append({
+                "layer": "hypothesis_to_validate",
+                **row,
+                "validation_required": "primary_or_cross_validated_evidence_required",
+            })
+    for gap in context.get("missing_evidence", [])[:5]:
+        hypotheses.append({
+            "layer": "hypothesis_to_validate",
+            "hypothesis": gap,
+            "validation_required": "research_gap_followup_required",
+        })
+    return {
+        "current_evidence_conclusions": conclusions,
+        "thread_memory_influences": thread_influence.get("accepted_lessons_used", []),
+        "hypotheses_to_validate": hypotheses,
+        "controls": [
+            "separate_current_evidence_from_memory",
+            "hypotheses_require_validation",
+            "memory_is_retrieval_context_only",
+            "no_real_trade_action",
+        ],
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

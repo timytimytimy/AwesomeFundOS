@@ -74,11 +74,12 @@ Agent-level harness 对每个 selected agent 输出：
 - context_management_quality：检查 context_budget_manifest、loss_accounting、token budget、角色化压缩和证据损失可审计性；
 - thread_memory_summary_quality：检查长期 Thread 摘要是否可用、是否只作为 retrieval input、是否被 ContextBudgetManifest 记录、是否保留 accepted lessons / quarantined candidates / rejected candidates / open research gaps / recent events，且是否保持 no-real-trade / broker-disabled 边界；
 - memory_lesson_traceability_quality：检查 Agent 输出是否显式声明哪些 accepted memory lessons 影响了本轮推理，candidate_id 是否与 ContextPack 的 Thread Summary 一致，usage 是否限定为 `retrieval_context_only`，以及是否保持安全边界；
+- reasoning_layer_separation_quality：检查 Agent 输出是否分离 current evidence conclusions、thread memory influences 和 hypotheses to validate；事实结论必须有 Evidence ID / Claim ID，假设必须有 validation_required，记忆影响必须是 retrieval-only；
 - skill_invocation_quality：检查 `SKILL.md` 是否加载、关键 section 是否存在、runtime skill path 是否与 ContextPack 一致、role checklist 和 evidence rules 是否进入输出；
 - role_consistency_quality：检查 agent_id / role 是否一致、agent card 是否加载、declared skills 是否对齐、边界和免责声明是否存在；
 - blocking_issues：低于阈值或越界时产生阻断项。
 
-Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，把 thread summary 聚合分数写入 `context_management_quality.thread_memory_summary_quality`，并在有有效产物时把 `agent_harness`、`context_management`、`thread_memory_summary`、`memory_lesson_traceability` 放入 accepted_outputs。
+Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，把 thread summary 聚合分数写入 `context_management_quality.thread_memory_summary_quality`，并在有有效产物时把 `agent_harness`、`context_management`、`thread_memory_summary`、`memory_lesson_traceability`、`reasoning_layer_separation` 放入 accepted_outputs。
 
 ### Agent Performance / Promotion Harness
 

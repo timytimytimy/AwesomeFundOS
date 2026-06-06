@@ -45,6 +45,7 @@ properties:
       context_management_quality: {type: number}
       thread_memory_summary_quality: {type: number}
       memory_lesson_traceability_quality: {type: number}
+      reasoning_layer_separation_quality: {type: number}
       skill_invocation: {type: number}
       role_consistency: {type: number}
       overall: {type: number}
