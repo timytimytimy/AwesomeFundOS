@@ -148,9 +148,57 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(by_id['runtime.run_has_no_stub_blocking_issues']['status'], 'pass')
             self.assertEqual(by_id['runtime.model_records_have_concrete_policy_fields']['status'], 'pass')
             self.assertEqual(by_id['runtime.operating_system_manifest_links_agent_os_assets']['status'], 'pass')
+            self.assertEqual(by_id['runtime.committee_debate_risk_decision_loop_complete']['status'], 'pass')
+            committee_details = by_id['runtime.committee_debate_risk_decision_loop_complete']['details']
+            self.assertGreaterEqual(committee_details['disagreement_count'], 1)
+            self.assertGreaterEqual(committee_details['active_veto_count'], 1)
+            self.assertTrue(committee_details['bear_challenge_present'])
+            self.assertTrue(committee_details['risk_veto_or_cap_present'])
+            self.assertFalse(committee_details['real_trade_allowed'])
+            self.assertEqual(committee_details['broker_integration'], 'disabled')
             manifest_evidence = '\n'.join(by_id['runtime.operating_system_manifest_links_agent_os_assets']['evidence'])
             self.assertIn('system/operating-system-manifest.yaml', manifest_evidence)
             self.assertIn('system/operating-system-manifest.md', manifest_evidence)
+
+    def test_system_audit_strict_mode_fails_stale_committee_debate_risk_loop(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            readiness_yaml = run_path / 'committee' / 'decision-readiness.yaml'
+            readiness = yaml.safe_load(readiness_yaml.read_text(encoding='utf-8'))
+            readiness['checks']['bear_challenge_present'] = False
+            readiness['checks']['risk_veto_or_cap_present'] = False
+            readiness_yaml.write_text(yaml.safe_dump(readiness, allow_unicode=True, sort_keys=False), encoding='utf-8')
+            veto_yaml = run_path / 'committee' / 'veto-table.yaml'
+            veto = yaml.safe_load(veto_yaml.read_text(encoding='utf-8'))
+            veto['items'] = []
+            veto['veto_count'] = 0
+            veto['real_trade_allowed'] = True
+            veto_yaml.write_text(yaml.safe_dump(veto, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(run_path), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.committee_debate_risk_decision_loop_complete']['status'], 'fail')
+            mismatches = '\n'.join(by_id['runtime.committee_debate_risk_decision_loop_complete']['details']['mismatches'])
+            self.assertIn('bear_challenge_present', mismatches)
+            self.assertIn('risk_veto_or_cap_present', mismatches)
+            self.assertIn('active_veto_count', mismatches)
+            self.assertIn('real_trade_allowed', mismatches)
 
     def test_system_audit_strict_mode_fails_missing_runtime_model_record_policy_fields(self):
         with tempfile.TemporaryDirectory() as d:

@@ -58,6 +58,11 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     agent_performance = load_yaml(run_path / "harness" / "agent-performance.yaml", {})
     agent_governance = load_yaml(run_path / "harness" / "agent-governance.yaml", {})
     agent_harness_full = load_yaml(run_path / "harness" / "agent-harness.yaml", {})
+    collaboration_harness = load_yaml(run_path / "harness" / "collaboration-harness.yaml", {})
+    decision_readiness = load_yaml(run_path / "committee" / "decision-readiness.yaml", {})
+    disagreement_register = load_yaml(run_path / "committee" / "disagreement-register.yaml", {})
+    veto_table = load_yaml(run_path / "committee" / "veto-table.yaml", {})
+    decision_memo = load_yaml(run_path / "decision" / "final-decision-memo.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
@@ -74,6 +79,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
     manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
+    committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -209,6 +215,20 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_context_check["ok"],
             details=manifest_context_check,
+        ),
+        requirement(
+            "runtime.committee_debate_risk_decision_loop_complete",
+            "governance",
+            "Runtime committee loop preserves bear challenge, risk veto/cap, disagreements, collaboration harness, and final memo linkage under paper-only boundaries.",
+            [
+                run_path / "committee" / "decision-readiness.yaml",
+                run_path / "committee" / "disagreement-register.yaml",
+                run_path / "committee" / "veto-table.yaml",
+                run_path / "harness" / "collaboration-harness.yaml",
+                run_path / "decision" / "final-decision-memo.yaml",
+            ],
+            committee_check["ok"],
+            details=committee_check,
         ),
     ]
 
@@ -657,6 +677,68 @@ def claim_graph_ok(report: Any) -> bool:
         return False
     blocking = [issue for issue in report.get("blocking_issues", []) if issue != "missing_claim_graph_report"]
     return report.get("traceability_score", 0) >= 80 and not blocking and not report.get("real_trade_allowed", False)
+
+
+def committee_debate_risk_decision_loop_check(readiness: Any, disagreements: Any, vetoes: Any, collaboration: Any, memo: Any) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not all(isinstance(item, dict) for item in [readiness, disagreements, vetoes, collaboration, memo]):
+        return {"ok": False, "mismatches": ["committee_or_decision_artifact_missing_or_invalid"]}
+    checks = readiness.get("checks", {}) or {}
+    disagreement_items = disagreements.get("items", []) or []
+    veto_items = vetoes.get("items", []) or []
+    active_vetoes = [item for item in veto_items if isinstance(item, dict) and item.get("status") == "active"]
+    memo_collaboration = memo.get("collaboration_summary", {}) or {}
+    final_decision = memo.get("final_decision", {}) or {}
+
+    if checks.get("bear_challenge_present") is not True:
+        mismatches.append(f"bear_challenge_present: expected True, got {checks.get('bear_challenge_present')!r}")
+    if checks.get("risk_veto_or_cap_present") is not True:
+        mismatches.append(f"risk_veto_or_cap_present: expected True, got {checks.get('risk_veto_or_cap_present')!r}")
+    if checks.get("disagreement_preserved") is not True:
+        mismatches.append(f"disagreement_preserved: expected True, got {checks.get('disagreement_preserved')!r}")
+    if checks.get("paper_only") is not True:
+        mismatches.append(f"paper_only: expected True, got {checks.get('paper_only')!r}")
+    if len(disagreement_items) < 1 or disagreements.get("disagreement_count") != len(disagreement_items):
+        mismatches.append(f"disagreement_count: expected >=1 and equal to items, got count={disagreements.get('disagreement_count')!r}, items={len(disagreement_items)}")
+    if len(active_vetoes) < 1 or vetoes.get("veto_count") != len(veto_items):
+        mismatches.append(f"active_veto_count: expected >=1 and veto_count equal to items, got active={len(active_vetoes)}, count={vetoes.get('veto_count')!r}, items={len(veto_items)}")
+    if not any(isinstance(item, dict) and item.get("owner_agent") == "bear_debater" for item in disagreement_items):
+        mismatches.append("bear_debater_disagreement: missing")
+    if not any(isinstance(item, dict) and item.get("owner_agent") == "risk_manager" for item in active_vetoes):
+        mismatches.append("risk_manager_active_veto: missing")
+    compare_value(mismatches, "collaboration.disagreement_count", collaboration.get("disagreement_count"), len(disagreement_items))
+    compare_value(mismatches, "collaboration.veto_count", collaboration.get("veto_count"), len(veto_items))
+    compare_value(mismatches, "memo.collaboration_summary.disagreement_count", memo_collaboration.get("disagreement_count"), len(disagreement_items))
+    compare_value(mismatches, "memo.collaboration_summary.veto_count", memo_collaboration.get("veto_count"), len(veto_items))
+    if memo_collaboration.get("overall_score", 0) < 80:
+        mismatches.append(f"memo.collaboration_summary.overall_score: expected >=80, got {memo_collaboration.get('overall_score')!r}")
+    if final_decision.get("label") not in {"continue_research", "needs_more_evidence", "watchlist_only", "reject"}:
+        mismatches.append(f"final_decision.label: unexpected {final_decision.get('label')!r}")
+    position_range = str(final_decision.get("hypothetical_position_range", ""))
+    if "0" not in position_range or ("观察" not in position_range and "Paper" not in position_range and "paper" not in position_range):
+        mismatches.append(f"final_decision.hypothetical_position_range: expected paper/watchlist cap, got {position_range!r}")
+    if readiness.get("real_trade_allowed") is not False:
+        mismatches.append(f"readiness.real_trade_allowed: expected False, got {readiness.get('real_trade_allowed')!r}")
+    if vetoes.get("real_trade_allowed") is not False:
+        mismatches.append(f"veto_table.real_trade_allowed: expected False, got {vetoes.get('real_trade_allowed')!r}")
+    if disagreements.get("real_trade_allowed") is not False:
+        mismatches.append(f"disagreement_register.real_trade_allowed: expected False, got {disagreements.get('real_trade_allowed')!r}")
+    if collaboration.get("real_trade_allowed") is not False:
+        mismatches.append(f"collaboration.real_trade_allowed: expected False, got {collaboration.get('real_trade_allowed')!r}")
+    if collaboration.get("broker_integration") not in {False, "disabled"}:
+        mismatches.append(f"collaboration.broker_integration: expected disabled, got {collaboration.get('broker_integration')!r}")
+    return {
+        "ok": not mismatches,
+        "mismatches": mismatches,
+        "bear_challenge_present": checks.get("bear_challenge_present") is True,
+        "risk_veto_or_cap_present": checks.get("risk_veto_or_cap_present") is True,
+        "disagreement_count": len(disagreement_items),
+        "active_veto_count": len(active_vetoes),
+        "collaboration_score": collaboration.get("overall_score", 0),
+        "memo_label": final_decision.get("label"),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def selected_agent_artifacts_exist(run_path: Path, agent_id: str) -> bool:
