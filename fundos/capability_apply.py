@@ -114,8 +114,16 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
     applied_ref = {
         "version": APPLY_VERSION,
         "candidate_id": candidate_id,
+        "run_id": candidate.get("run_id"),
+        "source_agent": candidate.get("source_agent"),
         "target_agent": target_agent,
         "capability_kind": capability_kind,
+        "candidate_type": candidate.get("candidate_type"),
+        "target_scope": candidate.get("target_scope"),
+        "proposal": candidate.get("proposal", ""),
+        "source_basis": candidate.get("source_basis", []),
+        "required_tests": candidate.get("required_tests", []),
+        "scores": candidate.get("scores", {}),
         "target_path": target_path.relative_to(root).as_posix(),
         "applied_at": approval_snapshot["approved_at"],
         "approver": approver,
@@ -124,7 +132,7 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
         "memory_write_policy": candidate.get("memory_write_policy"),
         "human_approval_required": bool(candidate.get("human_approval_required", True)),
         "protected_mutation_allowed": bool(candidate.get("protected_mutation_allowed", False)),
-        "reversible": True,
+        "reversible": bool(candidate.get("reversible", True)),
         "managed_block_only": capability_kind == "skill",
         "mutated_agent_card": False,
         "mutated_runtime_skill": capability_kind == "skill",
@@ -137,15 +145,6 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
     append_jsonl(root / "memory" / "organization" / "capability-apply-ledger.jsonl", [
         {
             **applied_ref,
-            "run_id": candidate.get("run_id"),
-            "source_agent": candidate.get("source_agent"),
-            "proposal": candidate.get("proposal", ""),
-            "required_tests": candidate.get("required_tests", []),
-            "adoption_route": candidate.get("adoption_route"),
-            "memory_write_policy": candidate.get("memory_write_policy"),
-            "human_approval_required": bool(candidate.get("human_approval_required", True)),
-            "protected_mutation_allowed": bool(candidate.get("protected_mutation_allowed", False)),
-            "approval_snapshot": approval_snapshot,
             "controls": sorted(set(candidate.get("controls", []) + ["human_approved_apply", "no_direct_profile_mutation", "no_real_trade_action"])),
         }
     ])

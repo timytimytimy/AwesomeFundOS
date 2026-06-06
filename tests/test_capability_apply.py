@@ -263,3 +263,77 @@ class CapabilityApprovalWorkflowTests(unittest.TestCase):
             self.assertEqual(ledger_row["memory_write_policy"], "no_direct_memory_write")
             self.assertTrue(ledger_row["human_approval_required"])
             self.assertFalse(ledger_row["protected_mutation_allowed"])
+
+    def test_apply_ledger_preserves_candidate_audit_fields_and_safety_snapshot(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            registry = root / "memory" / "agents" / "fund_manager" / "capabilities" / "workflow.jsonl"
+            append_jsonl(registry, [
+                {
+                    "candidate_id": "cand_workflow_audit_apply",
+                    "run_id": "run-audit-apply",
+                    "source_agent": "learning_curator",
+                    "target_agent": "fund_manager",
+                    "capability_kind": "workflow",
+                    "candidate_type": "workflow_update",
+                    "target_scope": "workflow",
+                    "application_status": "pending_human_apply",
+                    "regression_status": "passed",
+                    "proposal": "Before committee memo, require explicit policy contract and evidence-quality checks.",
+                    "source_basis": [
+                        {"evidence_id": "E001", "source_tier": "tier_1_primary_fact"},
+                        {"source_id": "serenity_aleabitoreddit", "source_tier": "tier_3_verified_public_practitioner", "usage": "hypothesis_only"},
+                    ],
+                    "required_tests": ["historical_case_replay", "role_drift_check", "evidence_quality_check"],
+                    "scores": {"source_quality": 0.82, "role_fit": 0.91},
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action", "broker_integration_disabled"],
+                    "adoption_route": "managed_capability_pending_human_apply",
+                    "memory_write_policy": "no_direct_memory_write",
+                    "human_approval_required": True,
+                    "protected_mutation_allowed": False,
+                    "reversible": True,
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            ])
+
+            result = apply_approved_capability(root, "cand_workflow_audit_apply", approver="human-test")
+
+            self.assertEqual(result["candidate_type"], "workflow_update")
+            self.assertEqual(result["target_scope"], "workflow")
+            self.assertEqual(result["source_basis"][0]["evidence_id"], "E001")
+            self.assertEqual(result["scores"]["role_fit"], 0.91)
+            self.assertTrue(result["reversible"])
+            self.assertFalse(result["real_trade_allowed"])
+            self.assertEqual(result["broker_integration"], "disabled")
+            registry_rows = [json.loads(line) for line in registry.read_text().splitlines() if line.strip()]
+            applied_ref = registry_rows[0]["applied_ref"]
+            self.assertEqual(applied_ref["candidate_type"], "workflow_update")
+            self.assertEqual(applied_ref["target_scope"], "workflow")
+            self.assertEqual(applied_ref["source_basis"][1]["usage"], "hypothesis_only")
+            self.assertEqual(applied_ref["scores"]["source_quality"], 0.82)
+            self.assertFalse(applied_ref["mutated_agent_card"])
+            self.assertFalse(applied_ref["real_trade_allowed"])
+            ledger_row = json.loads((root / "memory/organization/capability-apply-ledger.jsonl").read_text().splitlines()[0])
+            for field in [
+                "candidate_type",
+                "target_scope",
+                "source_basis",
+                "scores",
+                "capability_kind",
+                "reversible",
+                "mutated_agent_card",
+                "mutated_runtime_skill",
+                "real_trade_allowed",
+                "broker_integration",
+            ]:
+                self.assertIn(field, ledger_row)
+            self.assertEqual(ledger_row["candidate_type"], "workflow_update")
+            self.assertEqual(ledger_row["target_scope"], "workflow")
+            self.assertEqual(ledger_row["source_basis"][0]["source_tier"], "tier_1_primary_fact")
+            self.assertEqual(ledger_row["scores"], {"source_quality": 0.82, "role_fit": 0.91})
+            self.assertTrue(ledger_row["reversible"])
+            self.assertFalse(ledger_row["mutated_agent_card"])
+            self.assertFalse(ledger_row["mutated_runtime_skill"])
+            self.assertFalse(ledger_row["real_trade_allowed"])
+            self.assertEqual(ledger_row["broker_integration"], "disabled")
