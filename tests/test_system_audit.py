@@ -71,6 +71,7 @@ class SystemAuditTests(unittest.TestCase):
             'agents.skill_files_expose_purpose_workflow_context_safety',
             'agents.agent_cards_expose_machine_auditable_os_policies',
             'agents.skill_files_expose_machine_auditable_execution_policies',
+            'agents.agent_skill_contract_manifest_matches_schema',
             'agents.agent_maturity_contracts_are_differentiated',
             'memory.persistent_threads_and_memory_policies',
             'harness.agent_tool_context_skill_market_case_claim_evaluations',
@@ -84,6 +85,12 @@ class SystemAuditTests(unittest.TestCase):
             self.assertTrue(by_id[requirement_id]['evidence'], requirement_id)
         self.assertEqual(by_id['agents.agent_cards_expose_machine_auditable_os_policies']['details']['missing_sections'], {})
         self.assertEqual(by_id['agents.skill_files_expose_machine_auditable_execution_policies']['details']['missing_sections'], {})
+        contract_details = by_id['agents.agent_skill_contract_manifest_matches_schema']['details']
+        self.assertEqual(contract_details['missing_agents'], [])
+        self.assertEqual(contract_details['mismatches'], [])
+        self.assertEqual(contract_details['schema_errors_by_agent'], {})
+        self.assertFalse(contract_details['real_trade_allowed'])
+        self.assertEqual(contract_details['broker_integration'], 'disabled')
 
     def test_system_audit_writes_report_files(self):
         with tempfile.TemporaryDirectory() as d:

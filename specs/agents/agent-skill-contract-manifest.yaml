@@ -1,0 +1,1604 @@
+version: 0.1.0
+artifact_type: agent_skill_contract_manifest
+schema_path: specs/schemas/agent-skill-contract.schema.yaml
+agent_count: 19
+contract_count: 19
+contracts:
+- contract_id: chief_of_staff_agent_skill_contract_v1
+  agent_id: chief_of_staff
+  role: ChiefOfStaffAgent
+  agent_card_path: specs/agents/agent-cards/chief_of_staff/agent.md
+  skill_path: specs/skills/chief_of_staff/SKILL.md
+  agent_contract:
+    contract_id: chief_of_staff_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `chief_of_staff_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: chief_of_staff_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `chief_of_staff_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: fund_manager_agent_skill_contract_v1
+  agent_id: fund_manager
+  role: FundManagerAgent
+  agent_card_path: specs/agents/agent-cards/fund_manager/agent.md
+  skill_path: specs/skills/fund_manager/SKILL.md
+  agent_contract:
+    contract_id: fund_manager_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `fund_manager_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: fund_manager_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `fund_manager_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: risk_manager_agent_skill_contract_v1
+  agent_id: risk_manager
+  role: RiskManagerAgent
+  agent_card_path: specs/agents/agent-cards/risk_manager/agent.md
+  skill_path: specs/skills/risk_manager/SKILL.md
+  agent_contract:
+    contract_id: risk_manager_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `risk_manager_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: risk_manager_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `risk_manager_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: bear_debater_agent_skill_contract_v1
+  agent_id: bear_debater
+  role: BearDebaterAgent
+  agent_card_path: specs/agents/agent-cards/bear_debater/agent.md
+  skill_path: specs/skills/bear_debater/SKILL.md
+  agent_contract:
+    contract_id: bear_debater_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `bear_debater_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: bear_debater_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `bear_debater_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: learning_curator_agent_skill_contract_v1
+  agent_id: learning_curator
+  role: LearningCuratorAgent
+  agent_card_path: specs/agents/agent-cards/learning_curator/agent.md
+  skill_path: specs/skills/learning_curator/SKILL.md
+  agent_contract:
+    contract_id: learning_curator_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `learning_curator_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: learning_curator_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `learning_curator_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: evaluation_harness_agent_skill_contract_v1
+  agent_id: evaluation_harness
+  role: EvaluationHarnessAgent
+  agent_card_path: specs/agents/agent-cards/evaluation_harness/agent.md
+  skill_path: specs/skills/evaluation_harness/SKILL.md
+  agent_contract:
+    contract_id: evaluation_harness_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `evaluation_harness_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: evaluation_harness_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `evaluation_harness_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: review_archivist_agent_skill_contract_v1
+  agent_id: review_archivist
+  role: ReviewArchivistAgent
+  agent_card_path: specs/agents/agent-cards/review_archivist/agent.md
+  skill_path: specs/skills/review_archivist/SKILL.md
+  agent_contract:
+    contract_id: review_archivist_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `review_archivist_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: review_archivist_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `review_archivist_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: tech_growth_analyst_agent_skill_contract_v1
+  agent_id: tech_growth_analyst
+  role: TechGrowthAnalyst
+  agent_card_path: specs/agents/agent-cards/tech_growth_analyst/agent.md
+  skill_path: specs/skills/tech_growth_analyst/SKILL.md
+  agent_contract:
+    contract_id: tech_growth_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `tech_growth_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: tech_growth_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `tech_growth_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: advanced_manufacturing_analyst_agent_skill_contract_v1
+  agent_id: advanced_manufacturing_analyst
+  role: AdvancedManufacturingAnalyst
+  agent_card_path: specs/agents/agent-cards/advanced_manufacturing_analyst/agent.md
+  skill_path: specs/skills/advanced_manufacturing_analyst/SKILL.md
+  agent_contract:
+    contract_id: advanced_manufacturing_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `advanced_manufacturing_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: advanced_manufacturing_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `advanced_manufacturing_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: consumer_healthcare_analyst_agent_skill_contract_v1
+  agent_id: consumer_healthcare_analyst
+  role: ConsumerHealthcareAnalyst
+  agent_card_path: specs/agents/agent-cards/consumer_healthcare_analyst/agent.md
+  skill_path: specs/skills/consumer_healthcare_analyst/SKILL.md
+  agent_contract:
+    contract_id: consumer_healthcare_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `consumer_healthcare_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: consumer_healthcare_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `consumer_healthcare_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: cyclical_macro_analyst_agent_skill_contract_v1
+  agent_id: cyclical_macro_analyst
+  role: CyclicalMacroAnalyst
+  agent_card_path: specs/agents/agent-cards/cyclical_macro_analyst/agent.md
+  skill_path: specs/skills/cyclical_macro_analyst/SKILL.md
+  agent_contract:
+    contract_id: cyclical_macro_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `cyclical_macro_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: cyclical_macro_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `cyclical_macro_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: policy_event_analyst_agent_skill_contract_v1
+  agent_id: policy_event_analyst
+  role: PolicyEventAnalyst
+  agent_card_path: specs/agents/agent-cards/policy_event_analyst/agent.md
+  skill_path: specs/skills/policy_event_analyst/SKILL.md
+  agent_contract:
+    contract_id: policy_event_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `policy_event_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: policy_event_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `policy_event_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: quality_growth_company_analyst_agent_skill_contract_v1
+  agent_id: quality_growth_company_analyst
+  role: QualityGrowthCompanyAnalyst
+  agent_card_path: specs/agents/agent-cards/quality_growth_company_analyst/agent.md
+  skill_path: specs/skills/quality_growth_company_analyst/SKILL.md
+  agent_contract:
+    contract_id: quality_growth_company_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `quality_growth_company_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: quality_growth_company_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `quality_growth_company_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: turnaround_value_company_analyst_agent_skill_contract_v1
+  agent_id: turnaround_value_company_analyst
+  role: TurnaroundValueCompanyAnalyst
+  agent_card_path: specs/agents/agent-cards/turnaround_value_company_analyst/agent.md
+  skill_path: specs/skills/turnaround_value_company_analyst/SKILL.md
+  agent_contract:
+    contract_id: turnaround_value_company_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `turnaround_value_company_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: turnaround_value_company_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `turnaround_value_company_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: fraud_governance_analyst_agent_skill_contract_v1
+  agent_id: fraud_governance_analyst
+  role: FraudAndGovernanceAnalyst
+  agent_card_path: specs/agents/agent-cards/fraud_governance_analyst/agent.md
+  skill_path: specs/skills/fraud_governance_analyst/SKILL.md
+  agent_contract:
+    contract_id: fraud_governance_analyst_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `fraud_governance_analyst_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: fraud_governance_analyst_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `fraud_governance_analyst_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: position_trend_trader_agent_skill_contract_v1
+  agent_id: position_trend_trader
+  role: PositionTrendTrader
+  agent_card_path: specs/agents/agent-cards/position_trend_trader/agent.md
+  skill_path: specs/skills/position_trend_trader/SKILL.md
+  agent_contract:
+    contract_id: position_trend_trader_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `position_trend_trader_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: position_trend_trader_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `position_trend_trader_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: swing_trader_agent_skill_contract_v1
+  agent_id: swing_trader
+  role: SwingTrader
+  agent_card_path: specs/agents/agent-cards/swing_trader/agent.md
+  skill_path: specs/skills/swing_trader/SKILL.md
+  agent_contract:
+    contract_id: swing_trader_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `swing_trader_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: swing_trader_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `swing_trader_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: event_driven_trader_agent_skill_contract_v1
+  agent_id: event_driven_trader
+  role: EventDrivenTrader
+  agent_card_path: specs/agents/agent-cards/event_driven_trader/agent.md
+  skill_path: specs/skills/event_driven_trader/SKILL.md
+  agent_contract:
+    contract_id: event_driven_trader_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `event_driven_trader_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: event_driven_trader_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `event_driven_trader_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+- contract_id: defensive_execution_trader_agent_skill_contract_v1
+  agent_id: defensive_execution_trader
+  role: DefensiveExecutionTrader
+  agent_card_path: specs/agents/agent-cards/defensive_execution_trader/agent.md
+  skill_path: specs/skills/defensive_execution_trader/SKILL.md
+  agent_contract:
+    contract_id: defensive_execution_trader_agent_policy_contract_v1
+    policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Memory Policy
+    - Tool Policy
+    - Evolution Contract
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `defensive_execution_trader_agent_policy_contract_v1`.'
+    - 'policy_contract_loaded: true.'
+    - 'required_contracts: Profile, Context Contract, Memory Policy, Tool Policy,
+      Evolution Contract, Safety Boundary, and Output Contract.'
+    - 'runtime_application: ContextPack must load this contract and every structured
+      output must echo the compact policy contract before Harness scoring.'
+    - 'controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required;
+      no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: assigned ContextPack, role-specific context policy, approved memory
+      summary, source registry, and orchestrator-provided handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions,
+      missing evidence, excluded context, confidence caps, and role-critical triggers.'
+    - 'forbidden_context_use: do not use unscoped run dumps, private account data,
+      broker state, or KOL/social material as direct company evidence.'
+    - 'handoff_contract: when context belongs to another role, create an explicit
+      handoff instead of silently reasoning outside mandate.'
+    - 'harness_contract: context loss, role drift, source-tier inflation, or safety-boundary
+      loss must become Harness issues or Evolution Candidates.'
+  skill_contract:
+    contract_id: defensive_execution_trader_skill_execution_policy_contract_v1
+    execution_policy_contract_loaded: true
+    context_contract_loaded: true
+    required_sections:
+    - Policy Contract
+    - Context Contract
+    - Tool Use Policy
+    - Memory Policy
+    - Evolution Policy
+    - Safety Boundary
+    policy_contract:
+    - 'contract_id: `defensive_execution_trader_skill_execution_policy_contract_v1`.'
+    - 'execution_policy_contract_loaded: true.'
+    - 'required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution
+      Policy, Safety Boundary, Guardrails, and Quality Gates.'
+    - 'output_application: structured output must include `policy_contract` copied
+      from the loaded agent and skill contracts before Agent Harness evaluation.'
+    - 'controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded;
+      memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.'
+    - 'invariant: real_trade_allowed=false; broker_integration=disabled; Research
+      / watchlist / Paper Portfolio only.'
+    context_contract:
+    - 'context_contract_loaded: true.'
+    - 'input_scope: use the assigned Agent-specific ContextPack, source registry,
+      approved memory summary, and orchestrator handoffs only.'
+    - 'compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing
+      evidence, contradiction table, excluded context, confidence caps, and role-specific
+      checklist state.'
+    - 'forbidden_context_use: do not fill gaps from unscoped context, stale memory,
+      private account data, broker state, or KOL/social material treated as direct
+      evidence.'
+    - 'escalation_contract: if essential context is missing or outside mandate, cap
+      confidence and emit next_research_tasks or handoff rather than inventing facts.'
+    - 'harness_contract: Context Harness and Agent Harness must be able to score context
+      preservation, role consistency, tool policy compliance, and safety boundaries.'
+  controls:
+  - policy_contract_loaded
+  - execution_policy_contract_loaded
+  - context_contract_loaded
+  - memory_tool_evolution_safety_boundaries_required
+  - no_real_trade_action
+  - broker_integration_disabled
+  real_trade_allowed: false
+  broker_integration: disabled
+real_trade_allowed: false
+broker_integration: disabled

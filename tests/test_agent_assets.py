@@ -165,5 +165,48 @@ class AgentAssetTests(unittest.TestCase):
                 signatures.add(edge_lines[0])
         self.assertGreaterEqual(len(signatures), len(roster) - 1)
 
+    def test_agent_and_skill_contracts_have_structured_schema_and_manifest(self):
+        roster = yaml.safe_load((ROOT / "specs" / "agents" / "default-roster.yaml").read_text(encoding="utf-8"))["agents"]
+        schema_path = ROOT / "specs" / "schemas" / "agent-skill-contract.schema.yaml"
+        manifest_path = ROOT / "specs" / "agents" / "agent-skill-contract-manifest.yaml"
+        self.assertTrue(schema_path.exists(), schema_path)
+        self.assertTrue(manifest_path.exists(), manifest_path)
+
+        schema = yaml.safe_load(schema_path.read_text(encoding="utf-8"))
+        manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+        for field in ["contract_id", "agent_id", "agent_contract", "skill_contract", "controls", "real_trade_allowed", "broker_integration"]:
+            self.assertIn(field, schema["required"])
+        self.assertEqual(schema["properties"]["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(schema["properties"]["broker_integration"]["enum"], ["disabled"])
+
+        self.assertEqual(manifest["artifact_type"], "agent_skill_contract_manifest")
+        self.assertEqual(manifest["agent_count"], len(roster))
+        self.assertEqual(manifest["contract_count"], len(roster))
+        self.assertFalse(manifest["real_trade_allowed"])
+        self.assertEqual(manifest["broker_integration"], "disabled")
+        by_agent = {row["agent_id"]: row for row in manifest["contracts"]}
+        self.assertEqual(set(by_agent), {agent["id"] for agent in roster})
+        required_controls = {
+            "policy_contract_loaded",
+            "execution_policy_contract_loaded",
+            "context_contract_loaded",
+            "memory_tool_evolution_safety_boundaries_required",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        }
+        for agent in roster:
+            row = by_agent[agent["id"]]
+            with self.subTest(agent_id=agent["id"]):
+                self.assertEqual(row["contract_id"], f"{agent['id']}_agent_skill_contract_v1")
+                self.assertEqual(row["agent_contract"]["contract_id"], f"{agent['id']}_agent_policy_contract_v1")
+                self.assertEqual(row["skill_contract"]["contract_id"], f"{agent['id']}_skill_execution_policy_contract_v1")
+                self.assertTrue(row["agent_contract"]["policy_contract_loaded"])
+                self.assertTrue(row["agent_contract"]["context_contract_loaded"])
+                self.assertTrue(row["skill_contract"]["execution_policy_contract_loaded"])
+                self.assertTrue(row["skill_contract"]["context_contract_loaded"])
+                self.assertTrue(required_controls.issubset(set(row["controls"])))
+                self.assertFalse(row["real_trade_allowed"])
+                self.assertEqual(row["broker_integration"], "disabled")
+
 if __name__ == "__main__":
     unittest.main()

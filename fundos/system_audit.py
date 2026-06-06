@@ -378,6 +378,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
 def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[str, Any]]:
     agent_ids = [agent["id"] for agent in agents if agent.get("id")]
     prd_coverage = module_prd_coverage(root)
+    agent_skill_contract_manifest = agent_skill_contract_manifest_check(root, agents)
     return [
         requirement(
             "prd.overall_and_modules_exist",
@@ -450,6 +451,18 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             [root / "specs/skills"],
             all(agent_skill_has_machine_auditable_policy_sections(root, aid) for aid in agent_ids),
             details={"missing_sections": missing_agent_skill_machine_policy_sections(root, agent_ids)},
+        ),
+        requirement(
+            "agents.agent_skill_contract_manifest_matches_schema",
+            "agent_skills_tools_memory",
+            "Every Agent and Skill policy/context contract is represented in a roster-wide structured manifest that matches schema and preserves paper-only no-broker safety controls.",
+            [
+                root / "specs/schemas/agent-skill-contract.schema.yaml",
+                root / "specs/agents/agent-skill-contract-manifest.yaml",
+                root / "specs/agents/default-roster.yaml",
+            ],
+            agent_skill_contract_manifest["ok"],
+            details=agent_skill_contract_manifest,
         ),
         requirement(
             "agents.agent_maturity_contracts_are_differentiated",
@@ -867,6 +880,116 @@ def missing_machine_sections(path: Path, required_sections: list[str]) -> list[s
         return [path.name]
     text = path.read_text(encoding="utf-8")
     return [section for section in required_sections if section not in text]
+
+
+AGENT_SKILL_CONTRACT_REQUIRED_CONTROLS = {
+    "policy_contract_loaded",
+    "execution_policy_contract_loaded",
+    "context_contract_loaded",
+    "memory_tool_evolution_safety_boundaries_required",
+    "no_real_trade_action",
+    "broker_integration_disabled",
+}
+
+
+def agent_skill_contract_manifest_check(root: Path, agents: list[dict[str, Any]]) -> dict[str, Any]:
+    schema_path = root / "specs/schemas/agent-skill-contract.schema.yaml"
+    manifest_path = root / "specs/agents/agent-skill-contract-manifest.yaml"
+    manifest = load_yaml(manifest_path, {})
+    mismatches: list[str] = []
+    schema_errors_by_agent: dict[str, list[str]] = {}
+    agent_ids = [agent.get("id", "") for agent in agents if agent.get("id")]
+    missing_agents: list[str] = []
+
+    if not schema_path.exists():
+        mismatches.append("missing_schema")
+    if not manifest_path.exists() or not isinstance(manifest, dict):
+        mismatches.append("missing_or_invalid_manifest")
+        return {
+            "ok": False,
+            "agent_count": len(agent_ids),
+            "contract_count": 0,
+            "missing_agents": agent_ids,
+            "mismatches": mismatches,
+            "schema_errors_by_agent": schema_errors_by_agent,
+            "real_trade_allowed": None,
+            "broker_integration": None,
+        }
+
+    contracts = manifest.get("contracts", []) or []
+    if not isinstance(contracts, list):
+        contracts = []
+        mismatches.append("contracts_not_list")
+    rows_by_agent = {row.get("agent_id"): row for row in contracts if isinstance(row, dict)}
+
+    if manifest.get("artifact_type") != "agent_skill_contract_manifest":
+        mismatches.append("manifest_artifact_type_mismatch")
+    if manifest.get("agent_count") != len(agent_ids):
+        mismatches.append(f"manifest_agent_count: expected {len(agent_ids)}, got {manifest.get('agent_count')!r}")
+    if manifest.get("contract_count") != len(agent_ids):
+        mismatches.append(f"manifest_contract_count: expected {len(agent_ids)}, got {manifest.get('contract_count')!r}")
+    if manifest.get("real_trade_allowed") is not False:
+        mismatches.append(f"manifest_real_trade_allowed: expected False, got {manifest.get('real_trade_allowed')!r}")
+    if manifest.get("broker_integration") != "disabled":
+        mismatches.append(f"manifest_broker_integration: expected 'disabled', got {manifest.get('broker_integration')!r}")
+
+    for agent in agents:
+        aid = agent.get("id", "")
+        row = rows_by_agent.get(aid)
+        if not isinstance(row, dict):
+            missing_agents.append(aid)
+            continue
+        if schema_path.exists():
+            schema_result = validate_runtime_schema(schema_path, row)
+            if not schema_result["ok"]:
+                schema_errors_by_agent[aid] = schema_result["schema_errors"]
+        agent_contract = row.get("agent_contract", {}) if isinstance(row.get("agent_contract"), dict) else {}
+        skill_contract = row.get("skill_contract", {}) if isinstance(row.get("skill_contract"), dict) else {}
+        controls = set(row.get("controls", []) or [])
+        expected_values = {
+            "contract_id": f"{aid}_agent_skill_contract_v1",
+            "role": agent.get("role"),
+            "agent_card_path": f"specs/agents/agent-cards/{aid}/agent.md",
+            "skill_path": f"specs/skills/{aid}/SKILL.md",
+        }
+        for field, expected in expected_values.items():
+            if row.get(field) != expected:
+                mismatches.append(f"{aid}.{field}: expected {expected!r}, got {row.get(field)!r}")
+        if agent_contract.get("contract_id") != f"{aid}_agent_policy_contract_v1":
+            mismatches.append(f"{aid}.agent_contract.contract_id_mismatch")
+        if skill_contract.get("contract_id") != f"{aid}_skill_execution_policy_contract_v1":
+            mismatches.append(f"{aid}.skill_contract.contract_id_mismatch")
+        if agent_contract.get("policy_contract_loaded") is not True:
+            mismatches.append(f"{aid}.agent_contract.policy_contract_loaded_not_true")
+        if agent_contract.get("context_contract_loaded") is not True:
+            mismatches.append(f"{aid}.agent_contract.context_contract_loaded_not_true")
+        if skill_contract.get("execution_policy_contract_loaded") is not True:
+            mismatches.append(f"{aid}.skill_contract.execution_policy_contract_loaded_not_true")
+        if skill_contract.get("context_contract_loaded") is not True:
+            mismatches.append(f"{aid}.skill_contract.context_contract_loaded_not_true")
+        missing_controls = sorted(AGENT_SKILL_CONTRACT_REQUIRED_CONTROLS - controls)
+        if missing_controls:
+            mismatches.append(f"{aid}.missing_controls:{','.join(missing_controls)}")
+        if row.get("real_trade_allowed") is not False:
+            mismatches.append(f"{aid}.real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+        if row.get("broker_integration") != "disabled":
+            mismatches.append(f"{aid}.broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+
+    unexpected_agents = sorted(str(agent_id) for agent_id in rows_by_agent if agent_id not in set(agent_ids))
+    if unexpected_agents:
+        mismatches.append(f"unexpected_agents:{','.join(unexpected_agents)}")
+
+    return {
+        "ok": not mismatches and not missing_agents and not schema_errors_by_agent,
+        "agent_count": len(agent_ids),
+        "contract_count": len(contracts),
+        "missing_agents": missing_agents,
+        "mismatches": mismatches,
+        "schema_errors_by_agent": schema_errors_by_agent,
+        "required_controls": sorted(AGENT_SKILL_CONTRACT_REQUIRED_CONTROLS),
+        "real_trade_allowed": manifest.get("real_trade_allowed"),
+        "broker_integration": manifest.get("broker_integration"),
+    }
 
 
 AGENT_MATURITY_CARD_REQUIRED = [
