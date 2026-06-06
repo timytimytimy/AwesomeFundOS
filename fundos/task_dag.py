@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,8 @@ def default_task_dag_harness() -> dict[str, Any]:
         "broker_integration": "disabled",
         "research_gap_count": 0,
         "next_research_tasks": [],
+        "agent_reasoning_hypothesis_task_count": 0,
+        "agent_reasoning_hypothesis_quality": default_agent_reasoning_hypothesis_quality(),
     }
 
 
@@ -139,6 +142,7 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
     manifest["broker_integration"] = "disabled"
     if manifest_path.exists():
         write_yaml(manifest_path, manifest)
+    hypothesis_quality = evaluate_agent_reasoning_hypothesis_tasks(reconciled_tasks)
 
     if dag_path.exists():
         dag = read_yaml(dag_path) or {}
@@ -162,6 +166,8 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
         dag["research_gap_pending_count"] = pending_count
         dag["research_gap_unsafe_blocked_count"] = unsafe_blocked_count
         dag["research_gap_accepted_evidence_count"] = accepted_evidence_count
+        dag["agent_reasoning_hypothesis_task_count"] = hypothesis_quality["routed_count"]
+        dag["agent_reasoning_hypothesis_quality"] = hypothesis_quality
         dag["real_trade_allowed"] = False
         dag["broker_integration"] = "disabled"
         write_yaml(dag_path, dag)
@@ -173,6 +179,8 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
         harness["research_gap_pending_count"] = pending_count
         harness["research_gap_unsafe_blocked_count"] = unsafe_blocked_count
         harness["research_gap_accepted_evidence_count"] = accepted_evidence_count
+        harness["agent_reasoning_hypothesis_task_count"] = hypothesis_quality["routed_count"]
+        harness["agent_reasoning_hypothesis_quality"] = hypothesis_quality
         harness["research_gap_result_paths"] = [task.get("result_path") for task in reconciled_tasks if task.get("result_path")]
         harness["real_trade_allowed"] = False
         harness["broker_integration"] = "disabled"
@@ -532,6 +540,7 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
     run_id = evidence_pack.get("run_id") or read_run_id(run_path)
     coverage = evidence_pack.get("research_plan_coverage") or {}
     next_research_tasks = build_next_research_tasks(coverage, run_id or "unknown-run")
+    next_research_tasks.extend(build_agent_reasoning_hypothesis_tasks(run_path, run_id or "unknown-run"))
     next_research_tasks = merge_existing_research_gap_tasks(run_path, next_research_tasks)
     nodes.extend(build_research_gap_nodes(next_research_tasks))
     edges = build_edges(nodes)
@@ -551,6 +560,7 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
     if not required_controls_present(controls):
         blocking_issues.append("task_dag_missing_safety_controls")
     score = quality_score(nodes, edges, topological_ok, controls)
+    hypothesis_quality = evaluate_agent_reasoning_hypothesis_tasks(next_research_tasks)
     dag = {
         "version": TASK_DAG_VERSION,
         "artifact_type": "research_task_dag",
@@ -571,6 +581,8 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
         "research_plan_coverage": coverage,
         "research_gap_count": len(next_research_tasks),
         "next_research_tasks": next_research_tasks,
+        "agent_reasoning_hypothesis_task_count": hypothesis_quality["routed_count"],
+        "agent_reasoning_hypothesis_quality": hypothesis_quality,
         "disclaimer": DISCLAIMER,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
@@ -592,6 +604,8 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
         "research_plan_coverage": coverage,
         "research_gap_count": len(next_research_tasks),
         "next_research_tasks": next_research_tasks,
+        "agent_reasoning_hypothesis_task_count": hypothesis_quality["routed_count"],
+        "agent_reasoning_hypothesis_quality": hypothesis_quality,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
@@ -624,6 +638,95 @@ def merge_existing_research_gap_tasks(run_path: Path, next_research_tasks: list[
             merged.append(existing)
             seen_task_ids.add(str(existing.get("task_id")))
     return merged
+
+
+def build_agent_reasoning_hypothesis_tasks(run_path: Path, run_id: str) -> list[dict[str, Any]]:
+    tasks: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for structured_path in sorted((run_path / "agent_work").glob("*.structured.yaml")):
+        output = read_yaml(structured_path) or {}
+        agent_id = str(output.get("agent_id") or structured_path.stem.replace(".structured", ""))
+        reasoning_layers = output.get("reasoning_layers") or {}
+        if reasoning_layers.get("real_trade_allowed") or reasoning_layers.get("broker_integration", "disabled") != "disabled":
+            continue
+        for hypothesis in reasoning_layers.get("hypotheses_to_validate", []) or []:
+            if hypothesis.get("layer") != "hypothesis_to_validate":
+                continue
+            evidence_id = str(hypothesis.get("evidence_id") or "")
+            claim_id = str(hypothesis.get("claim_id") or "")
+            hypothesis_text = str(hypothesis.get("hypothesis") or hypothesis.get("claim_text") or "")
+            validation_required = str(hypothesis.get("validation_required") or "primary_or_cross_validated_evidence_required")
+            dedupe_key = (agent_id, evidence_id, claim_id, validation_required if evidence_id or claim_id else hypothesis_text)
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            category_suffix = claim_id or evidence_id or stable_short_hash(hypothesis_text or validation_required)
+            category = safe_filename(f"agent_hypothesis_validation_{agent_id}_{category_suffix}")
+            tasks.append(
+                {
+                    "task_id": f"{run_id}:research_gap:hypothesis:{len(tasks) + 1:03d}",
+                    "category": category,
+                    "owner_agent": agent_id,
+                    "owner_agent_id": agent_id,
+                    "priority": "high" if evidence_id or claim_id else "medium",
+                    "reason": f"Agent reasoning hypothesis requires validation before it can influence durable learning or committee conclusions: {hypothesis_text}",
+                    "source": "agent_reasoning_layer",
+                    "source_agent_id": agent_id,
+                    "source_evidence_id": evidence_id or None,
+                    "source_claim_id": claim_id or None,
+                    "source_type": hypothesis.get("source_type"),
+                    "source_tier": hypothesis.get("source_tier"),
+                    "hypothesis": hypothesis_text,
+                    "validation_required": validation_required,
+                    "status": "planned",
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            )
+    return tasks
+
+
+def evaluate_agent_reasoning_hypothesis_tasks(tasks: list[dict[str, Any]]) -> dict[str, Any]:
+    routed = [task for task in tasks if task.get("source") == "agent_reasoning_layer"]
+    if not routed:
+        return default_agent_reasoning_hypothesis_quality()
+    all_have_validation = all(bool(task.get("validation_required")) for task in routed)
+    all_have_source_agent = all(bool(task.get("source_agent_id")) for task in routed)
+    all_safe = all(not task.get("real_trade_allowed") and task.get("broker_integration", "disabled") == "disabled" for task in routed)
+    score = 100
+    if not all_have_validation:
+        score -= 30
+    if not all_have_source_agent:
+        score -= 20
+    if not all_safe:
+        score = 0
+    return {
+        "artifact_type": "agent_reasoning_hypothesis_followup_quality",
+        "routed_count": len(routed),
+        "all_have_validation_required": all_have_validation,
+        "all_have_source_agent": all_have_source_agent,
+        "all_safe": all_safe,
+        "score": max(score, 0),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def default_agent_reasoning_hypothesis_quality() -> dict[str, Any]:
+    return {
+        "artifact_type": "agent_reasoning_hypothesis_followup_quality",
+        "routed_count": 0,
+        "all_have_validation_required": True,
+        "all_have_source_agent": True,
+        "all_safe": True,
+        "score": 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def stable_short_hash(value: str) -> str:
+    return hashlib.sha1(value.encode("utf-8")).hexdigest()[:10]
 
 
 def write_research_gap_task_artifacts(run_path: Path, run_id: str | None, next_research_tasks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -668,11 +771,22 @@ def write_research_gap_brief(path: Path, run_id: str | None, task: dict[str, Any
             f"owner_agent_id: {task.get('owner_agent_id') or task.get('owner_agent')}",
             f"category: {task['category']}",
             f"priority: {task.get('priority', 'medium')}",
-            "status: planned",
+            f"status: {task.get('status', 'planned')}",
+            f"source: {task.get('source', 'research_plan_coverage')}",
+            f"source_agent_id: {task.get('source_agent_id', '')}",
+            f"source_evidence_id: {task.get('source_evidence_id', '')}",
+            f"source_claim_id: {task.get('source_claim_id', '')}",
+            f"validation_required: {task.get('validation_required', 'accepted_evidence_required')}",
             "",
             "## Reason",
             "",
             str(task.get("reason", "Research plan category had no accepted evidence.")),
+            "",
+            "## Hypothesis Metadata",
+            "",
+            f"- hypothesis: {task.get('hypothesis', '')}",
+            f"- source_type: {task.get('source_type', '')}",
+            f"- source_tier: {task.get('source_tier', '')}",
             "",
             "## Required work",
             "",

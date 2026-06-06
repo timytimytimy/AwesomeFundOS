@@ -142,6 +142,74 @@ class ResearchTaskDagTests(unittest.TestCase):
             self.assertIn("Allowed output", market_text)
             self.assertIn("no real trade", market_text.lower())
 
+    def test_write_task_dag_routes_agent_reasoning_hypotheses_to_followup_tasks(self):
+        pack = make_evidence_pack("dag-agent-hypothesis", "topic", "机器人产业链投资机会")
+        selected = [{"agent_id": "tech_growth_analyst", "role": "IndustryAnalyst"}]
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-agent-hypothesis", "input": {"value": "机器人产业链投资机会"}})
+            write_yaml(run_path / "agent_work" / "tech_growth_analyst.structured.yaml", {
+                "agent_id": "tech_growth_analyst",
+                "reasoning_layers": {
+                    "hypotheses_to_validate": [
+                        {
+                            "layer": "hypothesis_to_validate",
+                            "evidence_id": "E_social_001",
+                            "claim_id": "claim_robot_heat",
+                            "source_type": "social_signal",
+                            "source_tier": "tier_5_social_signal",
+                            "claim_text": "X 上机器人产业热度可能指向订单拐点。",
+                            "validation_required": "primary_or_cross_validated_evidence_required",
+                        },
+                        {
+                            "layer": "hypothesis_to_validate",
+                            "evidence_id": "E_social_001",
+                            "claim_id": "claim_robot_heat",
+                            "source_type": "social_signal",
+                            "source_tier": "tier_5_social_signal",
+                            "claim_text": "重复假设不应生成重复 follow-up。",
+                            "validation_required": "primary_or_cross_validated_evidence_required",
+                        },
+                    ],
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+            })
+
+            report = write_task_dag(run_path, selected, pack)
+
+            hypothesis_tasks = [task for task in report["next_research_tasks"] if task.get("source") == "agent_reasoning_layer"]
+            self.assertEqual(len(hypothesis_tasks), 1)
+            task = hypothesis_tasks[0]
+            self.assertEqual(task["source_agent_id"], "tech_growth_analyst")
+            self.assertEqual(task["source_evidence_id"], "E_social_001")
+            self.assertEqual(task["source_claim_id"], "claim_robot_heat")
+            self.assertEqual(task["validation_required"], "primary_or_cross_validated_evidence_required")
+            self.assertEqual(task["status"], "planned")
+            self.assertFalse(task["real_trade_allowed"])
+            self.assertEqual(task["broker_integration"], "disabled")
+
+            manifest = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
+            manifest_task = next(row for row in manifest["tasks"] if row.get("source") == "agent_reasoning_layer")
+            self.assertEqual(manifest_task["brief_path"], "follow_up/research_gap_agent_hypothesis_validation_tech_growth_analyst_claim_robot_heat.md")
+            harness = load_task_dag_harness(run_path)
+            self.assertEqual(harness["agent_reasoning_hypothesis_task_count"], 1)
+            self.assertEqual(harness["agent_reasoning_hypothesis_quality"]["score"], 100)
+            self.assertEqual(harness["agent_reasoning_hypothesis_quality"]["routed_count"], 1)
+            self.assertTrue(harness["agent_reasoning_hypothesis_quality"]["all_have_validation_required"])
+            self.assertTrue(harness["agent_reasoning_hypothesis_quality"]["all_safe"])
+            self.assertFalse(harness["agent_reasoning_hypothesis_quality"]["real_trade_allowed"])
+            brief_text = (run_path / manifest_task["brief_path"]).read_text(encoding="utf-8")
+            self.assertIn("source: agent_reasoning_layer", brief_text)
+            self.assertIn("source_agent_id: tech_growth_analyst", brief_text)
+            self.assertIn("source_evidence_id: E_social_001", brief_text)
+            self.assertIn("validation_required: primary_or_cross_validated_evidence_required", brief_text)
+
+            evaluation = make_evaluation_for_run("dag-agent-hypothesis", selected, pack, run_path)
+            self.assertIn("agent_reasoning_hypothesis_followups", evaluation["accepted_outputs"])
+            self.assertEqual(evaluation["task_dag_quality"]["agent_reasoning_hypothesis_task_count"], 1)
+            self.assertEqual(evaluation["task_dag_quality"]["agent_reasoning_hypothesis_quality"]["score"], 100)
+
     def test_evaluation_reads_task_dag_quality_and_accepts_output(self):
         pack = make_evidence_pack("dag-eval", "topic", "机器人产业链投资机会")
         selected = [{"agent_id": "fund_manager", "role": "FundManager"}]

@@ -64,6 +64,8 @@ Agent 输出必须通过 `thread_memory_influence` 显式声明哪些 accepted m
 
 Agent 输出还必须通过 `reasoning_layers` 明确分离：`current_evidence_conclusions`、`thread_memory_influences` 和 `hypotheses_to_validate`。当前证据结论必须能回链 Evidence ID / Claim ID；历史记忆只能作为 retrieval context；假设必须带 validation_required，不得被当作事实或买卖信号。
 
+`hypotheses_to_validate` 不是一次性文本。Context / Task DAG 需要把它们压缩成可追踪的 follow-up research gap：保留来源 Agent、Evidence ID、Claim ID、原始假设和 validation_required，使垂直 Agent 在后续 Thread 中能看到“哪些假设尚未被 primary 或 cross-validated evidence 关闭”，而不是把低等级信号混入事实结论。
+
 ## 5. 角色化上下文策略
 
 ### FundManager

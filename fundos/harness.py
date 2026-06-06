@@ -119,6 +119,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("agent_governance")
     if task_dag.get("task_dag_quality_score", 0) > 0:
         accepted_outputs.append("task_dag")
+    if task_dag.get("agent_reasoning_hypothesis_task_count", 0) > 0:
+        accepted_outputs.append("agent_reasoning_hypothesis_followups")
     if research_gap_followups.get("result_count", 0) > 0:
         accepted_outputs.append("research_gap_followups")
     if research_gap_followups.get("closed_count", 0) > 0:
@@ -253,6 +255,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "missing_artifacts": task_dag.get("missing_artifacts", []),
             "blocking_issues": task_dag.get("blocking_issues", []),
             "controls": task_dag.get("controls", []),
+            "agent_reasoning_hypothesis_task_count": task_dag.get("agent_reasoning_hypothesis_task_count", 0),
+            "agent_reasoning_hypothesis_quality": task_dag.get("agent_reasoning_hypothesis_quality", {}),
             "real_trade_allowed": task_dag.get("real_trade_allowed", False),
             "broker_integration": task_dag.get("broker_integration", "disabled"),
         },

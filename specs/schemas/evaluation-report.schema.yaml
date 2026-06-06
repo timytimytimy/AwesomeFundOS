@@ -61,6 +61,23 @@ properties:
       thread_memory_summary_quality: {type: number}
       thread_summaries_available: {type: integer}
       thread_summary_signals_present: {type: integer}
+  task_dag_quality:
+    type: object
+    properties:
+      task_dag_quality_score: {type: number}
+      node_count: {type: integer}
+      edge_count: {type: integer}
+      blocked_node_count: {type: integer}
+      topological_order_valid: {type: boolean}
+      agent_reasoning_hypothesis_task_count: {type: integer}
+      agent_reasoning_hypothesis_quality:
+        type: object
+        properties:
+          routed_count: {type: integer}
+          all_have_validation_required: {type: boolean}
+          all_have_source_agent: {type: boolean}
+          all_safe: {type: boolean}
+          score: {type: number}
   blocking_issues:
     type: array
     items: {type: string}
