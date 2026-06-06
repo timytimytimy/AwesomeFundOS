@@ -131,6 +131,8 @@ Agent Thread 是长期连续性日志，不等同于自动记忆。V1 必须把�
 
 Agent 输出中的 `reasoning_layers.hypotheses_to_validate` 必须进入同一 follow-up 生命周期：Task DAG 将其转换为 `source=agent_reasoning_layer` 的研究缺口任务，保留 `source_agent_id`、`source_evidence_id`、`source_claim_id` 和 `validation_required`，并对同一 Agent / Evidence / Claim 去重。该任务关闭前，相关假设只能作为待验证研究问题存在；关闭时，`followups answer/close` 必须继续把这些 origin metadata 写入 Thread event payload 和 learning candidate metadata；关闭后也只能通过 accepted EvidenceItem 触发上述候选生成与 EvolutionGate 评测，不能直接升级 Profile、Skill、Tool Policy 或交易权限。
 
+EvolutionGate 必须继续保留这类 hypothesis-origin metadata，而不是在评测结果中压扁成普通 reflection。`evolution-gate-results.jsonl`、accepted/quarantine/rejected 分区、agent evolution ledger 和 semantic memory 写回都必须保留或摘要记录：`source=agent_reasoning_layer`、`source_agent_id`、`source_evidence_id`、`source_claim_id`、`hypothesis` 和 `validation_required`。同时必须输出 `hypothesis_origin_quality`，至少检查 source_agent_id、source_claim_id、validation_required 和安全边界是否存在；metadata 中任何 `real_trade_allowed` 或 `broker_integration` 输入都必须被清洗为 `real_trade_allowed=false`、`broker_integration=disabled`。该链路用于审计“某个 Agent 的某条推理假设如何变成研究缺口、如何关闭、如何形成可回滚经验”，不得成为买卖指令或真实交易权限。
+
 ### 5.2 Capability Versioning / Approval Queue
 
 Principle、Skill、Checklist、Workflow、Tool Policy 类候选即使被 EvolutionGate 接受，也不能直接改写 source-controlled `agent.md`、`SKILL.md`、Profile、Tool Permission 或 Risk Limit。V1 必须把它们写入可审计的能力候选注册表：
@@ -185,6 +187,8 @@ Regression Harness 输出：candidates_total、passed_candidates、blocked_candi
 如果缺少 required_tests 对应 artifact，或 case replay / role consistency / evidence quality 分数低于门槛，候选必须变为 `blocked_regression`，并追加 `capability_regression_required` follow-up test。`fundos capabilities apply` 必须拒绝 blocked regression 的候选。
 
 每次写回必须包含：candidate_id、run_id、source_agent、target_agent、candidate_type、target_scope、proposal、source_basis、required_tests、scores、controls、approval_mode、reversible、real_trade_allowed=false、broker_integration=disabled。
+
+若写回候选来自 `agent_reasoning_layer` hypothesis origin，ledger 必须额外包含 `metadata` 和 `hypothesis_origin_quality`；semantic memory 必须以简短审计字段记录 hypothesis_source、source_agent_id、source_evidence_id、source_claim_id 和 validation_required，避免垂直 Agent 在后续 context 压缩中丢失原始假设来源。
 
 ### 5.5 Failure Pattern Library
 

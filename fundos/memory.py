@@ -186,6 +186,8 @@ def make_ledger_row(result: dict[str, Any], target_agent: str) -> dict[str, Any]
         "target_scope": result.get("target_scope", "agent_memory"),
         "proposal": result.get("proposal", ""),
         "source_basis": result.get("source_basis", []),
+        "metadata": result.get("metadata", {}),
+        "hypothesis_origin_quality": result.get("hypothesis_origin_quality", {}),
         "required_tests": result.get("required_tests", result.get("required_follow_up_tests", [])),
         "scores": result.get("scores", {}),
         "controls": result.get("controls", []),
@@ -231,7 +233,7 @@ def format_memory_entry(row: dict[str, Any]) -> str:
         for item in row.get("source_basis", [])
     ) or "none"
     tests = ", ".join(row.get("required_tests", [])) or "none"
-    return "\n".join([
+    lines = [
         f"## Accepted Evolution Lesson: {row.get('candidate_id')}",
         "",
         f"- timestamp: {row.get('timestamp')}",
@@ -243,8 +245,22 @@ def format_memory_entry(row: dict[str, Any]) -> str:
         f"- source_basis: {basis}",
         f"- required_tests: {tests}",
         f"- approval_mode: {row.get('approval_mode')}",
+    ]
+    metadata = row.get("metadata", {}) if isinstance(row.get("metadata", {}), dict) else {}
+    if metadata.get("source") == "agent_reasoning_layer":
+        lines.extend([
+            f"- hypothesis_source: {metadata.get('source')}",
+            f"- source_agent_id: {metadata.get('source_agent_id')}",
+            f"- source_evidence_id: {metadata.get('source_evidence_id')}",
+            f"- source_claim_id: {metadata.get('source_claim_id')}",
+            f"- validation_required: {metadata.get('validation_required')}",
+            f"- real_trade_allowed: {str(row.get('real_trade_allowed', False)).lower()}",
+            f"- broker_integration: {row.get('broker_integration', 'disabled')}",
+        ])
+    lines.extend([
         "- controls: no core profile mutation; no real trade action; reversible ledger entry",
     ])
+    return "\n".join(lines)
 
 
 def write_ledgers(root: Path, target_agent: str, row: dict[str, Any]) -> None:

@@ -127,6 +127,8 @@ runs/{run_id}/evolution/memory-writeback-summary.yaml
 
 写回必须记录 candidate_id、run_id、source_agent、target_agent、source_basis、required_tests、scores、controls、approval_mode，并保持可审计、可回滚、不触发真实交易。
 
+如果候选来自 Agent 推理层的 hypothesis follow-up 生命周期，`evolve` 必须把 origin metadata 继续写入 EvolutionGate 结果和 memory ledger：`source=agent_reasoning_layer`、source_agent_id、source_evidence_id、source_claim_id、hypothesis、validation_required。semantic memory 预览必须保留简短审计字段 `hypothesis_source`、`source_agent_id`、`source_evidence_id`、`source_claim_id` 和 `validation_required`，并继续显示 `real_trade_allowed=false`、`broker_integration=disabled`。任何输入 metadata 试图打开真实交易或 broker 集成都必须被清洗为 disabled。
+
 `evolve` 还会把每个候选的 EvolutionGate 结果反写到目标 Agent 的长期 Thread：accepted / quarantined / rejected 分别追加 `evolution_candidate_accepted`、`evolution_candidate_quarantined`、`evolution_candidate_rejected`。如果 accepted 候选触发受控长期记忆写回，还会追加 `memory_writeback_applied`，payload 包含 candidate_id、approval_mode、semantic_memory_path、ledger path 和安全边界。Thread 记录的是可审计生命周期，不代表 profile、工具权限、风控或 broker 状态被自动修改。
 
 Principle / skill / checklist / workflow / tool policy 升级候选不直接改写 `agent.md` 或 `SKILL.md`。被接受候选进入：

@@ -40,6 +40,45 @@ class EvolutionGateTests(unittest.TestCase):
         self.assertIn("social_signal_direct_buy", decision["reasons"])
         self.assertIn("core_profile_mutation", decision["reasons"])
 
+    def test_evaluate_candidate_preserves_hypothesis_origin_metadata(self):
+        candidate = {
+            "candidate_id": "cand_hypothesis_origin",
+            "candidate_type": "reflection_update",
+            "target_scope": "agent_memory",
+            "proposal": "Closed hypothesis-origin research gap; preserve evidence gap and confidence cap.",
+            "source_basis": [
+                {
+                    "evidence_id": "memory/agents/tech_growth_analyst/thread-events.jsonl",
+                    "source_tier": "tier_2_canonical_framework",
+                }
+            ],
+            "required_tests": ["historical_case_replay", "role_drift_check", "evidence_quality_check"],
+            "metadata": {
+                "source_event_type": "research_gap_followup_closed",
+                "source": "agent_reasoning_layer",
+                "source_agent_id": "tech_growth_analyst",
+                "source_evidence_id": "E_social_001",
+                "source_claim_id": "claim_robot_heat",
+                "hypothesis": "X 上机器人产业热度可能指向订单拐点。",
+                "validation_required": "primary_or_cross_validated_evidence_required",
+                "real_trade_allowed": True,
+                "broker_integration": "enabled",
+            },
+        }
+
+        result = evaluate_candidate(candidate)
+
+        self.assertEqual(result["metadata"]["source"], "agent_reasoning_layer")
+        self.assertEqual(result["metadata"]["source_agent_id"], "tech_growth_analyst")
+        self.assertEqual(result["metadata"]["source_claim_id"], "claim_robot_heat")
+        self.assertEqual(result["metadata"]["validation_required"], "primary_or_cross_validated_evidence_required")
+        self.assertFalse(result["metadata"]["real_trade_allowed"])
+        self.assertEqual(result["metadata"]["broker_integration"], "disabled")
+        self.assertTrue(result["hypothesis_origin_quality"]["all_safe"])
+        self.assertEqual(result["hypothesis_origin_quality"]["score"], 100)
+        self.assertFalse(result["real_trade_allowed"])
+        self.assertEqual(result["broker_integration"], "disabled")
+
     def test_run_evolution_gate_writes_partitioned_jsonl_outputs(self):
         with tempfile.TemporaryDirectory() as d:
             run_path = Path(d)

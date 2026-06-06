@@ -107,6 +107,77 @@ class MemoryWritebackTests(unittest.TestCase):
             self.assertEqual(summary["memory_writes"], 0)
             self.assertEqual(summary["skipped_non_accepted"], 2)
 
+    def test_hypothesis_origin_candidate_writeback_preserves_metadata_in_ledger_and_memory(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "run-hypothesis-origin"
+            evo_dir = run_path / "evolution"
+            profile_dir = root / "agents" / "tech_growth_analyst"
+            evo_dir.mkdir(parents=True)
+            profile_dir.mkdir(parents=True)
+            profile_path = profile_dir / "profile.yaml"
+            profile_before = "id: tech_growth_analyst\nrisk_preference: medium\n"
+            profile_path.write_text(profile_before, encoding="utf-8")
+
+            write_jsonl(evo_dir / "candidates.jsonl", [
+                {
+                    "candidate_id": "cand_hypothesis_origin",
+                    "run_id": "run-hypothesis-origin",
+                    "source_agent": "learning_curator",
+                    "target_agent": "tech_growth_analyst",
+                    "candidate_type": "reflection_update",
+                    "target_scope": "agent_memory",
+                    "proposal": "Closed a hypothesis-origin research gap; future robot-chain heat claims need primary or cross-validated evidence and confidence caps.",
+                    "source_basis": [
+                        {
+                            "evidence_id": "memory/agents/tech_growth_analyst/thread-events.jsonl",
+                            "source_tier": "tier_2_canonical_framework",
+                        }
+                    ],
+                    "required_tests": ["historical_case_replay", "role_drift_check", "evidence_quality_check"],
+                    "metadata": {
+                        "source_event_type": "research_gap_followup_closed",
+                        "source": "agent_reasoning_layer",
+                        "source_agent_id": "tech_growth_analyst",
+                        "source_evidence_id": "E_social_001",
+                        "source_claim_id": "claim_robot_heat",
+                        "hypothesis": "X 上机器人产业热度可能指向订单拐点。",
+                        "validation_required": "primary_or_cross_validated_evidence_required",
+                    },
+                }
+            ])
+
+            results = run_evolution_gate(run_path)
+
+            self.assertEqual(results[0]["decision"], "accept")
+            self.assertEqual(results[0]["metadata"]["source"], "agent_reasoning_layer")
+            self.assertEqual(results[0]["metadata"]["source_claim_id"], "claim_robot_heat")
+            self.assertTrue(results[0]["hypothesis_origin_quality"]["all_safe"])
+            self.assertFalse(results[0]["real_trade_allowed"])
+            self.assertEqual(results[0]["broker_integration"], "disabled")
+            self.assertEqual(profile_path.read_text(encoding="utf-8"), profile_before)
+
+            memory_path = root / "memory" / "agents" / "tech_growth_analyst" / "semantic_memory.md"
+            ledger_path = root / "memory" / "agents" / "tech_growth_analyst" / "evolution-ledger.jsonl"
+            memory_text = memory_path.read_text(encoding="utf-8")
+            ledger_rows = [json.loads(line) for line in ledger_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+            self.assertEqual(ledger_rows[0]["metadata"]["source"], "agent_reasoning_layer")
+            self.assertEqual(ledger_rows[0]["metadata"]["source_agent_id"], "tech_growth_analyst")
+            self.assertEqual(ledger_rows[0]["metadata"]["source_evidence_id"], "E_social_001")
+            self.assertEqual(ledger_rows[0]["metadata"]["source_claim_id"], "claim_robot_heat")
+            self.assertEqual(ledger_rows[0]["metadata"]["validation_required"], "primary_or_cross_validated_evidence_required")
+            self.assertTrue(ledger_rows[0]["hypothesis_origin_quality"]["all_safe"])
+            self.assertFalse(ledger_rows[0]["real_trade_allowed"])
+            self.assertEqual(ledger_rows[0]["broker_integration"], "disabled")
+            self.assertIn("hypothesis_source: agent_reasoning_layer", memory_text)
+            self.assertIn("source_agent_id: tech_growth_analyst", memory_text)
+            self.assertIn("source_evidence_id: E_social_001", memory_text)
+            self.assertIn("source_claim_id: claim_robot_heat", memory_text)
+            self.assertIn("validation_required: primary_or_cross_validated_evidence_required", memory_text)
+            self.assertIn("real_trade_allowed: false", memory_text)
+            self.assertIn("broker_integration: disabled", memory_text)
+
     def test_evolution_writeback_is_idempotent_for_same_candidate(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

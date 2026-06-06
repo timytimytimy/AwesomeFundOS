@@ -34,6 +34,8 @@ def evaluate_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
     proposal = candidate.get("proposal", "").lower()
     target_scope = candidate.get("target_scope", "agent_memory")
     candidate_type = candidate.get("candidate_type", "unknown")
+    metadata = sanitize_metadata(candidate.get("metadata", {}))
+    hypothesis_origin_quality = evaluate_hypothesis_origin_metadata(metadata)
 
     source_quality = score_source_quality(tiers)
     testability = score_testability(tests, candidate_type)
@@ -74,6 +76,10 @@ def evaluate_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "required_follow_up_tests": follow_up_tests,
         "source_basis": candidate.get("source_basis", []),
         "proposal": candidate.get("proposal", ""),
+        "metadata": metadata,
+        "hypothesis_origin_quality": hypothesis_origin_quality,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "adoption_route": candidate.get("adoption_route"),
         "memory_write_policy": candidate.get("memory_write_policy"),
         "capability_kind": candidate.get("capability_kind"),
@@ -81,6 +87,53 @@ def evaluate_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
         "protected_mutation_allowed": candidate.get("protected_mutation_allowed", False),
         "auto_apply_allowed": candidate.get("auto_apply_allowed", False),
         "rationale": rationale_for(decision, reasons),
+    }
+
+
+def sanitize_metadata(metadata: Any) -> dict[str, Any]:
+    if not isinstance(metadata, dict):
+        return {"real_trade_allowed": False, "broker_integration": "disabled"}
+    allowed_keys = {
+        "source_event_type",
+        "source",
+        "source_agent_id",
+        "source_evidence_id",
+        "source_claim_id",
+        "hypothesis",
+        "validation_required",
+        "answer_summary",
+        "closed_at",
+        "task_id",
+        "followup_task_id",
+        "real_trade_allowed",
+        "broker_integration",
+    }
+    sanitized = {key: value for key, value in metadata.items() if key in allowed_keys}
+    sanitized["real_trade_allowed"] = False
+    sanitized["broker_integration"] = "disabled"
+    return sanitized
+
+
+def evaluate_hypothesis_origin_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    is_hypothesis_origin = metadata.get("source") == "agent_reasoning_layer"
+    source_agent_id_present = bool(metadata.get("source_agent_id"))
+    source_claim_id_present = bool(metadata.get("source_claim_id"))
+    validation_required_present = bool(metadata.get("validation_required"))
+    all_safe = metadata.get("real_trade_allowed") is False and metadata.get("broker_integration") == "disabled"
+    if is_hypothesis_origin:
+        checks = [source_agent_id_present, source_claim_id_present, validation_required_present, all_safe]
+        score = round(sum(1 for check in checks if check) / len(checks) * 100)
+    else:
+        score = 100 if all_safe else 0
+    return {
+        "source": metadata.get("source", "none"),
+        "source_agent_id_present": source_agent_id_present,
+        "source_claim_id_present": source_claim_id_present,
+        "validation_required_present": validation_required_present,
+        "all_safe": all_safe,
+        "score": score,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
