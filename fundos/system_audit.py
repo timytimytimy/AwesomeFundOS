@@ -412,6 +412,22 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details={"missing_sections": missing_agent_skill_sections(root, agent_ids)},
         ),
         requirement(
+            "agents.agent_cards_expose_machine_auditable_os_policies",
+            "agent_identity",
+            "Every agent card exposes explicit machine-auditable Memory Policy, Tool Policy, Evolution Contract, and Safety Boundary sections.",
+            [root / "specs/agents/agent-cards"],
+            all(agent_card_has_machine_auditable_policy_sections(root, aid) for aid in agent_ids),
+            details={"missing_sections": missing_agent_card_machine_policy_sections(root, agent_ids)},
+        ),
+        requirement(
+            "agents.skill_files_expose_machine_auditable_execution_policies",
+            "agent_skills_tools_memory",
+            "Every agent skill exposes explicit machine-auditable Tool Use Policy, Memory Policy, Evolution Policy, and Safety Boundary sections.",
+            [root / "specs/skills"],
+            all(agent_skill_has_machine_auditable_policy_sections(root, aid) for aid in agent_ids),
+            details={"missing_sections": missing_agent_skill_machine_policy_sections(root, agent_ids)},
+        ),
+        requirement(
             "agents.agent_maturity_contracts_are_differentiated",
             "agent_identity",
             "Each Agent card and Skill define differentiated edge, market regimes, anti-patterns, capability benchmarks, growth roadmap, role-specific context compression, and evolution candidate rules.",
@@ -776,6 +792,53 @@ def missing_skill_sections_for_agent(root: Path, agent_id: str) -> list[str]:
         "boundaries",
     ]
     return [section for section in required if section not in text]
+
+
+AGENT_CARD_MACHINE_POLICY_SECTIONS = [
+    "## Memory Policy",
+    "## Tool Policy",
+    "## Evolution Contract",
+    "## Safety Boundary",
+]
+
+
+AGENT_SKILL_MACHINE_POLICY_SECTIONS = [
+    "## Tool Use Policy",
+    "## Memory Policy",
+    "## Evolution Policy",
+    "## Safety Boundary",
+]
+
+
+def agent_card_has_machine_auditable_policy_sections(root: Path, agent_id: str) -> bool:
+    return not missing_machine_sections(root / f"specs/agents/agent-cards/{agent_id}/agent.md", AGENT_CARD_MACHINE_POLICY_SECTIONS)
+
+
+def missing_agent_card_machine_policy_sections(root: Path, agent_ids: list[str]) -> dict[str, list[str]]:
+    missing = {
+        aid: missing_machine_sections(root / f"specs/agents/agent-cards/{aid}/agent.md", AGENT_CARD_MACHINE_POLICY_SECTIONS)
+        for aid in agent_ids
+    }
+    return {aid: sections for aid, sections in missing.items() if sections}
+
+
+def agent_skill_has_machine_auditable_policy_sections(root: Path, agent_id: str) -> bool:
+    return not missing_machine_sections(root / f"specs/skills/{agent_id}/SKILL.md", AGENT_SKILL_MACHINE_POLICY_SECTIONS)
+
+
+def missing_agent_skill_machine_policy_sections(root: Path, agent_ids: list[str]) -> dict[str, list[str]]:
+    missing = {
+        aid: missing_machine_sections(root / f"specs/skills/{aid}/SKILL.md", AGENT_SKILL_MACHINE_POLICY_SECTIONS)
+        for aid in agent_ids
+    }
+    return {aid: sections for aid, sections in missing.items() if sections}
+
+
+def missing_machine_sections(path: Path, required_sections: list[str]) -> list[str]:
+    if not path.exists():
+        return [path.name]
+    text = path.read_text(encoding="utf-8")
+    return [section for section in required_sections if section not in text]
 
 
 AGENT_MATURITY_CARD_REQUIRED = [

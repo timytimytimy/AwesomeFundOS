@@ -68,6 +68,8 @@ class SystemAuditTests(unittest.TestCase):
             'agents.agent_os_assets_cross_reference_roster_contract',
             'agents.agent_cards_expose_profile_harness_memory_evolution',
             'agents.skill_files_expose_purpose_workflow_context_safety',
+            'agents.agent_cards_expose_machine_auditable_os_policies',
+            'agents.skill_files_expose_machine_auditable_execution_policies',
             'agents.agent_maturity_contracts_are_differentiated',
             'memory.persistent_threads_and_memory_policies',
             'harness.agent_tool_context_skill_market_case_claim_evaluations',
@@ -79,6 +81,8 @@ class SystemAuditTests(unittest.TestCase):
         ]:
             self.assertEqual(by_id[requirement_id]['status'], 'pass', requirement_id)
             self.assertTrue(by_id[requirement_id]['evidence'], requirement_id)
+        self.assertEqual(by_id['agents.agent_cards_expose_machine_auditable_os_policies']['details']['missing_sections'], {})
+        self.assertEqual(by_id['agents.skill_files_expose_machine_auditable_execution_policies']['details']['missing_sections'], {})
 
     def test_system_audit_writes_report_files(self):
         with tempfile.TemporaryDirectory() as d:

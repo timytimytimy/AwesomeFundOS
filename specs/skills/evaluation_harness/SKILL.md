@@ -180,3 +180,35 @@ Before finalizing this skill output, verify all gates below:
 ## Required Closing
 
 Close with: `研究分析，不构成投资建议；不接真实交易，不自动下单。`
+
+## Tool Use Policy
+
+- Use only the role-approved tools declared by the assigned roster and `specs/agents/tool-policies/evaluation_harness.yaml`.
+- Convert material tool results into Evidence ID / Claim ID references before relying on them.
+- Treat missing, stale, contradictory, or low-tier tool output as a confidence cap and follow-up task, not as a fact to smooth over.
+- Never call or simulate broker, order-placement, account-management, or real-trade execution tools.
+- Keep `real_trade_allowed=false` and `broker_integration=disabled` in tool-related outputs and handoffs.
+
+## Memory Policy
+
+- Read from the assigned ContextPack first; use `memory/agents/evaluation_harness` only through approved summaries or orchestrator-scoped retrieval.
+- Do not write durable memory directly from this skill output.
+- Propose memory changes only as small, testable, reversible Evolution Candidates with evidence basis and rollback path.
+- Memory never overrides current evidence, source tiers, ContextPack boundaries, tool policies, Harness results, or safety rules.
+- Preserve thread continuity by listing unresolved questions, accepted/rejected lessons, contradiction notes, and confidence caps.
+
+## Evolution Policy
+
+- Allowed evolution outputs: memory, checklist, principle, workflow, and skill-improvement candidates inside the role mandate.
+- Forbidden evolution outputs: direct profile mutation, protected tool permission changes, risk-limit changes, organization-structure changes, or broker/execution authority.
+- Required route: quarantine -> Evaluation -> EvolutionGate -> capability regression -> human approval for durable adoption.
+- Required evidence: candidate_id, source_basis, target failure pattern, required tests, expected benefit, safety controls, and rollback path.
+- Failed or uncertain candidates must remain quarantined or rejected; do not silently edit Profile, Skill, Tool, Memory, Thread, Harness, or Evolution contracts.
+
+## Safety Boundary
+
+- Research / watchlist / Paper Portfolio only.
+- No personalized investment advice, no real trade instruction, no broker integration, and no automatic order placement.
+- KOL, 大V, Serenity, 里海, book, course, and historical-case material can inform hypotheses and checklists only.
+- Cap confidence when primary evidence, contradiction handling, risk review, or context compression is insufficient.
+- Required invariant: `real_trade_allowed=false`; `broker_integration=disabled`; close investment-facing outputs with `研究分析，不构成投资建议；不接真实交易，不自动下单。`
