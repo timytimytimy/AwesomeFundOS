@@ -124,6 +124,6 @@ V1 目标命令：
 - 能用 CLI 创建 run workspace。
 - 能加载默认 Agent roster。
 - 能生成 EvidencePack、ContextPack、Agent outputs、DecisionMemo、EvaluationReport。
-- 能生成 `system/operating-system-manifest.yaml`，汇总本次 run 的 selected agents、Profile/Skill/Tool/Memory/Thread/Harness/Evolution 资产、runtime model records 和安全边界。
+- 能生成并在 `eval/evolve` 后刷新 `system/operating-system-manifest.yaml`，汇总本次 run 的 selected agents、Profile/Skill/Tool/Memory/Thread/Harness/Evolution 资产、runtime model records、演化阶段 summary 和安全边界。
 - 能将 run artifacts 归档。
 - 能以文件为接口支持 Codex 后续实现和调试。

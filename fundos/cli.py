@@ -550,6 +550,7 @@ def command_evolve(args: argparse.Namespace) -> int:
     run_skill_benchmark(run_path)
     write_agent_performance(run_path)
     governance = write_agent_governance(run_path)
+    write_operating_system_manifest(run_path)
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")

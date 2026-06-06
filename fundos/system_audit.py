@@ -545,6 +545,7 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "harness_artifacts": manifest.get("harness_artifacts", []),
         "memory_thread_artifacts": manifest.get("memory_thread_artifacts", []),
         "evolution_artifacts": manifest.get("evolution_artifacts", []),
+        "evolution_summary": manifest.get("evolution_summary", {}),
         "real_trade_allowed": manifest.get("real_trade_allowed"),
         "broker_integration": manifest.get("broker_integration"),
     }

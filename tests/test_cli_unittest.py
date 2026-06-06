@@ -331,6 +331,17 @@ class FundosCliTests(unittest.TestCase):
             cap_summary = load_yaml(run_path / "evolution/capability-version-summary.yaml")
             self.assertGreaterEqual(cap_summary["approved_candidates"], 1)
             self.assertGreaterEqual(cap_summary["pending_human_apply"], 1)
+            os_manifest = load_yaml(run_path / "system/operating-system-manifest.yaml")
+            self.assertIn("evolution/evolution-gate-results.jsonl", os_manifest["evolution_artifacts"])
+            self.assertIn("evolution/memory-writeback-summary.yaml", os_manifest["evolution_artifacts"])
+            self.assertIn("evolution/capability-version-summary.yaml", os_manifest["evolution_artifacts"])
+            self.assertIn("harness/agent-performance.yaml", os_manifest["harness_artifacts"])
+            self.assertIn("harness/agent-governance.yaml", os_manifest["harness_artifacts"])
+            self.assertGreaterEqual(os_manifest["evolution_summary"]["gate_results"], 1)
+            self.assertGreaterEqual(os_manifest["evolution_summary"]["memory_writes"], 1)
+            self.assertGreaterEqual(os_manifest["evolution_summary"]["pending_human_apply"], 1)
+            self.assertFalse(os_manifest["real_trade_allowed"])
+            self.assertEqual(os_manifest["broker_integration"], "disabled")
 
     def test_eval_routes_new_agent_harness_guardrail_failures_to_learning_candidates(self):
         with tempfile.TemporaryDirectory() as d:

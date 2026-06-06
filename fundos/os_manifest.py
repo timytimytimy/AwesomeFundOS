@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -22,10 +23,20 @@ HARNESS_ARTIFACTS = [
     "harness/market-state.yaml",
     "harness/historical-case-replay.yaml",
     "harness/claim-graph.yaml",
+    "harness/capability-regression.yaml",
+    "harness/agent-performance.yaml",
+    "harness/agent-governance.yaml",
 ]
 
 EVOLUTION_ARTIFACTS = [
     "evolution/candidates.jsonl",
+    "evolution/evolution-gate-results.jsonl",
+    "evolution/accepted.jsonl",
+    "evolution/quarantine.jsonl",
+    "evolution/rejected.jsonl",
+    "evolution/memory-writeback-summary.yaml",
+    "evolution/capability-candidates.jsonl",
+    "evolution/capability-version-summary.yaml",
     "learning/agent-learning-candidates.jsonl",
     "learning/failure-patterns.yaml",
 ]
@@ -69,6 +80,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "harness_artifacts": existing_relative_paths(run_path, HARNESS_ARTIFACTS),
         "memory_thread_artifacts": existing_relative_paths(run_path, MEMORY_THREAD_ARTIFACTS),
         "evolution_artifacts": existing_relative_paths(run_path, EVOLUTION_ARTIFACTS),
+        "evolution_summary": evolution_summary(run_path),
         "safety_invariants": {
             "research_watchlist_paper_only": True,
             "paper_portfolio_only": True,
@@ -111,6 +123,41 @@ def agent_asset_row(repo_root: Path, agent_id: str) -> dict[str, Any]:
 
 def existing_relative_paths(run_path: Path, rels: list[str]) -> list[str]:
     return [rel for rel in rels if (run_path / rel).exists()]
+
+
+def evolution_summary(run_path: Path) -> dict[str, Any]:
+    memory_writeback = read_optional_yaml(run_path / "evolution" / "memory-writeback-summary.yaml", {})
+    capability_summary = read_optional_yaml(run_path / "evolution" / "capability-version-summary.yaml", {})
+    gate_rows = read_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
+    return {
+        "gate_results": len(gate_rows),
+        "accepted": sum(1 for row in gate_rows if row.get("decision") == "accept"),
+        "quarantined": sum(1 for row in gate_rows if row.get("decision") == "quarantine"),
+        "rejected": sum(1 for row in gate_rows if row.get("decision") == "reject"),
+        "memory_writes": int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else 0,
+        "approved_candidates": int(capability_summary.get("approved_candidates", 0) or 0) if isinstance(capability_summary, dict) else 0,
+        "pending_human_apply": int(capability_summary.get("pending_human_apply", 0) or 0) if isinstance(capability_summary, dict) else 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def read_optional_yaml(path: Path, default: dict[str, Any]) -> dict[str, Any]:
+    if not path.exists():
+        return default
+    value = read_yaml(path)
+    return value if isinstance(value, dict) else default
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        rows.append(json.loads(line))
+    return rows
 
 
 def common_value(records: list[dict[str, Any]], key: str, default: Any) -> Any:
