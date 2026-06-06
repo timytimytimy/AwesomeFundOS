@@ -405,6 +405,7 @@ class FundosCliTests(unittest.TestCase):
             "context_management_summary",
             "tool_runtime_summary",
             "portfolio_outcome_summary",
+            "agent_capability_ledger_summary",
             "safety_invariants",
             "real_trade_allowed",
             "broker_integration",
@@ -454,6 +455,21 @@ class FundosCliTests(unittest.TestCase):
         self.assertIn("paper_actions", portfolio_required)
         self.assertIn("outcome_status", portfolio_required)
         self.assertIn("real_trade_violations", portfolio_required)
+        cap_ledger_required = schema["properties"]["agent_capability_ledger_summary"]["required"]
+        for required in [
+            "candidate_count",
+            "agent_count",
+            "pending_human_apply",
+            "applied",
+            "blocked_regression",
+            "agents",
+            "controls",
+            "real_trade_allowed",
+            "broker_integration",
+        ]:
+            self.assertIn(required, cap_ledger_required)
+        self.assertEqual(schema["properties"]["agent_capability_ledger_summary"]["properties"]["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(schema["properties"]["agent_capability_ledger_summary"]["properties"]["broker_integration"]["enum"], ["disabled"])
         source_required = schema["properties"]["source_provenance_summary"]["required"]
         self.assertIn("registry_source_count", source_required)
         self.assertIn("quarantined_sources", source_required)
@@ -531,6 +547,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue((run_path / "evolution/memory-writeback-summary.yaml").exists())
             self.assertTrue((run_path / "evolution/capability-version-summary.yaml").exists())
             self.assertTrue((run_path / "evolution/capability-candidates.jsonl").exists())
+            self.assertTrue((run_path / "evolution/agent-capability-ledger.yaml").exists())
             self.assertTrue((run_path / "harness/capability-regression.yaml").exists())
             self.assertTrue((run_path / "harness/agent-performance.yaml").exists())
             self.assertTrue((run_path / "harness/skill-benchmark.yaml").exists())
@@ -571,10 +588,23 @@ class FundosCliTests(unittest.TestCase):
             cap_summary = load_yaml(run_path / "evolution/capability-version-summary.yaml")
             self.assertGreaterEqual(cap_summary["approved_candidates"], 1)
             self.assertGreaterEqual(cap_summary["pending_human_apply"], 1)
+            agent_capability_ledger = load_yaml(run_path / "evolution/agent-capability-ledger.yaml")
+            self.assertEqual(agent_capability_ledger["artifact_type"], "agent_capability_ledger")
+            self.assertGreaterEqual(agent_capability_ledger["candidate_count"], 1)
+            self.assertGreaterEqual(agent_capability_ledger["agent_count"], 1)
+            self.assertIn("evaluation_harness", agent_capability_ledger["agents"])
+            eval_capability = agent_capability_ledger["agents"]["evaluation_harness"]
+            self.assertGreaterEqual(eval_capability["candidate_count"], 1)
+            self.assertGreaterEqual(eval_capability["pending_human_apply"], 1)
+            self.assertIn("workflow", eval_capability["capability_kinds"])
+            self.assertEqual(eval_capability["latest_application_status"], "pending_human_apply")
+            self.assertFalse(eval_capability["real_trade_allowed"])
+            self.assertEqual(eval_capability["broker_integration"], "disabled")
             os_manifest = load_yaml(run_path / "system/operating-system-manifest.yaml")
             self.assertIn("evolution/evolution-gate-results.jsonl", os_manifest["evolution_artifacts"])
             self.assertIn("evolution/memory-writeback-summary.yaml", os_manifest["evolution_artifacts"])
             self.assertIn("evolution/capability-version-summary.yaml", os_manifest["evolution_artifacts"])
+            self.assertIn("evolution/agent-capability-ledger.yaml", os_manifest["evolution_artifacts"])
             self.assertIn("harness/agent-performance.yaml", os_manifest["harness_artifacts"])
             self.assertIn("harness/agent-governance.yaml", os_manifest["harness_artifacts"])
             self.assertGreaterEqual(os_manifest["evolution_summary"]["gate_results"], 1)
@@ -594,6 +624,15 @@ class FundosCliTests(unittest.TestCase):
             self.assertFalse(evolution_learning["direct_tool_mutation_allowed"])
             self.assertFalse(evolution_learning["real_trade_allowed"])
             self.assertEqual(evolution_learning["broker_integration"], "disabled")
+            self.assertIn("agent_capability_ledger_summary", os_manifest)
+            cap_ledger_summary = os_manifest["agent_capability_ledger_summary"]
+            self.assertEqual(cap_ledger_summary["candidate_count"], agent_capability_ledger["candidate_count"])
+            self.assertEqual(cap_ledger_summary["agent_count"], agent_capability_ledger["agent_count"])
+            self.assertGreaterEqual(cap_ledger_summary["pending_human_apply"], 1)
+            self.assertIn("evaluation_harness", cap_ledger_summary["agents"])
+            self.assertIn("capability_lifecycle_per_agent_required", cap_ledger_summary["controls"])
+            self.assertFalse(cap_ledger_summary["real_trade_allowed"])
+            self.assertEqual(cap_ledger_summary["broker_integration"], "disabled")
             self.assertEqual(os_manifest["agent_performance_summary"]["agent_count"], performance["agent_count"])
             self.assertEqual(os_manifest["agent_performance_summary"]["average_final_score"], performance["average_final_score"])
             self.assertIn("recommended_action_counts", os_manifest["agent_performance_summary"])

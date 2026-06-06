@@ -83,6 +83,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     memory_writeback = load_yaml(run_path / "evolution" / "memory-writeback-summary.yaml", {})
     capability_candidates = load_jsonl(run_path / "evolution" / "capability-candidates.jsonl")
     capability_summary = load_yaml(run_path / "evolution" / "capability-version-summary.yaml", {})
+    agent_capability_ledger = load_yaml(run_path / "evolution" / "agent-capability-ledger.yaml", {})
     capability_regression = load_yaml(run_path / "harness" / "capability-regression.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
@@ -114,6 +115,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     )
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
     manifest_tool_runtime_check = operating_system_manifest_tool_runtime_check(os_manifest, tool_runtime, tool_call_ledger, tool_runtime_evidence)
+    manifest_agent_capability_ledger_check = operating_system_manifest_agent_capability_ledger_check(os_manifest, agent_capability_ledger)
     runtime_maturity_check = runtime_agent_maturity_contract_check(run_path, [row.get("agent_id", "") for row in selected])
     manifest_maturity_check = operating_system_manifest_agent_maturity_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
@@ -279,6 +281,19 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_evolution_learning_check["ok"],
             details=manifest_evolution_learning_check,
+        ),
+        requirement(
+            "runtime.agent_capability_ledger_matches_manifest",
+            "learning_evolution",
+            "Per-agent capability lifecycle ledger matches the OS manifest and preserves regression plus human-approval-before-apply controls.",
+            [
+                run_path / "system" / "operating-system-manifest.yaml",
+                run_path / "evolution" / "agent-capability-ledger.yaml",
+                run_path / "evolution" / "capability-candidates.jsonl",
+                run_path / "harness" / "capability-regression.yaml",
+            ],
+            manifest_agent_capability_ledger_check["ok"],
+            details=manifest_agent_capability_ledger_check,
         ),
         requirement(
             "runtime.operating_system_manifest_context_management_matches_harness",
@@ -1605,6 +1620,81 @@ def operating_system_manifest_evolution_learning_check(
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def operating_system_manifest_agent_capability_ledger_check(manifest: Any, ledger: Any) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not isinstance(manifest, dict) or not isinstance(ledger, dict):
+        return {"ok": False, "mismatches": ["manifest_or_agent_capability_ledger_missing_or_invalid"]}
+    summary = manifest.get("agent_capability_ledger_summary", {}) or {}
+    if not isinstance(summary, dict) or not summary:
+        return {"ok": False, "mismatches": ["agent_capability_ledger_summary_missing_or_invalid"]}
+    expected = expected_agent_capability_ledger_summary(ledger)
+    for field, expected_value in expected.items():
+        compare_value(mismatches, f"agent_capability_ledger_summary.{field}", summary.get(field), expected_value)
+    controls = set(summary.get("controls", []) or [])
+    for required_control in [
+        "capability_lifecycle_per_agent_required",
+        "capability_regression_before_apply",
+        "human_approval_before_apply",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    ]:
+        if required_control not in controls:
+            mismatches.append(f"agent_capability_ledger_summary.controls: missing {required_control}")
+    if summary.get("candidate_count", 0) != len(ledger_candidate_ids(ledger)):
+        mismatches.append(
+            "agent_capability_ledger_summary.candidate_count: "
+            f"expected unique ledger candidate count {len(ledger_candidate_ids(ledger))!r}, got {summary.get('candidate_count')!r}"
+        )
+    for agent_id, agent in (ledger.get("agents", {}) or {}).items():
+        if not isinstance(agent, dict):
+            mismatches.append(f"agent_capability_ledger.agents.{agent_id}: expected object")
+            continue
+        if agent.get("real_trade_allowed") is not False:
+            mismatches.append(f"agent_capability_ledger.agents.{agent_id}.real_trade_allowed: expected False, got {agent.get('real_trade_allowed')!r}")
+        if agent.get("broker_integration") != "disabled":
+            mismatches.append(f"agent_capability_ledger.agents.{agent_id}.broker_integration: expected 'disabled', got {agent.get('broker_integration')!r}")
+        if agent.get("candidate_count", 0) > 0 and not agent.get("candidate_ids"):
+            mismatches.append(f"agent_capability_ledger.agents.{agent_id}.candidate_ids: missing")
+    if ledger.get("real_trade_allowed") is not False:
+        mismatches.append(f"agent_capability_ledger.real_trade_allowed: expected False, got {ledger.get('real_trade_allowed')!r}")
+    if ledger.get("broker_integration") != "disabled":
+        mismatches.append(f"agent_capability_ledger.broker_integration: expected 'disabled', got {ledger.get('broker_integration')!r}")
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"agent_capability_ledger_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"agent_capability_ledger_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+    return {"ok": not mismatches, "mismatches": mismatches, **expected}
+
+
+def expected_agent_capability_ledger_summary(ledger: dict[str, Any]) -> dict[str, Any]:
+    agents = ledger.get("agents", {}) if isinstance(ledger.get("agents", {}), dict) else {}
+    return {
+        "candidate_count": int(ledger.get("candidate_count", 0) or 0),
+        "agent_count": int(ledger.get("agent_count", 0) or 0),
+        "pending_human_apply": int(ledger.get("pending_human_apply", 0) or 0),
+        "applied": int(ledger.get("applied", 0) or 0),
+        "blocked_regression": int(ledger.get("blocked_regression", 0) or 0),
+        "needs_more_evidence": int(ledger.get("needs_more_evidence", 0) or 0),
+        "not_applicable": int(ledger.get("not_applicable", 0) or 0),
+        "agents": sorted(str(agent_id) for agent_id in agents),
+        "controls": ledger.get("controls", []) if isinstance(ledger.get("controls", []), list) else [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def ledger_candidate_ids(ledger: dict[str, Any]) -> set[str]:
+    ids: set[str] = set()
+    agents = ledger.get("agents", {}) if isinstance(ledger.get("agents", {}), dict) else {}
+    for agent in agents.values():
+        if not isinstance(agent, dict):
+            continue
+        for candidate_id in agent.get("candidate_ids", []) or []:
+            if candidate_id:
+                ids.add(str(candidate_id))
+    return ids
 
 
 def operating_system_manifest_runtime_summary_check(manifest: Any, performance: Any, governance: Any, evaluation: Any) -> dict[str, Any]:

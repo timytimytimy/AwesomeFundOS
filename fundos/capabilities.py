@@ -223,3 +223,159 @@ def capability_ref(target_agent: str, capability_kind: str, candidate_id: Any, a
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def write_agent_capability_ledger(run_path: Path, root: Path | None = None) -> dict[str, Any]:
+    runtime_root = root or infer_runtime_root(run_path)
+    run_id = infer_run_id(run_path)
+    candidate_rows = read_jsonl(run_path / "evolution" / "capability-candidates.jsonl")
+    registry_rows = capability_registry_rows_for_run(runtime_root, run_path, run_id)
+    rows = merge_capability_rows(candidate_rows, registry_rows)
+    agents: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        target_agent = str(row.get("target_agent") or row.get("source_agent") or "organization")
+        agent = agents.setdefault(target_agent, empty_agent_capability_summary())
+        update_agent_capability_summary(agent, row)
+    for agent in agents.values():
+        finalize_agent_capability_summary(agent)
+    statuses = [str(row.get("application_status") or "") for row in rows]
+    ledger = {
+        "version": CAPABILITY_VERSION,
+        "artifact_type": "agent_capability_ledger",
+        "run_id": run_id,
+        "candidate_count": len(rows),
+        "agent_count": len(agents),
+        "pending_human_apply": statuses.count("pending_human_apply"),
+        "applied": statuses.count("applied"),
+        "blocked_regression": statuses.count("blocked_regression"),
+        "needs_more_evidence": statuses.count("needs_more_evidence"),
+        "not_applicable": statuses.count("not_applicable"),
+        "agents": dict(sorted(agents.items())),
+        "controls": agent_capability_ledger_controls(),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+    write_yaml(run_path / "evolution" / "agent-capability-ledger.yaml", ledger)
+    return ledger
+
+
+def infer_run_id(run_path: Path) -> str:
+    run_doc = run_path / "run.yaml"
+    if run_doc.exists():
+        loaded = read_yaml(run_doc) or {}
+        if isinstance(loaded, dict) and loaded.get("run_id"):
+            return str(loaded["run_id"])
+    return run_path.name
+
+
+def capability_registry_rows_for_run(root: Path, run_path: Path, run_id: str) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    base = root / "memory" / "agents"
+    if not base.exists():
+        return rows
+    for registry in sorted(base.glob("*/capabilities/*.jsonl")):
+        try:
+            rel = registry.relative_to(root).as_posix()
+            agent_id = registry.relative_to(base).parts[0]
+        except ValueError:
+            rel = registry.as_posix()
+            agent_id = registry.parent.parent.name
+        capability_kind = registry.stem
+        for row in read_jsonl(registry):
+            if row.get("run_id") in {run_path.name, run_id}:
+                rows.append({
+                    **row,
+                    "target_agent": row.get("target_agent") or agent_id,
+                    "capability_kind": row.get("capability_kind") or capability_kind,
+                    "registry_path": rel,
+                })
+    return rows
+
+
+def merge_capability_rows(candidate_rows: list[dict[str, Any]], registry_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for row in candidate_rows:
+        candidate_id = row.get("candidate_id")
+        if not candidate_id:
+            continue
+        merged[str(candidate_id)] = dict(row)
+    for row in registry_rows:
+        candidate_id = row.get("candidate_id")
+        if not candidate_id:
+            continue
+        existing = merged.get(str(candidate_id), {})
+        merged[str(candidate_id)] = {**existing, **row}
+    return [merged[key] for key in sorted(merged)]
+
+
+def empty_agent_capability_summary() -> dict[str, Any]:
+    return {
+        "candidate_count": 0,
+        "approved_candidates": 0,
+        "pending_human_apply": 0,
+        "applied": 0,
+        "blocked_regression": 0,
+        "needs_more_evidence": 0,
+        "not_applicable": 0,
+        "capability_kinds": [],
+        "candidate_ids": [],
+        "latest_candidate_id": "",
+        "latest_application_status": "none",
+        "latest_regression_status": "missing",
+        "registry_paths": [],
+        "approval_routes": [],
+        "required_tests": [],
+        "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def update_agent_capability_summary(agent: dict[str, Any], row: dict[str, Any]) -> None:
+    candidate_id = str(row.get("candidate_id") or "")
+    application_status = str(row.get("application_status") or "pending_review")
+    regression_status = str(row.get("regression_status") or "missing")
+    agent["candidate_count"] += 1
+    if row.get("status") == "approved_candidate":
+        agent["approved_candidates"] += 1
+    for status_field in ["pending_human_apply", "applied", "blocked_regression", "needs_more_evidence", "not_applicable"]:
+        if application_status == status_field:
+            agent[status_field] += 1
+    append_unique(agent["capability_kinds"], row.get("capability_kind") or capability_kind_for(row))
+    append_unique(agent["candidate_ids"], candidate_id)
+    append_unique(agent["registry_paths"], row.get("registry_path"))
+    append_unique(agent["approval_routes"], row.get("adoption_route") or row.get("approval_mode"))
+    for test in row.get("required_tests", []) or []:
+        append_unique(agent["required_tests"], test)
+    for control in row.get("controls", []) or []:
+        append_unique(agent["controls"], control)
+    agent["latest_candidate_id"] = candidate_id
+    agent["latest_application_status"] = application_status
+    agent["latest_regression_status"] = regression_status
+
+
+def finalize_agent_capability_summary(agent: dict[str, Any]) -> None:
+    for key in ["capability_kinds", "candidate_ids", "registry_paths", "approval_routes", "required_tests", "controls"]:
+        agent[key] = sorted(str(item) for item in agent.get(key, []) if item)
+    for control in agent_capability_ledger_controls():
+        append_unique(agent["controls"], control)
+    agent["controls"] = sorted(agent["controls"])
+    agent["real_trade_allowed"] = False
+    agent["broker_integration"] = "disabled"
+
+
+def append_unique(values: list[Any], value: Any) -> None:
+    if value and value not in values:
+        values.append(value)
+
+
+def agent_capability_ledger_controls() -> list[str]:
+    return [
+        "capability_lifecycle_per_agent_required",
+        "evolution_gate_before_capability_registry",
+        "capability_regression_before_apply",
+        "human_approval_before_apply",
+        "no_direct_profile_mutation",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    ]

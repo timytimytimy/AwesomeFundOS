@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from fundos.capabilities import write_agent_capability_ledger
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.system_audit import cross_reference_mismatches_for_agent
 
@@ -38,6 +39,7 @@ EVOLUTION_ARTIFACTS = [
     "evolution/memory-writeback-summary.yaml",
     "evolution/capability-candidates.jsonl",
     "evolution/capability-version-summary.yaml",
+    "evolution/agent-capability-ledger.yaml",
     "learning/agent-learning-candidates.jsonl",
     "learning/failure-patterns.yaml",
 ]
@@ -49,6 +51,7 @@ MEMORY_THREAD_ARTIFACTS = [
 
 def write_operating_system_manifest(run_path: Path, repo_root: Path | None = None) -> dict[str, Any]:
     repo_root = repo_root or REPO_ROOT
+    write_agent_capability_ledger(run_path)
     run_doc = read_yaml(run_path / "run.yaml")
     selected = run_doc.get("selected_agents", []) or []
     roster_agents = selected_agents_with_roster_details(repo_root, selected)
@@ -88,6 +91,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "evolution_artifacts": existing_relative_paths(run_path, EVOLUTION_ARTIFACTS),
         "evolution_summary": evolution_summary(run_path),
         "evolution_learning_summary": evolution_learning_summary(run_path),
+        "agent_capability_ledger_summary": agent_capability_ledger_summary(run_path),
         "source_provenance_summary": source_provenance_summary(run_path),
         "context_management_summary": context_management_summary(run_path),
         "tool_runtime_summary": tool_runtime_summary(run_path),
@@ -132,6 +136,7 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     loaded = manifest.get("loaded_asset_counts", {}) or {}
     evolution = manifest.get("evolution_summary", {}) or {}
     evolution_learning = manifest.get("evolution_learning_summary", {}) or {}
+    capability_ledger = manifest.get("agent_capability_ledger_summary", {}) or {}
     performance = manifest.get("agent_performance_summary", {}) or {}
     governance = manifest.get("agent_governance_summary", {}) or {}
     evaluation = manifest.get("evaluation_summary", {}) or {}
@@ -191,6 +196,9 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- evolution_capability_candidates: {evolution_learning.get('capability_candidates', 0)}",
         f"- evolution_regression_candidates_total: {evolution_learning.get('regression_candidates_total', 0)}",
         f"- evolution_pending_human_apply: {evolution_learning.get('pending_human_apply', 0)}",
+        f"- agent_capability_ledger_candidates: {capability_ledger.get('candidate_count', 0)}",
+        f"- agent_capability_ledger_agents: {capability_ledger.get('agent_count', 0)}",
+        f"- agent_capability_pending_human_apply: {capability_ledger.get('pending_human_apply', 0)}",
         f"- registry_source_count: {provenance.get('registry_source_count', 0)}",
         f"- ingested_sources: {provenance.get('ingested_sources', 0)}",
         f"- quarantined_sources: {provenance.get('quarantined_sources', 0)}",
@@ -452,6 +460,37 @@ def evolution_learning_summary(run_path: Path) -> dict[str, Any]:
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def agent_capability_ledger_summary(run_path: Path) -> dict[str, Any]:
+    ledger = read_optional_yaml(run_path / "evolution" / "agent-capability-ledger.yaml", {})
+    agents = ledger.get("agents", {}) if isinstance(ledger.get("agents", {}), dict) else {}
+    controls = ledger.get("controls", []) if isinstance(ledger.get("controls", []), list) else default_agent_capability_ledger_controls()
+    return {
+        "candidate_count": int(ledger.get("candidate_count", 0) or 0) if isinstance(ledger, dict) else 0,
+        "agent_count": int(ledger.get("agent_count", 0) or 0) if isinstance(ledger, dict) else 0,
+        "pending_human_apply": int(ledger.get("pending_human_apply", 0) or 0) if isinstance(ledger, dict) else 0,
+        "applied": int(ledger.get("applied", 0) or 0) if isinstance(ledger, dict) else 0,
+        "blocked_regression": int(ledger.get("blocked_regression", 0) or 0) if isinstance(ledger, dict) else 0,
+        "needs_more_evidence": int(ledger.get("needs_more_evidence", 0) or 0) if isinstance(ledger, dict) else 0,
+        "not_applicable": int(ledger.get("not_applicable", 0) or 0) if isinstance(ledger, dict) else 0,
+        "agents": sorted(str(agent_id) for agent_id in agents),
+        "controls": controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def default_agent_capability_ledger_controls() -> list[str]:
+    return [
+        "capability_lifecycle_per_agent_required",
+        "evolution_gate_before_capability_registry",
+        "capability_regression_before_apply",
+        "human_approval_before_apply",
+        "no_direct_profile_mutation",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    ]
 
 
 def source_provenance_summary(run_path: Path) -> dict[str, Any]:
