@@ -71,11 +71,13 @@ runs/{run_id}/harness/agent-harness.yaml
 Agent-level harness 对每个 selected agent 输出：
 
 - context_compression_quality：检查 included_evidence、allowed_claims、Evidence ID / Claim ID 回链、contradiction_table、missing_evidence 和 excluded_evidence_summary；
+- context_management_quality：检查 context_budget_manifest、loss_accounting、token budget、角色化压缩和证据损失可审计性；
+- thread_memory_summary_quality：检查长期 Thread 摘要是否可用、是否只作为 retrieval input、是否被 ContextBudgetManifest 记录、是否保留 accepted lessons / quarantined candidates / rejected candidates / open research gaps / recent events，且是否保持 no-real-trade / broker-disabled 边界；
 - skill_invocation_quality：检查 `SKILL.md` 是否加载、关键 section 是否存在、runtime skill path 是否与 ContextPack 一致、role checklist 和 evidence rules 是否进入输出；
 - role_consistency_quality：检查 agent_id / role 是否一致、agent card 是否加载、declared skills 是否对齐、边界和免责声明是否存在；
 - blocking_issues：低于阈值或越界时产生阻断项。
 
-Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，并在有有效产物时把 `agent_harness` 放入 accepted_outputs。
+Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，把 thread summary 聚合分数写入 `context_management_quality.thread_memory_summary_quality`，并在有有效产物时把 `agent_harness`、`context_management`、`thread_memory_summary` 放入 accepted_outputs。
 
 ### Agent Performance / Promotion Harness
 
@@ -204,6 +206,7 @@ Failure Pattern Library 是 Evolution 的负反馈输入：后续 capability can
 - portfolio_review_quality
 - outcome_tracking_quality
 - agent_harness_quality
+- context_management_quality
 - tool_harness_quality
 - case_replay_quality
 - agent_scores

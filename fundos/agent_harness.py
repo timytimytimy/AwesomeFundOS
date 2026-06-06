@@ -29,6 +29,7 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
             "context_management_required",
             "context_budget_manifest_required",
             "context_loss_accounting_required",
+            "thread_summary_quality_required",
             "skill_contract_required",
             "agent_card_required",
             "evidence_traceability_required",
@@ -63,6 +64,7 @@ def default_report() -> dict[str, Any]:
             "context_compression": 0,
             "context_policy": 0,
             "context_management_quality": 0,
+            "thread_memory_summary": 0,
             "memory_policy": 0,
             "tool_policy": 0,
             "skill_invocation": 0,
@@ -78,11 +80,12 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
     context_quality = evaluate_context_compression(context, output)
     context_policy_quality = evaluate_context_policy(context)
     context_management_quality = evaluate_context_management(context)
+    thread_memory_summary_quality = evaluate_thread_memory_summary(context)
     memory_policy_quality = evaluate_memory_policy(context, output)
     tool_policy_quality = evaluate_tool_policy(context, output)
     skill_quality = evaluate_skill_invocation(context, output)
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 7, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + thread_memory_summary_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 8, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
@@ -90,11 +93,12 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
         "context_compression_quality": context_quality,
         "context_policy_quality": context_policy_quality,
         "context_management_quality": context_management_quality,
+        "thread_memory_summary_quality": thread_memory_summary_quality,
         "memory_policy_quality": memory_policy_quality,
         "tool_policy_quality": tool_policy_quality,
         "skill_invocation_quality": skill_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
     }
 
 
@@ -142,6 +146,59 @@ def evaluate_context_management(context: dict[str, Any]) -> dict[str, Any]:
         "compression_ratio": manifest.get("compression_ratio", 0),
         "compression_style": compression_style,
         "drop_reasons": sorted({row.get("reason") for row in excluded if row.get("reason")}),
+    }
+
+
+def evaluate_thread_memory_summary(context: dict[str, Any]) -> dict[str, Any]:
+    summary = context.get("thread_memory_summary", {}) or {}
+    manifest = context.get("context_budget_manifest", {}) or {}
+    manifest_summary = manifest.get("thread_memory_summary", {}) or {}
+    controls = set(summary.get("controls", []))
+    manifest_controls = set(manifest.get("controls", []))
+    available = bool(summary.get("available"))
+    event_count = int(summary.get("event_count", 0) or 0)
+    accepted = summary.get("accepted_memory_lessons", []) or []
+    quarantined = summary.get("quarantined_candidates", []) or []
+    rejected = summary.get("rejected_candidates", []) or []
+    gaps = summary.get("open_research_gaps", []) or []
+    recent = summary.get("recent_events", []) or []
+    retrieval_only_control_present = "thread_summary_is_retrieval_input_only" in controls
+    manifest_linked = (
+        "thread_summary_included" in manifest_controls
+        and bool(manifest_summary.get("included"))
+        and int(manifest_summary.get("event_count", 0) or 0) == event_count
+    )
+    safety_boundaries_respected = summary.get("real_trade_allowed") is False and summary.get("broker_integration") == "disabled"
+    summary_signal_present = bool(accepted or quarantined or rejected or gaps or recent)
+    event_count_consistent = event_count >= len(recent)
+    score = 20
+    if available:
+        score += 15
+    if retrieval_only_control_present:
+        score += 15
+    if manifest_linked:
+        score += 20
+    if safety_boundaries_respected:
+        score += 20
+    if summary_signal_present:
+        score += 15
+    if event_count_consistent:
+        score += 10
+    return {
+        "score": min(100, score),
+        "available": available,
+        "event_count": event_count,
+        "latest_event_type": summary.get("latest_event_type", "none"),
+        "retrieval_only_control_present": retrieval_only_control_present,
+        "manifest_linked": manifest_linked,
+        "safety_boundaries_respected": safety_boundaries_respected,
+        "summary_signal_present": summary_signal_present,
+        "event_count_consistent": event_count_consistent,
+        "accepted_memory_lesson_count": len(accepted),
+        "quarantined_candidate_count": len(quarantined),
+        "rejected_candidate_count": len(rejected),
+        "open_research_gap_count": len(gaps),
+        "recent_event_count": len(recent),
     }
 
 
@@ -385,10 +442,11 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
     context_management_score = avg(row["context_management_quality"]["score"] for row in agent_results)
+    thread_summary_score = avg(row["thread_memory_summary_quality"]["score"] for row in agent_results)
     memory_score = avg(row["memory_policy_quality"]["score"] for row in agent_results)
     tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
@@ -397,11 +455,12 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
         "context_compression": context_score,
         "context_policy": policy_score,
         "context_management_quality": context_management_score,
+        "thread_memory_summary": thread_summary_score,
         "memory_policy": memory_score,
         "tool_policy": tool_score,
         "skill_invocation": skill_score,
         "role_consistency": role_score,
-        "overall": round((context_score + policy_score + context_management_score + memory_score + tool_score + skill_score + role_score) / 7, 1),
+        "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_score + tool_score + skill_score + role_score) / 8, 1),
     }
 
 

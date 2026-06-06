@@ -93,6 +93,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("agent_threads")
     if agent_harness.get("aggregate_scores", {}).get("context_management_quality", 0) > 0:
         accepted_outputs.append("context_management")
+    if agent_harness.get("aggregate_scores", {}).get("thread_memory_summary", 0) > 0:
+        accepted_outputs.append("thread_memory_summary")
     if collaboration_harness.get("overall_score", 0) > 0:
         accepted_outputs.append("collaboration_harness")
     if pm_competition_harness.get("overall_score", 0) > 0:
@@ -230,6 +232,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "agent_count": agent_harness.get("agent_count", 0),
             "context_compression": agent_harness_scores.get("context_compression", 0),
             "context_management_quality": agent_harness_scores.get("context_management_quality", 0),
+            "thread_memory_summary_quality": agent_harness_scores.get("thread_memory_summary", 0),
             "skill_invocation": agent_harness_scores.get("skill_invocation", 0),
             "role_consistency": agent_harness_scores.get("role_consistency", 0),
             "overall": agent_harness_scores.get("overall", 0),
@@ -454,6 +457,9 @@ def summarize_context_management(agent_harness: dict[str, Any]) -> dict[str, Any
         "estimated_tokens_before": sum(int(item.get("estimated_tokens_before", 0) or 0) for item in qualities),
         "estimated_tokens_after": sum(int(item.get("estimated_tokens_after", 0) or 0) for item in qualities),
         "drop_reasons": sorted({reason for item in qualities for reason in item.get("drop_reasons", [])}),
+        "thread_memory_summary_quality": agent_harness.get("aggregate_scores", {}).get("thread_memory_summary", 0),
+        "thread_summaries_available": sum(1 for row in results if (row.get("thread_memory_summary_quality", {}) or {}).get("available")),
+        "thread_summary_signals_present": sum(1 for row in results if (row.get("thread_memory_summary_quality", {}) or {}).get("summary_signal_present")),
     }
 
 

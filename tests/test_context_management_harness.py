@@ -131,6 +131,53 @@ class ContextManagementHarnessTests(unittest.TestCase):
             self.assertTrue(quality["role_specific_compression_present"])
             self.assertGreater(quality["excluded_items"], 0)
 
+    def test_agent_harness_scores_thread_memory_summary_quality(self):
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+            agent = next(row for row in roster["agents"] if row["id"] == "position_trend_trader")
+            thread_dir = run_path / "memory" / "agents" / "position_trend_trader"
+            thread_dir.mkdir(parents=True, exist_ok=True)
+            (thread_dir / "thread-events.jsonl").write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in [
+                {
+                    "timestamp": "2026-06-06T00:00:00+00:00",
+                    "event_type": "research_gap_followup_answered",
+                    "agent_id": "position_trend_trader",
+                    "run_id": "ctx-thread-harness-run",
+                    "payload": {"task_id": "ctx-thread-harness-run:research_gap:001", "category": "market_data", "status": "needs_evidence"},
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+                {
+                    "timestamp": "2026-06-06T00:01:00+00:00",
+                    "event_type": "memory_writeback_applied",
+                    "agent_id": "position_trend_trader",
+                    "run_id": "ctx-thread-harness-run",
+                    "payload": {"candidate_id": "cand_accept", "approval_mode": "evolution_gate_v1_auto_controlled"},
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+            ]), encoding="utf-8")
+            pack = dense_evidence_pack("ctx-thread-harness-run")
+            context = make_context_pack("ctx-thread-harness-run", agent, pack, runtime_root=run_path)
+            write_yaml(run_path / "context" / "position_trend_trader.context-pack.yaml", context)
+            write_yaml(run_path / "agent_work" / "position_trend_trader.structured.yaml", minimal_output(agent, context))
+
+            report = write_agent_harness(run_path, [{"agent_id": "position_trend_trader"}])
+
+            self.assertIn("thread_memory_summary", report["aggregate_scores"])
+            self.assertGreaterEqual(report["aggregate_scores"]["thread_memory_summary"], 90)
+            self.assertIn("thread_summary_quality_required", report["controls"])
+            result = report["agent_results"][0]
+            quality = result["thread_memory_summary_quality"]
+            self.assertTrue(quality["available"])
+            self.assertTrue(quality["retrieval_only_control_present"])
+            self.assertTrue(quality["manifest_linked"])
+            self.assertTrue(quality["safety_boundaries_respected"])
+            self.assertTrue(quality["summary_signal_present"])
+            self.assertEqual(quality["accepted_memory_lesson_count"], 1)
+            self.assertEqual(quality["open_research_gap_count"], 1)
+
     def test_system_evaluation_exposes_context_management_quality(self):
         with tempfile.TemporaryDirectory() as d:
             run_path = Path(d)
@@ -149,6 +196,37 @@ class ContextManagementHarnessTests(unittest.TestCase):
             self.assertGreaterEqual(report["context_management_quality"]["overall"], 80)
             self.assertGreater(report["context_management_quality"]["excluded_items"], 0)
             self.assertIn("context_management", report["accepted_outputs"])
+
+    def test_system_evaluation_exposes_thread_memory_summary_quality(self):
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+            selected = [{"agent_id": "position_trend_trader"}]
+            agent = next(row for row in roster["agents"] if row["id"] == "position_trend_trader")
+            thread_dir = run_path / "memory" / "agents" / "position_trend_trader"
+            thread_dir.mkdir(parents=True, exist_ok=True)
+            (thread_dir / "thread-events.jsonl").write_text(json.dumps({
+                "timestamp": "2026-06-06T00:01:00+00:00",
+                "event_type": "memory_writeback_applied",
+                "agent_id": "position_trend_trader",
+                "run_id": "ctx-thread-eval-run",
+                "payload": {"candidate_id": "cand_accept", "approval_mode": "evolution_gate_v1_auto_controlled"},
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            }, ensure_ascii=False) + "\n", encoding="utf-8")
+            pack = dense_evidence_pack("ctx-thread-eval-run")
+            context = make_context_pack("ctx-thread-eval-run", agent, pack, runtime_root=run_path)
+            write_yaml(run_path / "context" / "position_trend_trader.context-pack.yaml", context)
+            write_yaml(run_path / "agent_work" / "position_trend_trader.structured.yaml", minimal_output(agent, context))
+            write_agent_harness(run_path, selected)
+
+            report = make_evaluation_for_run("ctx-thread-eval-run", selected, pack, run_path)
+
+            self.assertIn("thread_memory_summary_quality", report["agent_harness_quality"])
+            self.assertGreaterEqual(report["agent_harness_quality"]["thread_memory_summary_quality"], 90)
+            self.assertIn("thread_memory_summary_quality", report["context_management_quality"])
+            self.assertGreaterEqual(report["context_management_quality"]["thread_memory_summary_quality"], 90)
+            self.assertIn("thread_memory_summary", report["accepted_outputs"])
 
 
 def dense_evidence_pack(run_id: str) -> dict:

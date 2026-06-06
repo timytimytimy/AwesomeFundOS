@@ -37,6 +37,28 @@ properties:
         improvement_suggestions:
           type: array
           items: {type: string}
+  agent_harness_quality:
+    type: object
+    properties:
+      agent_count: {type: integer}
+      context_compression: {type: number}
+      context_management_quality: {type: number}
+      thread_memory_summary_quality: {type: number}
+      skill_invocation: {type: number}
+      role_consistency: {type: number}
+      overall: {type: number}
+  context_management_quality:
+    type: object
+    properties:
+      overall: {type: number}
+      agents_evaluated: {type: integer}
+      budget_manifest_present: {type: integer}
+      token_budget_respected: {type: integer}
+      loss_accounting_present: {type: integer}
+      role_specific_compression_present: {type: integer}
+      thread_memory_summary_quality: {type: number}
+      thread_summaries_available: {type: integer}
+      thread_summary_signals_present: {type: integer}
   blocking_issues:
     type: array
     items: {type: string}
