@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
+from fundos.system_audit import cross_reference_mismatches_for_agent
 
 
 ASSET_PATHS = {
@@ -50,8 +51,9 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
     repo_root = repo_root or REPO_ROOT
     run_doc = read_yaml(run_path / "run.yaml")
     selected = run_doc.get("selected_agents", []) or []
+    roster_agents = selected_agents_with_roster_details(repo_root, selected)
     model_records = run_doc.get("model_records", []) or []
-    agent_assets = [agent_asset_row(repo_root, row.get("agent_id", "")) for row in selected]
+    agent_assets = [agent_asset_row(repo_root, row) for row in roster_agents]
     loaded_counts = {
         key: sum(1 for row in agent_assets if row.get("assets", {}).get(key, {}).get("exists"))
         for key in ASSET_PATHS
@@ -63,6 +65,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         for kind, asset in row["assets"].items()
         if not asset["exists"]
     ]
+    contract_summary = agent_os_contract_summary(agent_assets)
     manifest = {
         "version": "0.1.0",
         "artifact_type": "operating_system_manifest",
@@ -75,6 +78,8 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "loaded_asset_counts": loaded_counts,
         "all_selected_agents_have_runtime_assets": not missing_assets and all(count == expected_count for count in loaded_counts.values()),
         "missing_agent_assets": missing_assets,
+        "all_agent_os_contracts_valid": contract_summary["invalid_contracts"] == 0,
+        "agent_os_contract_summary": contract_summary,
         "agents": agent_assets,
         "model_records": model_records,
         "harness_artifacts": existing_relative_paths(run_path, HARNESS_ARTIFACTS),
@@ -94,6 +99,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "broker_integration": "disabled",
         "controls": [
             "profile_skill_tool_memory_thread_harness_evolution_boundaries",
+            "agent_os_asset_cross_reference_contract",
             "context_pack_scoped_agent_execution",
             "strict_runtime_policy_records",
             "human_approval_required_for_capability_apply",
@@ -134,6 +140,20 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     lines.extend(["", "### Selected Agents", ""])
     for row in manifest.get("agents", []) or []:
         lines.append(f"- {row.get('agent_id')}: {row.get('agent_card_path')} | {row.get('skill_path')}")
+    contract_summary = manifest.get("agent_os_contract_summary", {}) or {}
+    lines.extend([
+        "",
+        "## Agent OS Contract Checks",
+        "",
+        f"- all_agent_os_contracts_valid: {manifest.get('all_agent_os_contracts_valid')}",
+        f"- valid_contracts: {contract_summary.get('valid_contracts', 0)}",
+        f"- invalid_contracts: {contract_summary.get('invalid_contracts', 0)}",
+        f"- checked_agents: {contract_summary.get('checked_agents', 0)}",
+        "",
+    ])
+    for row in manifest.get("agents", []) or []:
+        checks = row.get("os_contract_checks", {}) or {}
+        lines.append(f"- {row.get('agent_id')}: valid={checks.get('valid')} mismatches={len(checks.get('mismatches', []) or [])}")
     lines.extend([
         "",
         "## Harness, Memory, Evolution",
@@ -160,11 +180,13 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def agent_asset_row(repo_root: Path, agent_id: str) -> dict[str, Any]:
+def agent_asset_row(repo_root: Path, agent: dict[str, Any]) -> dict[str, Any]:
+    agent_id = agent.get("id", "") or agent.get("agent_id", "")
     assets: dict[str, dict[str, Any]] = {}
     for kind, template in ASSET_PATHS.items():
         rel = template.format(agent_id=agent_id)
         assets[kind] = {"path": rel, "exists": (repo_root / rel).exists()}
+    os_contract_checks = agent_os_contract_checks(repo_root, agent, assets)
     return {
         "agent_id": agent_id,
         "assets": assets,
@@ -173,6 +195,52 @@ def agent_asset_row(repo_root: Path, agent_id: str) -> dict[str, Any]:
         "context_policy_path": assets["context_policy"]["path"],
         "tool_policy_path": assets["tool_policy"]["path"],
         "memory_policy_path": assets["memory_policy"]["path"],
+        "os_contract_checks": os_contract_checks,
+    }
+
+
+def selected_agents_with_roster_details(repo_root: Path, selected: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    roster = read_yaml(repo_root / "specs/agents/default-roster.yaml") or {}
+    by_id = {row.get("id"): row for row in roster.get("agents", []) or []}
+    rows = []
+    for item in selected:
+        agent_id = item.get("agent_id", "")
+        merged = dict(by_id.get(agent_id, {}))
+        if not merged:
+            merged = {"id": agent_id, "role": item.get("role", ""), "skills": [], "tools": []}
+        rows.append(merged)
+    return rows
+
+
+def agent_os_contract_checks(repo_root: Path, agent: dict[str, Any], assets: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    mismatches = cross_reference_mismatches_for_agent(repo_root, agent)
+    asset_paths_exist = all(asset.get("exists") for asset in assets.values())
+    issues = set(mismatches)
+    return {
+        "valid": asset_paths_exist and not mismatches,
+        "asset_paths_exist": asset_paths_exist,
+        "agent_card_matches_roster": not any(issue in issues or issue.startswith("agent_card_") for issue in issues),
+        "skill_references_agent_card": "skill_agent_card_reference_mismatch" not in issues,
+        "tool_policy_matches_roster_tools": "tool_policy_allowed_tools_mismatch" not in issues and "tool_policy_required_tools_outside_roster" not in issues,
+        "memory_policy_matches_agent_namespace": "memory_policy_missing_agent_read_namespace" not in issues and "memory_policy_write_namespace_mismatch" not in issues,
+        "context_policy_preserves_kol_methodology_boundary": "context_policy_kol_methodology_boundary_missing" not in issues,
+        "safety_boundaries_disabled": not any(issue.endswith("_policy_real_trade_not_disabled") or issue.endswith("_policy_broker_not_disabled") for issue in issues),
+        "mismatches": mismatches,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def agent_os_contract_summary(agent_assets: list[dict[str, Any]]) -> dict[str, Any]:
+    valid = sum(1 for row in agent_assets if row.get("os_contract_checks", {}).get("valid"))
+    invalid = len(agent_assets) - valid
+    return {
+        "checked_agents": len(agent_assets),
+        "valid_contracts": valid,
+        "invalid_contracts": invalid,
+        "mismatched_agents": [row.get("agent_id") for row in agent_assets if not row.get("os_contract_checks", {}).get("valid")],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 

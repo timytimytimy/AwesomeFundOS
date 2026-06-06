@@ -8,6 +8,8 @@ required:
   - model_record_count
   - loaded_asset_counts
   - all_selected_agents_have_runtime_assets
+  - all_agent_os_contracts_valid
+  - agent_os_contract_summary
   - agents
   - model_records
   - harness_artifacts
@@ -42,6 +44,21 @@ properties:
       tool_policy: {type: integer}
       memory_policy: {type: integer}
   all_selected_agents_have_runtime_assets: {type: boolean}
+  all_agent_os_contracts_valid: {type: boolean}
+  agent_os_contract_summary:
+    type: object
+    required: [checked_agents, valid_contracts, invalid_contracts, mismatched_agents, real_trade_allowed, broker_integration]
+    properties:
+      checked_agents: {type: integer}
+      valid_contracts: {type: integer}
+      invalid_contracts: {type: integer}
+      mismatched_agents:
+        type: array
+        items: {type: string}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
   missing_agent_assets:
     type: array
     items:
@@ -62,6 +79,36 @@ properties:
         context_policy_path: {type: string}
         tool_policy_path: {type: string}
         memory_policy_path: {type: string}
+        os_contract_checks:
+          type: object
+          required:
+            - valid
+            - asset_paths_exist
+            - agent_card_matches_roster
+            - skill_references_agent_card
+            - tool_policy_matches_roster_tools
+            - memory_policy_matches_agent_namespace
+            - context_policy_preserves_kol_methodology_boundary
+            - safety_boundaries_disabled
+            - mismatches
+            - real_trade_allowed
+            - broker_integration
+          properties:
+            valid: {type: boolean}
+            asset_paths_exist: {type: boolean}
+            agent_card_matches_roster: {type: boolean}
+            skill_references_agent_card: {type: boolean}
+            tool_policy_matches_roster_tools: {type: boolean}
+            memory_policy_matches_agent_namespace: {type: boolean}
+            context_policy_preserves_kol_methodology_boundary: {type: boolean}
+            safety_boundaries_disabled: {type: boolean}
+            mismatches:
+              type: array
+              items: {type: string}
+            real_trade_allowed:
+              enum: [false]
+            broker_integration:
+              enum: [disabled]
         assets:
           type: object
   model_records:

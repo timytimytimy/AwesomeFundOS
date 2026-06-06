@@ -120,6 +120,17 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("tool_policy", os_manifest["loaded_asset_counts"])
             self.assertIn("memory_policy", os_manifest["loaded_asset_counts"])
             self.assertTrue(os_manifest["all_selected_agents_have_runtime_assets"])
+            self.assertTrue(os_manifest["all_agent_os_contracts_valid"])
+            self.assertEqual(os_manifest["agent_os_contract_summary"]["valid_contracts"], len(run_doc["selected_agents"]))
+            self.assertEqual(os_manifest["agent_os_contract_summary"]["invalid_contracts"], 0)
+            for agent_row in os_manifest["agents"]:
+                checks = agent_row["os_contract_checks"]
+                self.assertTrue(checks["agent_card_matches_roster"])
+                self.assertTrue(checks["skill_references_agent_card"])
+                self.assertTrue(checks["tool_policy_matches_roster_tools"])
+                self.assertTrue(checks["memory_policy_matches_agent_namespace"])
+                self.assertTrue(checks["context_policy_preserves_kol_methodology_boundary"])
+                self.assertTrue(checks["safety_boundaries_disabled"])
             self.assertIn("harness/agent-harness.yaml", os_manifest["harness_artifacts"])
             self.assertIn("evolution/candidates.jsonl", os_manifest["evolution_artifacts"])
             self.assertTrue(os_manifest["safety_invariants"]["paper_portfolio_only"])
@@ -127,6 +138,8 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("# Operating System Manifest", os_manifest_md)
             self.assertIn(f"run_id: {run_doc['run_id']}", os_manifest_md)
             self.assertIn("## Agent Runtime Assets", os_manifest_md)
+            self.assertIn("## Agent OS Contract Checks", os_manifest_md)
+            self.assertIn("all_agent_os_contracts_valid: True", os_manifest_md)
             self.assertIn("## Harness, Memory, Evolution", os_manifest_md)
             self.assertIn("## Safety Boundaries", os_manifest_md)
             self.assertIn("real_trade_allowed: False", os_manifest_md)
@@ -259,6 +272,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("runtime_mode=local_file_protocol", inspect.stdout)
             self.assertIn("model_records=", inspect.stdout)
             self.assertIn("all_runtime_assets=True", inspect.stdout)
+            self.assertIn("all_agent_os_contracts_valid=True", inspect.stdout)
+            self.assertIn("agent_os_contracts=valid:", inspect.stdout)
+            self.assertIn("invalid:0", inspect.stdout)
             self.assertIn("loaded_agent_assets=agent_card:", inspect.stdout)
             self.assertIn("harness_artifacts=", inspect.stdout)
             self.assertIn("memory_thread_artifacts=", inspect.stdout)
@@ -305,6 +321,8 @@ class FundosCliTests(unittest.TestCase):
             "model_record_count",
             "loaded_asset_counts",
             "all_selected_agents_have_runtime_assets",
+            "all_agent_os_contracts_valid",
+            "agent_os_contract_summary",
             "agents",
             "model_records",
             "harness_artifacts",
@@ -320,6 +338,8 @@ class FundosCliTests(unittest.TestCase):
 
         self.assertEqual(schema["properties"]["artifact_type"]["enum"], ["operating_system_manifest"])
         self.assertEqual(schema["properties"]["runtime_mode"]["enum"], ["local_file_protocol"])
+        self.assertIn("os_contract_checks", schema["properties"]["agents"]["items"]["properties"])
+        self.assertIn("agent_os_contract_summary", schema["properties"])
         self.assertEqual(schema["properties"]["real_trade_allowed"]["enum"], [False])
         self.assertEqual(schema["properties"]["broker_integration"]["enum"], ["disabled"])
         safety_required = schema["properties"]["safety_invariants"]["required"]

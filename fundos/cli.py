@@ -588,6 +588,9 @@ def command_inspect(args: argparse.Namespace) -> int:
         print(f"runtime_mode={manifest.get('runtime_mode')}")
         print(f"model_records={manifest.get('model_record_count', 0)}")
         print(f"all_runtime_assets={manifest.get('all_selected_agents_have_runtime_assets')}")
+        contract_summary = manifest.get("agent_os_contract_summary", {}) or {}
+        print(f"all_agent_os_contracts_valid={manifest.get('all_agent_os_contracts_valid')}")
+        print("agent_os_contracts=" + inline_counts({"valid": contract_summary.get("valid_contracts", 0), "invalid": contract_summary.get("invalid_contracts", 0), "checked": contract_summary.get("checked_agents", 0)}))
         print("loaded_agent_assets=" + inline_counts(loaded_assets))
         print(f"harness_artifacts={len(manifest.get('harness_artifacts', []) or [])}")
         print(f"memory_thread_artifacts={len(manifest.get('memory_thread_artifacts', []) or [])}")
