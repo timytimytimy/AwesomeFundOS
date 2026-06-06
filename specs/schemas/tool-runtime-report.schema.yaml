@@ -1,0 +1,48 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - runtime_id
+  - source_path
+  - run_id
+  - tool_runtime_quality_score
+  - tool_call_count
+  - succeeded_tool_calls
+  - blocked_tool_calls
+  - evidence_items_created
+  - adapters_called
+  - source_tier_counts
+  - ledger_path
+  - evidence_path
+  - blocking_issues
+  - controls
+  - disclaimer
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [tool_runtime_report]}
+  runtime_id: {type: string}
+  source_path: {type: string}
+  run_id: {type: string}
+  tool_runtime_quality_score: {type: number}
+  tool_call_count: {type: integer}
+  succeeded_tool_calls: {type: integer}
+  blocked_tool_calls: {type: integer}
+  evidence_items_created: {type: integer}
+  adapters_called:
+    type: array
+    items: {type: string}
+  source_tier_counts: {type: object}
+  ledger_path: {type: string}
+  evidence_path: {type: string}
+  blocking_issues:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  disclaimer: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

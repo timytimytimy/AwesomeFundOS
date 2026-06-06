@@ -151,6 +151,16 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     task_dag_schema_check = runtime_task_dag_schema_check(repo_root, run_path, task_dag, research_gap_tasks, task_dag_harness)
     agent_thread_schema_check = runtime_agent_thread_schema_check(repo_root, run_path, runtime_root, agent_thread_manifest)
     case_library_replay_schema_check = runtime_case_library_replay_schema_check(repo_root, run_path, case_library_index, case_replay)
+    tool_runtime_harness_schema_check = runtime_tool_runtime_harness_claim_graph_schema_check(
+        repo_root,
+        run_path,
+        tool_runtime,
+        tool_call_ledger,
+        tool_runtime_evidence,
+        tool_harness,
+        agent_tool_use,
+        claim_graph,
+    )
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -382,6 +392,27 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_tool_runtime_check["ok"],
             details=manifest_tool_runtime_check,
+        ),
+        requirement(
+            "runtime.tool_runtime_harness_claim_graph_artifacts_match_schemas",
+            "runtime_harness",
+            "Tool Runtime, tool-call ledger, Tool Harness, Agent Tool Use, and Claim Graph reports match source-controlled schemas and preserve tool-result evidence traceability plus paper-only controls.",
+            [
+                repo_root / "specs/schemas/tool-runtime-report.schema.yaml",
+                repo_root / "specs/schemas/tool-call-ledger-row.schema.yaml",
+                repo_root / "specs/schemas/tool-runtime-evidence.schema.yaml",
+                repo_root / "specs/schemas/tool-harness-report.schema.yaml",
+                repo_root / "specs/schemas/agent-tool-use-report.schema.yaml",
+                repo_root / "specs/schemas/claim-graph-report.schema.yaml",
+                run_path / "tools" / "tool-runtime-report.yaml",
+                run_path / "tools" / "tool-call-ledger.jsonl",
+                run_path / "evidence" / "tool-runtime-evidence.yaml",
+                run_path / "harness" / "tool-harness.yaml",
+                run_path / "harness" / "agent-tool-use.yaml",
+                run_path / "harness" / "claim-graph.yaml",
+            ],
+            tool_runtime_harness_schema_check["ok"],
+            details=tool_runtime_harness_schema_check,
         ),
         requirement(
             "runtime.committee_debate_risk_decision_loop_complete",
@@ -2125,6 +2156,163 @@ def runtime_case_library_replay_schema_check(repo_root: Path, run_path: Path, ca
         "case_results_total": len(replay_results) if 'replay_results' in locals() else 0,
         "case_types": sorted(source_case_types),
         "controls": combined_controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_tool_runtime_harness_claim_graph_schema_check(
+    repo_root: Path,
+    run_path: Path,
+    runtime_report: Any,
+    ledger_rows: list[dict[str, Any]],
+    evidence_doc: Any,
+    tool_harness: Any,
+    agent_tool_use: Any,
+    claim_graph: Any,
+) -> dict[str, Any]:
+    schemas = {
+        "tool-runtime-report.yaml": repo_root / "specs" / "schemas" / "tool-runtime-report.schema.yaml",
+        "tool-call-ledger.jsonl": repo_root / "specs" / "schemas" / "tool-call-ledger-row.schema.yaml",
+        "tool-runtime-evidence.yaml": repo_root / "specs" / "schemas" / "tool-runtime-evidence.schema.yaml",
+        "tool-harness.yaml": repo_root / "specs" / "schemas" / "tool-harness-report.schema.yaml",
+        "agent-tool-use.yaml": repo_root / "specs" / "schemas" / "agent-tool-use-report.schema.yaml",
+        "claim-graph.yaml": repo_root / "specs" / "schemas" / "claim-graph-report.schema.yaml",
+    }
+    artifacts = {
+        "tool-runtime-report.yaml": run_path / "tools" / "tool-runtime-report.yaml",
+        "tool-call-ledger.jsonl": run_path / "tools" / "tool-call-ledger.jsonl",
+        "tool-runtime-evidence.yaml": run_path / "evidence" / "tool-runtime-evidence.yaml",
+        "tool-harness.yaml": run_path / "harness" / "tool-harness.yaml",
+        "agent-tool-use.yaml": run_path / "harness" / "agent-tool-use.yaml",
+        "claim-graph.yaml": run_path / "harness" / "claim-graph.yaml",
+    }
+    docs = {
+        "tool-runtime-report.yaml": runtime_report,
+        "tool-runtime-evidence.yaml": evidence_doc,
+        "tool-harness.yaml": tool_harness,
+        "agent-tool-use.yaml": agent_tool_use,
+        "claim-graph.yaml": claim_graph,
+    }
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+
+    for name, schema_path in schemas.items():
+        if not schema_path.exists():
+            schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
+
+    for name, path in artifacts.items():
+        if not path.exists():
+            missing_artifacts.append(name)
+
+    for name, doc in docs.items():
+        if name in missing_artifacts or not isinstance(doc, dict):
+            if name not in missing_artifacts:
+                missing_artifacts.append(name)
+            continue
+        schema_path = schemas[name]
+        if schema_path.exists():
+            result = validate_runtime_schema(schema_path, doc)
+            if not result["ok"]:
+                schema_errors_by_artifact[name] = result["schema_errors"]
+
+    ledger_schema = schemas["tool-call-ledger.jsonl"]
+    if artifacts["tool-call-ledger.jsonl"].exists() and ledger_schema.exists():
+        if not ledger_rows:
+            mismatches.append("tool_call_ledger: expected at least one row")
+        for idx, row in enumerate(ledger_rows):
+            result = validate_runtime_schema(ledger_schema, row)
+            if not result["ok"]:
+                schema_errors_by_artifact[f"tool-call-ledger.jsonl:{idx + 1}"] = result["schema_errors"]
+
+    evidence_items = evidence_doc.get("evidence_items", []) if isinstance(evidence_doc, dict) and isinstance(evidence_doc.get("evidence_items", []), list) else []
+    succeeded_rows = [row for row in ledger_rows if isinstance(row, dict) and row.get("status") == "succeeded"]
+    blocked_rows = [row for row in ledger_rows if isinstance(row, dict) and row.get("status") == "blocked"]
+    succeeded_tool_result_ids = {str(row.get("tool_result_id")) for row in succeeded_rows if row.get("tool_result_id")}
+    evidence_tool_result_ids = {str(item.get("tool_result_id")) for item in evidence_items if isinstance(item, dict) and item.get("tool_result_id")}
+    linked_evidence_ids = {str(eid) for row in succeeded_rows for eid in (row.get("evidence_item_ids", []) if isinstance(row.get("evidence_item_ids", []), list) else [])}
+    evidence_ids = {str(item.get("id")) for item in evidence_items if isinstance(item, dict) and item.get("id")}
+
+    compare_value(mismatches, "tool_runtime.tool_call_count", runtime_report.get("tool_call_count") if isinstance(runtime_report, dict) else None, len(ledger_rows))
+    compare_value(mismatches, "tool_runtime.succeeded_tool_calls", runtime_report.get("succeeded_tool_calls") if isinstance(runtime_report, dict) else None, len(succeeded_rows))
+    compare_value(mismatches, "tool_runtime.blocked_tool_calls", runtime_report.get("blocked_tool_calls") if isinstance(runtime_report, dict) else None, len(blocked_rows))
+    compare_value(mismatches, "tool_runtime.evidence_items_created", runtime_report.get("evidence_items_created") if isinstance(runtime_report, dict) else None, len(evidence_items))
+    if isinstance(agent_tool_use, dict):
+        compare_value(mismatches, "agent_tool_use.succeeded_tool_calls", agent_tool_use.get("succeeded_tool_calls"), len(succeeded_rows))
+        unlinked_ids = sorted({str(item) for row in agent_tool_use.get("agent_results", []) or [] if isinstance(row, dict) for item in row.get("unlinked_tool_result_ids", [])})
+        if unlinked_ids:
+            mismatches.append(f"agent_tool_use.unlinked_tool_result_ids: expected [], got {unlinked_ids!r}")
+    else:
+        unlinked_ids = []
+    if isinstance(claim_graph, dict):
+        compare_value(mismatches, "claim_graph.tool_result_node_count", claim_graph.get("tool_result_node_count"), len(evidence_tool_result_ids))
+        if claim_graph.get("tool_evidence_without_trace"):
+            mismatches.append(f"claim_graph.tool_evidence_without_trace: expected [], got {claim_graph.get('tool_evidence_without_trace')!r}")
+    missing_evidence_links = sorted(linked_evidence_ids - evidence_ids)
+    if missing_evidence_links:
+        mismatches.append(f"tool_runtime.ledger_evidence_links_missing: {missing_evidence_links!r}")
+    missing_tool_evidence = sorted(succeeded_tool_result_ids - evidence_tool_result_ids)
+    if missing_tool_evidence:
+        mismatches.append(f"tool_runtime.succeeded_tool_results_missing_evidence: {missing_tool_evidence!r}")
+
+    controls = set()
+    for doc in [runtime_report, tool_harness, agent_tool_use, claim_graph]:
+        if isinstance(doc, dict):
+            controls.update(str(control) for control in doc.get("controls", []) if control)
+            if doc.get("real_trade_allowed") is not False:
+                label = str(doc.get("artifact_type") or "artifact")
+                mismatches.append(f"{label}.real_trade_allowed: expected False, got {doc.get('real_trade_allowed')!r}")
+            if doc.get("broker_integration") != "disabled":
+                label = str(doc.get("artifact_type") or "artifact")
+                mismatches.append(f"{label}.broker_integration: expected 'disabled', got {doc.get('broker_integration')!r}")
+    if isinstance(evidence_doc, dict):
+        if evidence_doc.get("real_trade_allowed") is not False:
+            mismatches.append(f"tool_runtime_evidence.real_trade_allowed: expected False, got {evidence_doc.get('real_trade_allowed')!r}")
+        if evidence_doc.get("broker_integration") != "disabled":
+            mismatches.append(f"tool_runtime_evidence.broker_integration: expected 'disabled', got {evidence_doc.get('broker_integration')!r}")
+    for idx, row in enumerate(ledger_rows):
+        if not isinstance(row, dict):
+            mismatches.append(f"tool_call_ledger[{idx}]: expected object")
+            continue
+        if row.get("permission_level") != "read_only_analysis":
+            mismatches.append(f"tool_call_ledger[{idx}].permission_level: expected 'read_only_analysis', got {row.get('permission_level')!r}")
+        if row.get("real_trade_allowed") is not False:
+            mismatches.append(f"tool_call_ledger[{idx}].real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+        if row.get("broker_integration") != "disabled":
+            mismatches.append(f"tool_call_ledger[{idx}].broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+
+    required_controls = {
+        "all_fixture_tools_are_read_only",
+        "tool_call_ledger_required",
+        "every_tool_result_maps_to_evidence_item",
+        "no_order_or_broker_adapter",
+        "tool_result_trace_required_for_tool_evidence",
+        "low_tier_claims_cannot_drive_decision",
+        "no_real_trade_action",
+    }
+    missing_controls = sorted(required_controls - controls)
+    if missing_controls:
+        mismatches.append(f"tool_runtime_harness_claim_graph.controls missing {missing_controls!r}")
+
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": sorted(set(missing_artifacts)),
+        "mismatches": mismatches,
+        "schema_paths": {name: str(path) for name, path in schemas.items()},
+        "artifact_paths": {name: str(path) for name, path in artifacts.items()},
+        "tool_call_count": int(runtime_report.get("tool_call_count", 0) or 0) if isinstance(runtime_report, dict) else 0,
+        "ledger_row_count": len(ledger_rows),
+        "succeeded_tool_calls": int(runtime_report.get("succeeded_tool_calls", 0) or 0) if isinstance(runtime_report, dict) else 0,
+        "succeeded_ledger_rows": len(succeeded_rows),
+        "blocked_tool_calls": int(runtime_report.get("blocked_tool_calls", 0) or 0) if isinstance(runtime_report, dict) else 0,
+        "blocked_ledger_rows": len(blocked_rows),
+        "evidence_items_created": int(runtime_report.get("evidence_items_created", 0) or 0) if isinstance(runtime_report, dict) else 0,
+        "tool_evidence_items": len(evidence_items),
+        "unlinked_tool_result_ids": unlinked_ids,
+        "tool_evidence_without_trace": claim_graph.get("tool_evidence_without_trace", []) if isinstance(claim_graph, dict) else [],
+        "controls": sorted(controls),
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

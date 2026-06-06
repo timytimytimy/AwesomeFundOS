@@ -1,0 +1,91 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - reconciliation_id
+  - source_path
+  - run_id
+  - overall_score
+  - agent_count
+  - agents_with_missing_required_tools
+  - agents_with_forbidden_tool_calls
+  - succeeded_tool_calls
+  - linked_tool_results
+  - agent_results
+  - blocking_issues
+  - controls
+  - disclaimer
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [agent_tool_use_report]}
+  reconciliation_id: {type: string}
+  source_path: {type: string}
+  run_id: {type: string}
+  overall_score: {type: number}
+  agent_count: {type: integer}
+  agents_with_missing_required_tools: {type: integer}
+  agents_with_forbidden_tool_calls: {type: integer}
+  succeeded_tool_calls: {type: integer}
+  linked_tool_results: {type: integer}
+  agent_results:
+    type: array
+    items:
+      type: object
+      required:
+        - agent_id
+        - role
+        - policy_path
+        - allowed_tools
+        - required_tools
+        - called_tools
+        - missing_required_tools
+        - forbidden_called_tools
+        - succeeded_tool_result_ids
+        - tool_results_linked_to_claim_graph
+        - unlinked_tool_result_ids
+        - confidence_cap_required
+        - score
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        agent_id: {type: string}
+        role: {type: string}
+        policy_path: {type: string}
+        allowed_tools:
+          type: array
+          items: {type: string}
+        required_tools:
+          type: array
+          items: {type: string}
+        called_tools:
+          type: array
+          items: {type: string}
+        missing_required_tools:
+          type: array
+          items: {type: string}
+        forbidden_called_tools:
+          type: array
+          items: {type: string}
+        succeeded_tool_result_ids:
+          type: array
+          items: {type: string}
+        tool_results_linked_to_claim_graph: {type: integer}
+        unlinked_tool_result_ids:
+          type: array
+          items: {type: string}
+        confidence_cap_required: {type: boolean}
+        score: {type: number}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  blocking_issues:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  disclaimer: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

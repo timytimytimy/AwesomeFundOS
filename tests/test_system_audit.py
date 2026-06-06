@@ -226,6 +226,22 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(tool_runtime_details['evidence_items_created'], tool_runtime_details['tool_runtime_evidence_items'])
             self.assertFalse(tool_runtime_details['real_trade_allowed'])
             self.assertEqual(tool_runtime_details['broker_integration'], 'disabled')
+            self.assertEqual(by_id['runtime.tool_runtime_harness_claim_graph_artifacts_match_schemas']['status'], 'pass')
+            tool_schema_details = by_id['runtime.tool_runtime_harness_claim_graph_artifacts_match_schemas']['details']
+            self.assertEqual(tool_schema_details['schema_errors_by_artifact'], {})
+            self.assertEqual(tool_schema_details['missing_artifacts'], [])
+            self.assertGreaterEqual(tool_schema_details['tool_call_count'], 1)
+            self.assertGreaterEqual(tool_schema_details['tool_evidence_items'], 1)
+            self.assertEqual(tool_schema_details['tool_call_count'], tool_schema_details['ledger_row_count'])
+            self.assertEqual(tool_schema_details['succeeded_tool_calls'], tool_schema_details['succeeded_ledger_rows'])
+            self.assertEqual(tool_schema_details['blocked_tool_calls'], tool_schema_details['blocked_ledger_rows'])
+            self.assertEqual(tool_schema_details['evidence_items_created'], tool_schema_details['tool_evidence_items'])
+            self.assertEqual(tool_schema_details['unlinked_tool_result_ids'], [])
+            self.assertEqual(tool_schema_details['tool_evidence_without_trace'], [])
+            self.assertIn('tool_call_ledger_required', tool_schema_details['controls'])
+            self.assertIn('tool_result_trace_required_for_tool_evidence', tool_schema_details['controls'])
+            self.assertFalse(tool_schema_details['real_trade_allowed'])
+            self.assertEqual(tool_schema_details['broker_integration'], 'disabled')
             self.assertEqual(by_id['runtime.portfolio_outcome_loop_matches_manifest']['status'], 'pass')
             portfolio_details = by_id['runtime.portfolio_outcome_loop_matches_manifest']['details']
             self.assertEqual(portfolio_details['watchlist_items'], 1)
@@ -287,6 +303,52 @@ class SystemAuditTests(unittest.TestCase):
             manifest_evidence = '\n'.join(by_id['runtime.operating_system_manifest_links_agent_os_assets']['evidence'])
             self.assertIn('system/operating-system-manifest.yaml', manifest_evidence)
             self.assertIn('system/operating-system-manifest.md', manifest_evidence)
+
+    def test_system_audit_strict_mode_fails_tool_runtime_harness_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+
+            runtime_yaml = run_path / 'tools' / 'tool-runtime-report.yaml'
+            runtime_report = yaml.safe_load(runtime_yaml.read_text(encoding='utf-8'))
+            runtime_report['broker_integration'] = 'enabled'
+            runtime_yaml.write_text(yaml.safe_dump(runtime_report, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            ledger_path = run_path / 'tools' / 'tool-call-ledger.jsonl'
+            rows = [json.loads(line) for line in ledger_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            rows[0].pop('broker_integration', None)
+            ledger_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows), encoding='utf-8')
+
+            claim_yaml = run_path / 'harness' / 'claim-graph.yaml'
+            claim_report = yaml.safe_load(claim_yaml.read_text(encoding='utf-8'))
+            claim_report['tool_evidence_without_trace'] = ['bad_tool_result']
+            claim_yaml.write_text(yaml.safe_dump(claim_report, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.tool_runtime_harness_claim_graph_artifacts_match_schemas']['status'], 'fail')
+            details = by_id['runtime.tool_runtime_harness_claim_graph_artifacts_match_schemas']['details']
+            runtime_errors = '\n'.join(details['schema_errors_by_artifact']['tool-runtime-report.yaml'])
+            self.assertIn('$.broker_integration', runtime_errors)
+            ledger_errors = '\n'.join(details['schema_errors_by_artifact']['tool-call-ledger.jsonl:1'])
+            self.assertIn('$.broker_integration', ledger_errors)
+            mismatches = '\n'.join(details['mismatches'])
+            self.assertIn('claim_graph.tool_evidence_without_trace', mismatches)
 
     def test_system_audit_strict_mode_fails_portfolio_outcome_schema_violation(self):
         with tempfile.TemporaryDirectory() as d:

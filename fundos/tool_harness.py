@@ -53,6 +53,8 @@ def evaluate_tool_harness(evidence_pack: dict[str, Any]) -> dict[str, Any]:
             "social_signal_never_direct_buy",
             "real_trade_action_forbidden",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -86,6 +88,8 @@ def default_report() -> dict[str, Any]:
         "blocking_issues": [],
         "high_confidence_allowed": False,
         "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
