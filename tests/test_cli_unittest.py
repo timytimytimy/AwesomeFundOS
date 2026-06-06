@@ -602,6 +602,18 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(show_result.returncode, 0, show_result.stderr)
             self.assertIn("status=closed_by_accepted_evidence", show_result.stdout)
 
+            eval_result = run_cli(["eval", "--run", run_rel], tmp_path)
+            self.assertEqual(eval_result.returncode, 0, eval_result.stderr)
+            manifest_after_eval = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())
+            closed_after_eval = next(row for row in manifest_after_eval["tasks"] if row["task_id"] == task["task_id"])
+            self.assertEqual(closed_after_eval["status"], "closed_by_accepted_evidence")
+            self.assertEqual(closed_after_eval["accepted_evidence_ids"], ["FGCLI001"])
+            dag_after_eval = yaml.safe_load((tmp_path / run_rel / "workflow" / "task-dag.yaml").read_text())
+            node_after_eval = {row["node_id"]: row for row in dag_after_eval["nodes"]}[f"research_gap:{task['category']}"]
+            self.assertEqual(node_after_eval["status"], "closed_by_accepted_evidence")
+            evaluation = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
+            self.assertNotIn(task["category"], evaluation["research_plan_coverage"].get("missing_categories", []))
+
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

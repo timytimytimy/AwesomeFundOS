@@ -313,6 +313,13 @@ class ResearchTaskDagTests(unittest.TestCase):
             self.assertEqual(harness["research_gap_pending_count"], 0)
             self.assertEqual(harness["research_gap_accepted_evidence_count"], 1)
 
+            regenerated = write_task_dag(run_path, selected, updated_pack)
+            regenerated_node = {row["node_id"]: row for row in regenerated["nodes"]}["research_gap:market_data"]
+            self.assertEqual(regenerated_node["status"], "closed_by_accepted_evidence")
+            self.assertEqual(regenerated_node["accepted_evidence_ids"], ["FG001"])
+            manifest_after_regen = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
+            self.assertEqual(manifest_after_regen["tasks"][0]["status"], "closed_by_accepted_evidence")
+
 
 if __name__ == "__main__":
     unittest.main()

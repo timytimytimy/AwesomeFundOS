@@ -459,6 +459,7 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
     run_id = evidence_pack.get("run_id") or read_run_id(run_path)
     coverage = evidence_pack.get("research_plan_coverage") or {}
     next_research_tasks = build_next_research_tasks(coverage, run_id or "unknown-run")
+    next_research_tasks = merge_existing_research_gap_tasks(run_path, next_research_tasks)
     nodes.extend(build_research_gap_nodes(next_research_tasks))
     edges = build_edges(nodes)
     missing_artifacts = [
@@ -524,7 +525,32 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
     write_yaml(run_path / "workflow" / "task-dag.yaml", dag)
     write_yaml(run_path / "harness" / "task-dag-harness.yaml", harness)
     write_research_gap_task_artifacts(run_path, dag["run_id"], next_research_tasks)
-    return dag
+    reconcile_research_gap_followups(run_path)
+    return read_yaml(run_path / "workflow" / "task-dag.yaml") or dag
+
+
+def merge_existing_research_gap_tasks(run_path: Path, next_research_tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    existing_manifest = load_research_gap_task_manifest(run_path)
+    by_task_id = {task.get("task_id"): dict(task) for task in existing_manifest.get("tasks", []) if task.get("task_id")}
+    by_category = {task.get("category"): dict(task) for task in existing_manifest.get("tasks", []) if task.get("category")}
+    merged: list[dict[str, Any]] = []
+    seen_task_ids: set[str] = set()
+    for task in next_research_tasks:
+        existing = by_task_id.get(task.get("task_id")) or by_category.get(task.get("category"))
+        if existing and existing.get("status") in {"closed_by_accepted_evidence", "answered_needs_evidence", "answered_unsafe_blocked", "answered"}:
+            combined = dict(task)
+            combined.update(existing)
+            merged.append(combined)
+            seen_task_ids.add(str(combined.get("task_id")))
+        else:
+            merged.append(task)
+            if task.get("task_id"):
+                seen_task_ids.add(str(task.get("task_id")))
+    for existing in by_task_id.values():
+        if existing.get("status") == "closed_by_accepted_evidence" and str(existing.get("task_id")) not in seen_task_ids:
+            merged.append(existing)
+            seen_task_ids.add(str(existing.get("task_id")))
+    return merged
 
 
 def write_research_gap_task_artifacts(run_path: Path, run_id: str | None, next_research_tasks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -534,7 +560,7 @@ def write_research_gap_task_artifacts(run_path: Path, run_id: str | None, next_r
         brief_rel = f"follow_up/research_gap_{safe_filename(category)}.md"
         enriched = dict(task)
         enriched["brief_path"] = brief_rel
-        enriched["status"] = "planned"
+        enriched["status"] = task.get("status") or "planned"
         enriched["allowed_output"] = "research_follow_up_brief_only"
         enriched["real_trade_allowed"] = False
         enriched["broker_integration"] = "disabled"

@@ -224,6 +224,8 @@ closed_by_accepted_evidence
 
 `--evidence` 文件可以是 `evidence_items: [...]` 映射或 EvidenceItem 数组。close 只接受结构化 EvidenceItem，不接受自由文本观点；写回后仍保持 `real_trade_allowed=false`、`broker_integration=disabled`。
 
+后续再次运行 `fundos eval --run <run>` 或重新生成 Research Task DAG 时，已关闭的缺口必须继续保留在 manifest / DAG / Harness 中，不能因为 `research_plan_coverage.missing_categories` 已移除该 category 而丢失审计历史。
+
 约束：
 
 - follow-up task 只能产生研究 brief、证据请求和 source-quality notes；
