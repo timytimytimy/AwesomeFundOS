@@ -131,6 +131,8 @@ runs/{run_id}/evolution/memory-writeback-summary.yaml
 
 `evolve` 还会把每个候选的 EvolutionGate 结果反写到目标 Agent 的长期 Thread：accepted / quarantined / rejected 分别追加 `evolution_candidate_accepted`、`evolution_candidate_quarantined`、`evolution_candidate_rejected`。如果 accepted 候选触发受控长期记忆写回，还会追加 `memory_writeback_applied`，payload 包含 candidate_id、approval_mode、semantic_memory_path、ledger path 和安全边界。Thread 记录的是可审计生命周期，不代表 profile、工具权限、风控或 broker 状态被自动修改。
 
+如果候选来自 `learning/failure-patterns.yaml` 中的 `skill_guardrail_violation`，`evolve` 必须保留 Agent Harness 违规 metadata，例如 `source=agent_harness`、`artifact_path=harness/agent-harness.yaml`、blocking_issues、guardrails_applied 和 guardrail_safety_respected。该类候选只能走 checklist / workflow / memory 修复链路，不能直接修改 source-controlled Agent Card、SKILL、Tool Permission、Risk Limit、真实交易或 broker 状态。
+
 Principle / skill / checklist / workflow / tool policy 升级候选不直接改写 `agent.md` 或 `SKILL.md`。被接受候选进入：
 
 ```text
@@ -254,6 +256,8 @@ memory/organization/failure-pattern-library.jsonl
 输出 pattern_count、category_counts、severity_counts、latest_pattern_id、review_before_evolution、real_trade_allowed=false 和 broker_integration=disabled。
 
 Failure Pattern Library 只用于复盘、复训、能力升级候选评估和 Harness 负反馈，不得解释为交易信号，也不得触发真实交易动作。
+
+如果 Agent Harness 发现 Skill Guardrails 未被应用或安全边界未被遵守，`fundos failures summary` 的来源库中应出现 `skill_guardrail_violation` category；后续 `fundos evolve --run` 会把它转成可审计 Agent Learning Candidate，并继续保持 no-real-trade / broker-disabled 边界。
 
 ## 13. `fundos sources ingest --run --fixture`
 

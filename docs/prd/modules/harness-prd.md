@@ -190,6 +190,7 @@ memory/organization/failure-pattern-library.jsonl
 
 - `reflections/*.reflection.yaml` 中的 missed_evidence、reasoning_errors、tool_usage_errors、bias_detected；
 - `evaluations/evaluation-report.yaml` 中的 blocking_issues；
+- `harness/agent-harness.yaml` 中的 Skill Guardrails 违规，例如 `skill_guardrails_not_applied`、`guardrails_applied=false` 或 `guardrail_safety_respected=false`；
 - `portfolio/outcome-tracking.yaml` 中的 missed_opportunity_review 和 risk_control_review。
 
 Harness 输出：pattern_count、category_counts、severity_counts、patterns、controls。
@@ -197,6 +198,8 @@ Harness 输出：pattern_count、category_counts、severity_counts、patterns、
 核心控制：`review_before_evolution`、`failure_patterns_are_not_trade_signals`、`no_real_trade_action`、`do_not_delete_historical_errors`。
 
 Failure Pattern Library 是 Evolution 的负反馈输入：后续 capability candidate 必须能解释它要降低哪类错误、如何测试该改进，以及是否会引入新的角色漂移或风险回归。
+
+Skill Guardrails 违规必须生成 `skill_guardrail_violation` failure pattern，并进入 Agent Learning Candidate 链路；该候选只能提出 checklist / workflow / memory 层面的修复建议，不能绕过 EvolutionGate，也不能自动改写 Profile、Skill、Tool Permission、Risk Limit、真实交易或 broker 状态。
 
 ## 3. EvaluationReport
 

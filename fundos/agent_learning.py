@@ -275,6 +275,7 @@ def candidates_from_failure_patterns(run_id: str, report: dict[str, Any]) -> lis
         agent_id = str(pattern.get("agent_id") or "unknown_agent")
         category = str(pattern.get("category") or "failure_pattern")
         severity = str(pattern.get("severity") or "medium")
+        pattern_metadata = pattern.get("metadata", {}) or {}
         if not pattern.get("pattern_id"):
             continue
         candidates.append(make_candidate(
@@ -291,9 +292,14 @@ def candidates_from_failure_patterns(run_id: str, report: dict[str, Any]) -> lis
                 "source_id": "failure_pattern_library",
                 "evidence_id": "learning/failure-patterns.yaml",
                 "source_tier": "tier_2_canonical_framework",
-                "rationale": f"Failure pattern {pattern.get('pattern_id')} was extracted from run reflections or evaluation.",
+                "rationale": f"Failure pattern {pattern.get('pattern_id')} was extracted from run reflections, evaluation, or harness reports.",
             }],
-            metadata={"pattern_id": pattern.get("pattern_id"), "category": category, "severity": severity},
+            metadata={
+                "pattern_id": pattern.get("pattern_id"),
+                "category": category,
+                "severity": severity,
+                **pattern_metadata,
+            },
         ))
     return candidates
 

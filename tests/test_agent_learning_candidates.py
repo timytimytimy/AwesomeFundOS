@@ -7,6 +7,7 @@ import yaml
 
 from fundos.evolution import run_evolution_gate
 from fundos.agent_learning import generate_agent_learning_candidates, load_agent_learning_report
+from fundos.io import write_yaml
 
 
 class AgentLearningCandidateTests(unittest.TestCase):
@@ -138,6 +139,59 @@ class AgentLearningCandidateTests(unittest.TestCase):
                     self.assertIn(row['decision'], {'accept', 'quarantine', 'reject'})
                     self.assertNotEqual(row['candidate_type'], 'profile_update')
                     self.assertNotEqual(row['target_scope'], 'tool_permission')
+
+    def test_guardrail_failure_pattern_generates_evolution_candidate(self):
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_minimal_run(run_path, 'run_guardrail_learning')
+            write_yaml(run_path / 'learning' / 'failure-patterns.yaml', {
+                'artifact_type': 'failure_pattern_report',
+                'run_id': 'run_guardrail_learning',
+                'patterns': [
+                    {
+                        'pattern_id': 'fp_guardrail_001',
+                        'run_id': 'run_guardrail_learning',
+                        'agent_id': 'swing_trader',
+                        'category': 'skill_guardrail_violation',
+                        'description': 'Agent Harness detected skill_guardrails_not_applied.',
+                        'severity': 'high',
+                        'prevention_check': 'Before future outputs, explicitly apply Skill Guardrails and verify no real trade/broker leakage.',
+                        'metadata': {
+                            'source': 'agent_harness',
+                            'artifact_path': 'harness/agent-harness.yaml',
+                            'guardrails_applied': False,
+                            'guardrail_safety_respected': False,
+                        },
+                        'tags': ['failure_pattern', 'skill_guardrail_violation', 'skill_guardrail'],
+                        'review_before_evolution': True,
+                        'real_trade_allowed': False,
+                        'broker_integration': 'disabled',
+                    }
+                ],
+                'controls': ['review_before_evolution', 'no_real_trade_action'],
+                'real_trade_allowed': False,
+                'broker_integration': 'disabled',
+            })
+
+            report = generate_agent_learning_candidates(run_path)
+
+            candidates = [row for row in report['candidates'] if row['metadata'].get('category') == 'skill_guardrail_violation']
+            self.assertEqual(len(candidates), 1)
+            candidate = candidates[0]
+            self.assertEqual(candidate['target_agent'], 'swing_trader')
+            self.assertEqual(candidate['candidate_type'], 'checklist_update')
+            self.assertEqual(candidate['target_scope'], 'agent_memory')
+            self.assertIn('skill_guardrail_violation', candidate['proposal'])
+            self.assertEqual(candidate['metadata']['pattern_id'], 'fp_guardrail_001')
+            self.assertEqual(candidate['metadata']['source'], 'agent_harness')
+            self.assertEqual(candidate['metadata']['artifact_path'], 'harness/agent-harness.yaml')
+            self.assertFalse(candidate['metadata']['guardrails_applied'])
+            self.assertFalse(candidate['metadata']['guardrail_safety_respected'])
+            self.assertIn('historical_case_replay', candidate['required_tests'])
+            self.assertFalse(candidate['real_trade_allowed'])
+            self.assertEqual(candidate['broker_integration'], 'disabled')
+            evolution_candidates = read_jsonl(run_path / 'evolution/candidates.jsonl')
+            self.assertTrue(any(row['candidate_id'] == candidate['candidate_id'] for row in evolution_candidates))
 
     def test_closed_followup_thread_event_generates_reflection_candidate_for_owner_agent(self):
         with tempfile.TemporaryDirectory() as d:

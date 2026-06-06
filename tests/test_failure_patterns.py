@@ -51,6 +51,49 @@ class FailurePatternTests(unittest.TestCase):
             self.assertFalse(first["real_trade_allowed"])
             self.assertIn("review_before_evolution", report["controls"])
 
+    def test_extract_failure_patterns_from_agent_harness_guardrail_violations(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "run-guardrail-failure"
+            (run_path / "harness").mkdir(parents=True)
+            write_yaml(run_path / "run.yaml", {"run_id": "run-guardrail-failure"})
+            write_yaml(run_path / "harness" / "agent-harness.yaml", {
+                "artifact_type": "agent_harness_report",
+                "agent_count": 1,
+                "agent_results": [
+                    {
+                        "agent_id": "swing_trader",
+                        "role": "SwingTrader",
+                        "overall_score": 61,
+                        "skill_invocation_quality": {
+                            "score": 62,
+                            "guardrails_present": True,
+                            "guardrails_applied": False,
+                            "guardrail_safety_respected": False,
+                        },
+                        "blocking_issues": ["skill_guardrails_not_applied"],
+                    }
+                ],
+                "aggregate_scores": {"skill_guardrails": 0},
+                "controls": ["skill_guardrails_required", "no_real_trade_action"],
+            })
+
+            report = extract_failure_patterns(run_path)
+
+            guardrail_patterns = [row for row in report["patterns"] if row["category"] == "skill_guardrail_violation"]
+            self.assertEqual(len(guardrail_patterns), 1)
+            pattern = guardrail_patterns[0]
+            self.assertEqual(pattern["agent_id"], "swing_trader")
+            self.assertEqual(pattern["severity"], "high")
+            self.assertIn("skill_guardrails_not_applied", pattern["description"])
+            self.assertEqual(pattern["metadata"]["source"], "agent_harness")
+            self.assertEqual(pattern["metadata"]["artifact_path"], "harness/agent-harness.yaml")
+            self.assertFalse(pattern["metadata"]["guardrails_applied"])
+            self.assertFalse(pattern["metadata"]["guardrail_safety_respected"])
+            self.assertIn("skill_guardrail", pattern["tags"])
+            self.assertFalse(pattern["real_trade_allowed"])
+            self.assertEqual(pattern["broker_integration"], "disabled")
+
     def test_write_failure_patterns_updates_run_and_organization_ledgers_idempotently(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

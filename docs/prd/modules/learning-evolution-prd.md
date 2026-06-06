@@ -210,6 +210,7 @@ memory/organization/failure-pattern-library.jsonl
 
 - Agent reflections：missed_evidence、reasoning_errors、tool_usage_errors、bias_detected；
 - EvaluationReport：blocking_issues；
+- Agent Harness：Skill Guardrails 违规，包括 `skill_guardrails_not_applied`、`guardrails_applied=false`、`guardrail_safety_respected=false`；
 - Outcome Tracking：missed_opportunity_review、risk_control_review；
 - Portfolio Review 和未来 Case Replay 的负反馈。
 
@@ -221,6 +222,8 @@ memory/organization/failure-pattern-library.jsonl
 - 不因单次失败直接改写 Agent 核心 Profile、风险偏好或工具权限；
 - 历史错误不得删除，只能追加修正、降权或标记已处理；
 - 能力升级候选必须先说明如何避免相关 failure pattern，再进入 capability regression 或人工 apply。
+
+当 failure pattern 来自 Agent Harness 的 Skill Guardrails 违规时，Agent Learning 生成的候选必须保留原始 harness metadata，例如 source、artifact_path、blocking_issues、guardrails_applied、guardrail_safety_respected 和 score。该候选进入 EvolutionGate 前仍保持 `real_trade_allowed=false`、`broker_integration=disabled`，并且只能作为复盘、checklist 或受控能力候选，不能成为真实交易或权限升级依据。
 
 ## 6. Self Reflection
 

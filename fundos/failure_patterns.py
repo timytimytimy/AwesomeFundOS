@@ -46,6 +46,8 @@ def extract_failure_patterns(run_path: Path) -> dict[str, Any]:
     evaluation = load_optional_yaml(run_path / "evaluations" / "evaluation-report.yaml", {})
     for issue in evaluation.get("blocking_issues", []):
         patterns.append(make_pattern(run_id, "evaluation_harness", "evaluation_blocking_issue", str(issue), "high", "阻断项必须在下一次 run 的 Evidence / Tool / Context Harness 中关闭后才能升级结论。", {"source": "evaluation-report"}))
+    agent_harness = load_optional_yaml(run_path / "harness" / "agent-harness.yaml", {})
+    patterns.extend(patterns_from_agent_harness_guardrails(run_id, agent_harness))
     outcome = load_optional_yaml(run_path / "portfolio" / "outcome-tracking.yaml", {})
     for row in outcome.get("results", []):
         verdict = row.get("review_verdict")
@@ -81,6 +83,52 @@ def infer_run_id(run_path: Path) -> str:
 
 def patterns_from_list(run_id: str, agent_id: str, category: str, values: list[Any], severity: str, prevention: str) -> list[dict[str, Any]]:
     return [make_pattern(run_id, agent_id, category, str(value), severity, prevention, {"source": "reflection"}) for value in values if str(value).strip()]
+
+
+def patterns_from_agent_harness_guardrails(run_id: str, report: dict[str, Any]) -> list[dict[str, Any]]:
+    patterns: list[dict[str, Any]] = []
+    for row in report.get("agent_results", []) or []:
+        agent_id = str(row.get("agent_id") or "unknown_agent")
+        issues = [str(issue) for issue in row.get("blocking_issues", []) if str(issue).strip()]
+        skill_quality = row.get("skill_invocation_quality", {}) or {}
+        guardrails_present = skill_quality.get("guardrails_present")
+        guardrails_applied = skill_quality.get("guardrails_applied")
+        guardrail_safety_respected = skill_quality.get("guardrail_safety_respected")
+        has_violation = (
+            "skill_guardrails_not_applied" in issues
+            or (guardrails_present is True and (guardrails_applied is False or guardrail_safety_respected is False))
+        )
+        if not has_violation:
+            continue
+        pattern = make_pattern(
+            run_id,
+            agent_id,
+            "skill_guardrail_violation",
+            (
+                f"Agent Harness detected skill guardrail violation for {agent_id}: "
+                f"blocking_issues={','.join(issues) or 'none'}, "
+                f"guardrails_applied={guardrails_applied}, "
+                f"guardrail_safety_respected={guardrail_safety_respected}."
+            ),
+            "high",
+            (
+                "Before future outputs, explicitly apply Skill Guardrails, verify paper-only boundaries, "
+                "keep real_trade_allowed=false and broker_integration=disabled, and route durable fixes through EvolutionGate."
+            ),
+            {
+                "source": "agent_harness",
+                "artifact_path": "harness/agent-harness.yaml",
+                "blocking_issues": issues,
+                "guardrails_present": guardrails_present,
+                "guardrails_applied": guardrails_applied,
+                "guardrail_safety_respected": guardrail_safety_respected,
+                "skill_invocation_score": skill_quality.get("score"),
+                "overall_score": row.get("overall_score"),
+            },
+        )
+        pattern["tags"].append("skill_guardrail")
+        patterns.append(pattern)
+    return patterns
 
 
 def make_pattern(run_id: str, agent_id: str, category: str, description: str, severity: str, prevention: str, metadata: dict[str, Any]) -> dict[str, Any]:
