@@ -12,11 +12,12 @@ REQUIRED_QUALITY_GATES = {"identity_gate", "evidence_gate", "source_boundary_gat
 
 def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> dict[str, Any]:
     agent_results = []
+    os_manifest = read_optional_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     for item in selected:
         agent_id = item["agent_id"]
         context = read_optional_yaml(run_path / "context" / f"{agent_id}.context-pack.yaml", {})
         output = read_optional_yaml(run_path / "agent_work" / f"{agent_id}.structured.yaml", {})
-        agent_results.append(evaluate_agent(agent_id, context, output))
+        agent_results.append(evaluate_agent(agent_id, context, output, os_manifest))
     aggregate = aggregate_scores(agent_results)
     return {
         "version": AGENT_HARNESS_VERSION,
@@ -36,6 +37,7 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
             "skill_contract_required",
             "skill_guardrails_required",
             "skill_procedure_quality_gates_required",
+            "agent_os_contract_required",
             "agent_card_required",
             "evidence_traceability_required",
             "no_real_trade_action",
@@ -77,6 +79,7 @@ def default_report() -> dict[str, Any]:
             "skill_invocation": 0,
             "skill_guardrails": 0,
             "skill_execution": 0,
+            "agent_os_contract": 0,
             "role_consistency": 0,
             "overall": 0,
         },
@@ -85,7 +88,7 @@ def default_report() -> dict[str, Any]:
     }
 
 
-def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
+def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any], os_manifest: dict[str, Any] | None = None) -> dict[str, Any]:
     context_quality = evaluate_context_compression(context, output)
     context_policy_quality = evaluate_context_policy(context)
     context_management_quality = evaluate_context_management(context)
@@ -95,8 +98,9 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
     memory_policy_quality = evaluate_memory_policy(context, output)
     tool_policy_quality = evaluate_tool_policy(context, output)
     skill_quality = evaluate_skill_invocation(context, output)
+    agent_os_contract_quality = evaluate_agent_os_contract(agent_id, os_manifest or {})
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + thread_memory_summary_quality["score"] + memory_lesson_traceability_quality["score"] + reasoning_layer_separation_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 10, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + thread_memory_summary_quality["score"] + memory_lesson_traceability_quality["score"] + reasoning_layer_separation_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + agent_os_contract_quality["score"] + role_quality["score"]) / 11, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
@@ -110,8 +114,9 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
         "memory_policy_quality": memory_policy_quality,
         "tool_policy_quality": tool_policy_quality,
         "skill_invocation_quality": skill_quality,
+        "agent_os_contract_quality": agent_os_contract_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_lesson_traceability_quality, reasoning_layer_separation_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_lesson_traceability_quality, reasoning_layer_separation_quality, memory_policy_quality, tool_policy_quality, skill_quality, agent_os_contract_quality, role_quality),
     }
 
 
@@ -580,9 +585,83 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
     }
 
 
+def evaluate_agent_os_contract(agent_id: str, os_manifest: dict[str, Any]) -> dict[str, Any]:
+    agents = os_manifest.get("agents", []) if isinstance(os_manifest, dict) else []
+    row = next((item for item in agents if item.get("agent_id") == agent_id), {})
+    checks = row.get("os_contract_checks", {}) if isinstance(row, dict) else {}
+    manifest_available = bool(os_manifest) and bool(row)
+    if not manifest_available:
+        return {
+            "score": 0,
+            "manifest_available": False,
+            "valid": False,
+            "asset_paths_exist": False,
+            "agent_card_matches_roster": False,
+            "skill_references_agent_card": False,
+            "tool_policy_matches_roster_tools": False,
+            "memory_policy_matches_agent_namespace": False,
+            "context_policy_preserves_kol_methodology_boundary": False,
+            "safety_boundaries_disabled": False,
+            "mismatches": ["missing_operating_system_manifest"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    if checks.get("valid") is not True:
+        return {
+            "score": 0,
+            "manifest_available": True,
+            "valid": False,
+            "asset_paths_exist": checks.get("asset_paths_exist") is True,
+            "agent_card_matches_roster": checks.get("agent_card_matches_roster") is True,
+            "skill_references_agent_card": checks.get("skill_references_agent_card") is True,
+            "tool_policy_matches_roster_tools": checks.get("tool_policy_matches_roster_tools") is True,
+            "memory_policy_matches_agent_namespace": checks.get("memory_policy_matches_agent_namespace") is True,
+            "context_policy_preserves_kol_methodology_boundary": checks.get("context_policy_preserves_kol_methodology_boundary") is True,
+            "safety_boundaries_disabled": checks.get("safety_boundaries_disabled") is True,
+            "mismatches": checks.get("mismatches", []) or [],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    required = [
+        "valid",
+        "asset_paths_exist",
+        "agent_card_matches_roster",
+        "skill_references_agent_card",
+        "tool_policy_matches_roster_tools",
+        "memory_policy_matches_agent_namespace",
+        "context_policy_preserves_kol_methodology_boundary",
+        "safety_boundaries_disabled",
+    ]
+    score = 0
+    if manifest_available:
+        score += 20
+    for key in required[1:]:
+        if checks.get(key) is True:
+            score += 10
+    if checks.get("valid") is True:
+        score += 10
+    if checks.get("real_trade_allowed") is False and checks.get("broker_integration") == "disabled":
+        score += 10
+    return {
+        "score": min(100, score),
+        "manifest_available": manifest_available,
+        "valid": checks.get("valid") is True,
+        "asset_paths_exist": checks.get("asset_paths_exist") is True,
+        "agent_card_matches_roster": checks.get("agent_card_matches_roster") is True,
+        "skill_references_agent_card": checks.get("skill_references_agent_card") is True,
+        "tool_policy_matches_roster_tools": checks.get("tool_policy_matches_roster_tools") is True,
+        "memory_policy_matches_agent_namespace": checks.get("memory_policy_matches_agent_namespace") is True,
+        "context_policy_preserves_kol_methodology_boundary": checks.get("context_policy_preserves_kol_methodology_boundary") is True,
+        "safety_boundaries_disabled": checks.get("safety_boundaries_disabled") is True,
+        "mismatches": checks.get("mismatches", []) or [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "reasoning_layer_separation": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "skill_guardrails": 0, "skill_execution": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "reasoning_layer_separation": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "skill_guardrails": 0, "skill_execution": 0, "agent_os_contract": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
     context_management_score = avg(row["context_management_quality"]["score"] for row in agent_results)
@@ -594,6 +673,7 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
     guardrail_score = avg(100 if row["skill_invocation_quality"].get("guardrails_present") and row["skill_invocation_quality"].get("guardrails_applied") and row["skill_invocation_quality"].get("guardrail_safety_respected") else 0 for row in agent_results)
     skill_execution_score = avg(100 if row["skill_invocation_quality"].get("procedure_executed") and row["skill_invocation_quality"].get("quality_gates_checked") and row["skill_invocation_quality"].get("quality_gate_safety_respected") else 0 for row in agent_results)
+    agent_os_contract_score = avg(row["agent_os_contract_quality"]["score"] for row in agent_results)
     role_score = avg(row["role_consistency_quality"]["score"] for row in agent_results)
     return {
         "context_compression": context_score,
@@ -607,8 +687,9 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
         "skill_invocation": skill_score,
         "skill_guardrails": guardrail_score,
         "skill_execution": skill_execution_score,
+        "agent_os_contract": agent_os_contract_score,
         "role_consistency": role_score,
-        "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_lesson_score + reasoning_layer_score + memory_score + tool_score + skill_score + role_score) / 10, 1),
+        "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_lesson_score + reasoning_layer_score + memory_score + tool_score + skill_score + agent_os_contract_score + role_score) / 11, 1),
     }
 
 
@@ -622,13 +703,15 @@ def avg(values: Any) -> float:
 def blocking_issues(*quality_docs: dict[str, Any]) -> list[str]:
     issues = []
     for doc in quality_docs:
-        if doc.get("score", 0) < 60:
-            issues.append("agent_harness_score_below_60")
-            break
         if doc.get("guardrails_present") is True and (not doc.get("guardrails_applied") or not doc.get("guardrail_safety_respected")):
             issues.append("skill_guardrails_not_applied")
         if doc.get("procedure_present") is True and (not doc.get("procedure_executed") or not doc.get("quality_gates_checked") or not doc.get("quality_gate_safety_respected")):
             issues.append("skill_procedure_or_quality_gates_missing")
+        if "valid" in doc and doc.get("valid") is not True:
+            issues.append("agent_os_contract_invalid")
+        if doc.get("score", 0) < 60:
+            issues.append("agent_harness_score_below_60")
+            break
     return issues
 
 

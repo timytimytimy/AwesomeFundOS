@@ -11,6 +11,7 @@ from fundos.context import make_context_pack
 from fundos.evidence import make_evidence_pack
 from fundos.harness import make_evaluation_for_run
 from fundos.io import write_yaml
+from fundos.os_manifest import write_operating_system_manifest
 
 
 AGENT = {
@@ -33,8 +34,10 @@ class AgentHarnessTests(unittest.TestCase):
         context = make_context_pack("run-agent-harness", AGENT, pack)
         with tempfile.TemporaryDirectory() as d:
             run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "run-agent-harness", "selected_agents": [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], "model_records": []})
             write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
             output = write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+            write_operating_system_manifest(run_path)
 
             report = evaluate_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
 
@@ -44,6 +47,7 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertEqual(row["agent_id"], "tech_growth_analyst")
             self.assertGreaterEqual(row["context_compression_quality"]["score"], 70)
             self.assertGreaterEqual(row["skill_invocation_quality"]["score"], 70)
+            self.assertGreaterEqual(row["agent_os_contract_quality"]["score"], 90)
             self.assertGreaterEqual(row["role_consistency_quality"]["score"], 70)
             self.assertTrue(row["context_compression_quality"]["evidence_traceability"])
             self.assertTrue(row["skill_invocation_quality"]["required_sections_present"])
@@ -58,10 +62,45 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertIn("Quality Gates", row["skill_invocation_quality"]["runtime_sections"])
             self.assertGreaterEqual(report["aggregate_scores"]["skill_guardrails"], 90)
             self.assertGreaterEqual(report["aggregate_scores"]["skill_execution"], 90)
+            self.assertGreaterEqual(report["aggregate_scores"]["agent_os_contract"], 90)
             self.assertIn("skill_guardrails_required", report["controls"])
             self.assertIn("skill_procedure_quality_gates_required", report["controls"])
+            self.assertIn("agent_os_contract_required", report["controls"])
+            self.assertTrue(row["agent_os_contract_quality"]["valid"])
+            self.assertTrue(row["agent_os_contract_quality"]["agent_card_matches_roster"])
+            self.assertTrue(row["agent_os_contract_quality"]["skill_references_agent_card"])
+            self.assertTrue(row["agent_os_contract_quality"]["tool_policy_matches_roster_tools"])
+            self.assertTrue(row["agent_os_contract_quality"]["memory_policy_matches_agent_namespace"])
+            self.assertTrue(row["agent_os_contract_quality"]["context_policy_preserves_kol_methodology_boundary"])
+            self.assertTrue(row["agent_os_contract_quality"]["safety_boundaries_disabled"])
             self.assertTrue(row["role_consistency_quality"]["agent_card_loaded"])
             self.assertEqual(output["agent_id"], row["agent_id"])
+
+    def test_agent_harness_reads_os_manifest_contract_checks_and_blocks_invalid_contracts(self):
+        pack = make_evidence_pack("run-agent-os-contract", "topic", "机器人产业链投资机会")
+        context = make_context_pack("run-agent-os-contract", AGENT, pack)
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "run-agent-os-contract", "selected_agents": [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], "model_records": []})
+            write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
+            write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+            manifest = write_operating_system_manifest(run_path)
+            manifest["agents"][0]["os_contract_checks"]["valid"] = False
+            manifest["agents"][0]["os_contract_checks"]["tool_policy_matches_roster_tools"] = False
+            manifest["agents"][0]["os_contract_checks"]["mismatches"] = ["tool_policy_allowed_tools_mismatch"]
+            manifest["all_agent_os_contracts_valid"] = False
+            manifest["agent_os_contract_summary"]["valid_contracts"] = 0
+            manifest["agent_os_contract_summary"]["invalid_contracts"] = 1
+            write_yaml(run_path / "system" / "operating-system-manifest.yaml", manifest)
+
+            report = evaluate_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
+
+        quality = report["agent_results"][0]["agent_os_contract_quality"]
+        self.assertFalse(quality["valid"])
+        self.assertFalse(quality["tool_policy_matches_roster_tools"])
+        self.assertIn("tool_policy_allowed_tools_mismatch", quality["mismatches"])
+        self.assertIn("agent_os_contract_invalid", report["agent_results"][0]["blocking_issues"])
+        self.assertLess(report["aggregate_scores"]["agent_os_contract"], 60)
 
     def test_agent_harness_penalizes_missing_runtime_guardrail_application(self):
         pack = make_evidence_pack("run-agent-guardrail-miss", "topic", "机器人产业链投资机会")
