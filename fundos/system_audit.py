@@ -89,6 +89,8 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     research_gap_tasks = load_yaml(run_path / "workflow" / "research-gap-tasks.yaml", {})
     task_dag_harness = load_yaml(run_path / "harness" / "task-dag-harness.yaml", {})
     agent_thread_manifest = load_yaml(run_path / "memory" / "agent-thread-manifest.yaml", {})
+    case_library_index = load_yaml(run_path / "learning" / "case-library-index.yaml", {})
+    case_replay = load_yaml(run_path / "harness" / "historical-case-replay.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     agent_learning = load_yaml(run_path / "learning" / "agent-learning-report.yaml", {})
@@ -147,6 +149,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     failure_pattern_schema_check = runtime_failure_pattern_schema_check(repo_root, run_path, failure_patterns, failure_pattern_library)
     task_dag_schema_check = runtime_task_dag_schema_check(repo_root, run_path, task_dag, research_gap_tasks, task_dag_harness)
     agent_thread_schema_check = runtime_agent_thread_schema_check(repo_root, run_path, runtime_root, agent_thread_manifest)
+    case_library_replay_schema_check = runtime_case_library_replay_schema_check(repo_root, run_path, case_library_index, case_replay)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -449,6 +452,22 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             agent_thread_schema_check["ok"],
             details=agent_thread_schema_check,
+        ),
+        requirement(
+            "runtime.case_library_and_replay_artifacts_match_schemas",
+            "harness_evaluation",
+            "Source case library, runtime case index, and historical replay artifacts match schemas and preserve case-as-training-only no-direct-mapping controls.",
+            [
+                repo_root / "specs/schemas/historical-case-library-manifest.schema.yaml",
+                repo_root / "specs/schemas/historical-case.schema.yaml",
+                repo_root / "specs/schemas/case-library-index.schema.yaml",
+                repo_root / "specs/schemas/historical-case-replay.schema.yaml",
+                repo_root / "specs/cases/historical-case-library.yaml",
+                run_path / "learning" / "case-library-index.yaml",
+                run_path / "harness" / "historical-case-replay.yaml",
+            ],
+            case_library_replay_schema_check["ok"],
+            details=case_library_replay_schema_check,
         ),
     ]
 
@@ -1828,6 +1847,163 @@ def runtime_agent_thread_schema_check(repo_root: Path, run_path: Path, runtime_r
         "thread_count": len(threads),
         "agent_ids": agent_ids,
         "event_rows_validated": event_rows_validated,
+        "controls": combined_controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_case_library_replay_schema_check(repo_root: Path, run_path: Path, case_index: Any, replay: Any) -> dict[str, Any]:
+    manifest_schema = repo_root / "specs" / "schemas" / "historical-case-library-manifest.schema.yaml"
+    case_schema = repo_root / "specs" / "schemas" / "historical-case.schema.yaml"
+    index_schema = repo_root / "specs" / "schemas" / "case-library-index.schema.yaml"
+    replay_schema = repo_root / "specs" / "schemas" / "historical-case-replay.schema.yaml"
+    manifest_path = repo_root / "specs" / "cases" / "historical-case-library.yaml"
+    index_path = run_path / "learning" / "case-library-index.yaml"
+    replay_path = run_path / "harness" / "historical-case-replay.yaml"
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+
+    for name, schema_path in {
+        "historical-case-library.yaml": manifest_schema,
+        "historical-case.yaml": case_schema,
+        "case-library-index.yaml": index_schema,
+        "historical-case-replay.yaml": replay_schema,
+    }.items():
+        if not schema_path.exists():
+            schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
+
+    manifest = load_yaml(manifest_path, {})
+    if not manifest_path.exists() or not isinstance(manifest, dict):
+        missing_artifacts.append("historical-case-library.yaml")
+        case_files: list[str] = []
+        manifest_controls: list[Any] = []
+        minimum_case_types: list[Any] = []
+    else:
+        if manifest_schema.exists():
+            result = validate_runtime_schema(manifest_schema, manifest)
+            if not result["ok"]:
+                schema_errors_by_artifact["historical-case-library.yaml"] = result["schema_errors"]
+        case_files = manifest.get("case_files", []) if isinstance(manifest.get("case_files", []), list) else []
+        manifest_controls = manifest.get("controls", []) if isinstance(manifest.get("controls", []), list) else []
+        minimum_case_types = manifest.get("minimum_case_types", []) if isinstance(manifest.get("minimum_case_types", []), list) else []
+
+    source_cases: list[dict[str, Any]] = []
+    for rel in case_files:
+        case_path = (manifest_path.parent / str(rel)).resolve()
+        display_path = f"specs/cases/{rel}"
+        if not case_path.exists():
+            missing_artifacts.append(display_path)
+            continue
+        case_doc = load_yaml(case_path, {})
+        if not isinstance(case_doc, dict):
+            missing_artifacts.append(display_path)
+            continue
+        source_cases.append(case_doc)
+        if case_schema.exists():
+            result = validate_runtime_schema(case_schema, case_doc)
+            if not result["ok"]:
+                schema_errors_by_artifact[display_path] = result["schema_errors"]
+        if case_doc.get("real_trade_allowed") is not False:
+            mismatches.append(f"{display_path}.real_trade_allowed: expected False, got {case_doc.get('real_trade_allowed')!r}")
+        if case_doc.get("broker_integration") != "disabled":
+            mismatches.append(f"{display_path}.broker_integration: expected 'disabled', got {case_doc.get('broker_integration')!r}")
+        forbidden = set(str(item) for item in case_doc.get("forbidden_uses", []) if item)
+        if "direct_buy_sell_signal" not in forbidden:
+            mismatches.append(f"{display_path}.forbidden_uses missing direct_buy_sell_signal")
+        if "broker_instruction" not in forbidden:
+            mismatches.append(f"{display_path}.forbidden_uses missing broker_instruction")
+
+    if not index_path.exists() or not isinstance(case_index, dict):
+        missing_artifacts.append("case-library-index.yaml")
+        case_refs: list[Any] = []
+        index_controls: list[Any] = []
+    else:
+        if index_schema.exists():
+            result = validate_runtime_schema(index_schema, case_index)
+            if not result["ok"]:
+                schema_errors_by_artifact["case-library-index.yaml"] = result["schema_errors"]
+        case_refs = case_index.get("case_refs", []) if isinstance(case_index.get("case_refs", []), list) else []
+        index_controls = case_index.get("controls", []) if isinstance(case_index.get("controls", []), list) else []
+        compare_value(mismatches, "case_library_index.case_count", case_index.get("case_count"), len(case_refs))
+        compare_value(mismatches, "case_library_index.case_count_vs_source", case_index.get("case_count"), len(source_cases))
+        if case_index.get("real_trade_allowed") is not False:
+            mismatches.append(f"case_library_index.real_trade_allowed: expected False, got {case_index.get('real_trade_allowed')!r}")
+        if case_index.get("broker_integration") != "disabled":
+            mismatches.append(f"case_library_index.broker_integration: expected 'disabled', got {case_index.get('broker_integration')!r}")
+
+    if not replay_path.exists() or not isinstance(replay, dict):
+        missing_artifacts.append("historical-case-replay.yaml")
+        replay_results: list[Any] = []
+        replay_controls: list[Any] = []
+    else:
+        if replay_schema.exists():
+            result = validate_runtime_schema(replay_schema, replay)
+            if not result["ok"]:
+                schema_errors_by_artifact["historical-case-replay.yaml"] = result["schema_errors"]
+        replay_results = replay.get("case_results", []) if isinstance(replay.get("case_results", []), list) else []
+        replay_controls = replay.get("controls", []) if isinstance(replay.get("controls", []), list) else []
+        compare_value(mismatches, "case_replay.cases_available", replay.get("cases_available"), len(source_cases))
+        compare_value(mismatches, "case_replay.case_results_total", replay.get("case_results_total"), len(replay_results))
+        coverage = replay.get("case_library_coverage", {}) if isinstance(replay.get("case_library_coverage", {}), dict) else {}
+        compare_value(mismatches, "case_replay.case_library_coverage.case_count", coverage.get("case_count"), len(source_cases))
+        if replay.get("real_trade_allowed") is not False:
+            mismatches.append(f"case_replay.real_trade_allowed: expected False, got {replay.get('real_trade_allowed')!r}")
+        if replay.get("broker_integration") != "disabled":
+            mismatches.append(f"case_replay.broker_integration: expected 'disabled', got {replay.get('broker_integration')!r}")
+        for idx, row in enumerate(replay_results):
+            if not isinstance(row, dict):
+                mismatches.append(f"case_replay.case_results[{idx}]: expected object")
+                continue
+            allowed_use = str(row.get("allowed_use") or "")
+            verdict = str(row.get("verdict") or "")
+            if "direct_mapping_allowed" in allowed_use or verdict == "direct_mapping_allowed":
+                mismatches.append(f"case_replay.case_results[{idx}] allows direct mapping: allowed_use={allowed_use!r}, verdict={verdict!r}")
+            if row.get("real_trade_allowed") is not False:
+                mismatches.append(f"case_replay.case_results[{idx}].real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+            if row.get("broker_integration") != "disabled":
+                mismatches.append(f"case_replay.case_results[{idx}].broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+
+    source_case_types = {str(case.get("case_type")) for case in source_cases if case.get("case_type")}
+    missing_case_types = sorted(set(str(case_type) for case_type in minimum_case_types) - source_case_types)
+    if missing_case_types:
+        mismatches.append(f"historical_case_library.minimum_case_types missing from source cases {missing_case_types!r}")
+    required_controls = {
+        "case_library_is_training_and_evaluation_not_trade_signal",
+        "direct_case_mapping_forbidden",
+        "primary_evidence_still_required",
+        "no_real_trade_action",
+        "no_broker_integration",
+        "no_single_case_overfitting",
+    }
+    combined_controls = sorted(set(str(control) for control in manifest_controls + index_controls + replay_controls if control))
+    missing_controls = sorted(required_controls - set(combined_controls))
+    if "case_replay_is_not_trade_signal" not in combined_controls:
+        missing_controls.append("case_replay_is_not_trade_signal")
+    if missing_controls:
+        mismatches.append(f"case_library_replay.controls missing {missing_controls!r}")
+
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": sorted(set(missing_artifacts)),
+        "mismatches": mismatches,
+        "schema_paths": {
+            "historical-case-library.yaml": str(manifest_schema),
+            "historical-case.yaml": str(case_schema),
+            "case-library-index.yaml": str(index_schema),
+            "historical-case-replay.yaml": str(replay_schema),
+        },
+        "artifact_paths": {
+            "historical-case-library.yaml": str(manifest_path),
+            "case-library-index.yaml": str(index_path),
+            "historical-case-replay.yaml": str(replay_path),
+        },
+        "source_case_count": len(source_cases),
+        "case_index_count": len(case_refs) if 'case_refs' in locals() else 0,
+        "case_results_total": len(replay_results) if 'replay_results' in locals() else 0,
+        "case_types": sorted(source_case_types),
         "controls": combined_controls,
         "real_trade_allowed": False,
         "broker_integration": "disabled",

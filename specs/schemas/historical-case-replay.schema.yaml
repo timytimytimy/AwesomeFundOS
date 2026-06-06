@@ -1,0 +1,90 @@
+version: 0.1.0
+type: object
+required:
+  - case_replay_version
+  - purpose
+  - patterns_replayed
+  - cases_available
+  - case_results_total
+  - passed_results
+  - high_overfit_results
+  - average_fit_score
+  - average_overfit_risk
+  - case_replay_score
+  - case_library_coverage
+  - controls
+  - case_library_index
+  - case_results
+  - real_trade_allowed
+  - broker_integration
+properties:
+  case_replay_version: {type: string}
+  purpose: {type: string}
+  patterns_replayed: {type: integer}
+  cases_available: {type: integer}
+  case_results_total: {type: integer}
+  passed_results: {type: integer}
+  high_overfit_results: {type: integer}
+  average_fit_score: {type: number}
+  average_overfit_risk: {type: number}
+  case_replay_score: {type: number}
+  case_library_coverage:
+    type: object
+    required:
+      - matched_cases
+      - matched_case_types
+      - matched_case_type_names
+      - agent_coverage
+      - case_count
+    properties:
+      matched_cases: {type: integer}
+      matched_case_types: {type: integer}
+      matched_case_type_names:
+        type: array
+        items: {type: string}
+      agent_coverage: {type: object}
+      case_count: {type: integer}
+  controls:
+    type: array
+    items: {type: string}
+  case_library_index: {type: string}
+  case_results:
+    type: array
+    items:
+      type: object
+      required:
+        - pattern_id
+        - case_id
+        - case_type
+        - fit_score
+        - overfit_risk
+        - verdict
+        - lessons_checked
+        - failure_modes_checked
+        - allowed_use
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        pattern_id: {type: [string, 'null']}
+        case_id: {type: string}
+        case_type: {type: string}
+        fit_score: {type: number}
+        overfit_risk: {type: number}
+        verdict: {type: string}
+        lessons_checked:
+          type: array
+          items: {type: string}
+        failure_modes_checked:
+          type: array
+          items: {type: string}
+        case_evidence_requirements:
+          type: array
+          items: {type: string}
+        replay_questions:
+          type: array
+          items: {type: string}
+        allowed_use: {type: string}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

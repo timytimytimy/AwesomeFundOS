@@ -11,6 +11,8 @@ import yaml
 from fundos.case_library import build_case_library_index, load_case_library, write_run_case_library
 from fundos.case_replay import run_case_replay
 from fundos.harness import make_evaluation_for_run
+from fundos.io import read_yaml
+from fundos.system_audit import validate_runtime_schema
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = [sys.executable, "-m", "fundos.cli"]
@@ -23,6 +25,47 @@ def run_cli(args, cwd):
 
 
 class HistoricalCaseLibraryTests(unittest.TestCase):
+    def test_case_library_schemas_validate_source_and_runtime_artifacts(self):
+        schema_dir = ROOT / "specs" / "schemas"
+        manifest_schema = schema_dir / "historical-case-library-manifest.schema.yaml"
+        case_schema = schema_dir / "historical-case.schema.yaml"
+        index_schema = schema_dir / "case-library-index.schema.yaml"
+        replay_schema = schema_dir / "historical-case-replay.schema.yaml"
+
+        source_manifest = read_yaml(ROOT / "specs" / "cases" / "historical-case-library.yaml")
+        self.assertTrue(validate_runtime_schema(manifest_schema, source_manifest)["ok"])
+        for rel in source_manifest["case_files"]:
+            with self.subTest(case_file=rel):
+                source_case = read_yaml(ROOT / "specs" / "cases" / rel)
+                result = validate_runtime_schema(case_schema, source_case)
+                self.assertTrue(result["ok"], result["schema_errors"])
+
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d) / "runs" / "case-schema"
+            (run_path / "learning").mkdir(parents=True)
+            (run_path / "harness").mkdir(parents=True)
+            (run_path / "learning" / "patterns.yaml").write_text(yaml.safe_dump({
+                "patterns": [{
+                    "id": "serenity_scheme_first_chokepoint",
+                    "validation_gates": ["historical_case_replay"],
+                    "tags": ["industry", "company", "chokepoint"],
+                    "target_agents": ["tech_growth_analyst"],
+                }]
+            }, allow_unicode=True), encoding="utf-8")
+
+            replay = run_case_replay(run_path)
+            index = read_yaml(run_path / "learning" / "case-library-index.yaml")
+
+            index_result = validate_runtime_schema(index_schema, index)
+            self.assertTrue(index_result["ok"], index_result["schema_errors"])
+            replay_result = validate_runtime_schema(replay_schema, replay)
+            self.assertTrue(replay_result["ok"], replay_result["schema_errors"])
+            self.assertFalse(replay["real_trade_allowed"])
+            self.assertEqual(replay["broker_integration"], "disabled")
+            for row in replay["case_results"]:
+                self.assertFalse(row["real_trade_allowed"])
+                self.assertEqual(row["broker_integration"], "disabled")
+
     def test_source_controlled_case_library_has_required_case_types_and_controls(self):
         library = load_case_library()
 

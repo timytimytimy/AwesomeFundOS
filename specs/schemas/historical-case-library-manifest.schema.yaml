@@ -1,0 +1,22 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - purpose
+  - case_files
+  - controls
+  - minimum_case_types
+properties:
+  version: {type: string}
+  artifact_type: {enum: [historical_case_library_manifest]}
+  purpose: {type: string}
+  case_files:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  minimum_case_types:
+    type: array
+    items: {type: string}

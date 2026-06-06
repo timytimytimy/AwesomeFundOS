@@ -1,0 +1,52 @@
+version: 0.1.0
+type: object
+required:
+  - case_id
+  - case_type
+  - market
+  - time_range
+  - market_state
+  - summary
+  - tags
+  - pattern_ids
+  - applicable_agents
+  - evidence_requirements
+  - known_lessons
+  - failure_modes
+  - replay_questions
+  - forbidden_uses
+  - real_trade_allowed
+  - broker_integration
+properties:
+  case_id: {type: string}
+  case_type: {type: string}
+  market: {type: string}
+  time_range: {type: string}
+  market_state: {type: string}
+  summary: {type: string}
+  tags:
+    type: array
+    items: {type: string}
+  pattern_ids:
+    type: array
+    items: {type: string}
+  applicable_agents:
+    type: array
+    items: {type: string}
+  evidence_requirements:
+    type: array
+    items: {type: string}
+  known_lessons:
+    type: array
+    items: {type: string}
+  failure_modes:
+    type: array
+    items: {type: string}
+  replay_questions:
+    type: array
+    items: {type: string}
+  forbidden_uses:
+    type: array
+    items: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

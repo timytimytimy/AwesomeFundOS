@@ -17,3 +17,4 @@ replay_questions:
   - Were governance issues assigned to a specialist rather than ignored?
 forbidden_uses: [direct_buy_sell_signal, defamatory_unverified_claim, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

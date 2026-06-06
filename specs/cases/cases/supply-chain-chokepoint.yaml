@@ -17,3 +17,4 @@ replay_questions:
   - Were bottlenecks validated against primary or cross-validated evidence?
 forbidden_uses: [direct_buy_sell_signal, unverified_company_fact, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

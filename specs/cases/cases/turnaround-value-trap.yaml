@@ -17,3 +17,4 @@ replay_questions:
   - Were kill criteria tied to solvency and operating data?
 forbidden_uses: [direct_buy_sell_signal, distressed_security_instruction, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

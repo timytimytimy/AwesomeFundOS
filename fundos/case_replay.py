@@ -113,6 +113,8 @@ def no_match_result(pattern: dict[str, Any]) -> dict[str, Any]:
         "lessons_checked": [],
         "failure_modes_checked": [],
         "allowed_use": "quarantine_until_cases_exist",
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -137,6 +139,7 @@ def evaluate_pattern_against_case(pattern: dict[str, Any], case: dict[str, Any])
         "replay_questions": case.get("replay_questions", []),
         "allowed_use": "hypothesis_and_checklist_only_not_direct_mapping",
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -166,6 +169,8 @@ def build_replay_summary(patterns: list[dict[str, Any]], cases: list[dict[str, A
         ],
         "case_library_index": "learning/case-library-index.yaml" if case_index else "",
         "case_results": results,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -191,14 +196,20 @@ def load_case_replay(run_path: Path) -> dict[str, Any]:
     if not path.exists():
         return {
             "case_replay_version": CASE_REPLAY_VERSION,
+            "purpose": "Historical case replay artifact was not generated yet.",
             "patterns_replayed": 0,
             "cases_available": 0,
             "case_results_total": 0,
             "passed_results": 0,
             "high_overfit_results": 0,
+            "average_fit_score": 0,
+            "average_overfit_risk": 0,
             "case_replay_score": 0,
-            "case_library_coverage": {"matched_cases": 0, "matched_case_types": 0, "agent_coverage": {}, "case_count": 0},
+            "case_library_coverage": {"matched_cases": 0, "matched_case_types": 0, "matched_case_type_names": [], "agent_coverage": {}, "case_count": 0},
             "controls": [],
+            "case_library_index": "",
             "case_results": [],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
         }
     return read_yaml(path)

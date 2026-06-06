@@ -17,3 +17,4 @@ replay_questions:
   - Did risk management override upside narrative near breakdown?
 forbidden_uses: [direct_buy_sell_signal, leverage_instruction, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

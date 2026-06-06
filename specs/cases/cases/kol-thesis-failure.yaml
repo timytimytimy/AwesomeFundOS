@@ -17,3 +17,4 @@ replay_questions:
   - Did the candidate require primary evidence before adoption?
 forbidden_uses: [direct_buy_sell_signal, copied_social_trade, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

@@ -17,3 +17,4 @@ replay_questions:
   - Did the agent downgrade when follow-through failed?
 forbidden_uses: [direct_buy_sell_signal, real_order, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

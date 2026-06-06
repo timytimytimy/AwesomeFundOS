@@ -17,3 +17,4 @@ replay_questions:
   - Did replay include at least one failure case, not just success cases?
 forbidden_uses: [direct_buy_sell_signal, unvalidated_framework_adoption, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

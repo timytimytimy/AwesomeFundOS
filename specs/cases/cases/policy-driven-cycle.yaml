@@ -17,3 +17,4 @@ replay_questions:
   - Were withdrawal and normalization signals included in kill criteria?
 forbidden_uses: [direct_buy_sell_signal, policy_rumor_as_fact, broker_instruction]
 real_trade_allowed: false
+broker_integration: disabled

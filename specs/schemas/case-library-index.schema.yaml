@@ -1,0 +1,53 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - case_count
+  - case_type_counts
+  - market_counts
+  - agent_case_counts
+  - pattern_case_counts
+  - controls
+  - case_refs
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [historical_case_library_index]}
+  case_count: {type: integer}
+  case_type_counts: {type: object}
+  market_counts: {type: object}
+  agent_case_counts: {type: object}
+  pattern_case_counts: {type: object}
+  controls:
+    type: array
+    items: {type: string}
+  case_refs:
+    type: array
+    items:
+      type: object
+      required:
+        - case_id
+        - case_type
+        - market
+        - tags
+        - applicable_agents
+        - pattern_ids
+        - source_path
+      properties:
+        case_id: {type: string}
+        case_type: {type: string}
+        market: {type: string}
+        tags:
+          type: array
+          items: {type: string}
+        applicable_agents:
+          type: array
+          items: {type: string}
+        pattern_ids:
+          type: array
+          items: {type: string}
+        source_path: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}
