@@ -101,7 +101,7 @@ runs/{date}-{slug}/
 
 `system/operating-system-manifest.yaml` 是 run 级 Agent OS 清单，必须把 selected agents 与 source-controlled Agent Card / SKILL / ContextPolicy / ToolPolicy / MemoryPolicy、runtime model records、Thread manifest、Harness artifacts、Evolution artifacts 和安全边界连接起来。该清单用于证明本次运行加载的是一个有 Profile、Skills、Tools、Memory、Thread、Harness、Evolution 能力的组织系统，而不是一组散落的输出文件。
 
-该清单结构受 `specs/schemas/operating-system-manifest.schema.yaml` 约束，必须显式声明 artifact_type、runtime_mode、selected_agent_count、model_record_count、loaded_asset_counts、agents、model_records、harness_artifacts、memory_thread_artifacts、evolution_artifacts、evolution_summary、safety_invariants、real_trade_allowed 和 broker_integration。
+该清单结构受 `specs/schemas/operating-system-manifest.schema.yaml` 约束，必须显式声明 artifact_type、runtime_mode、selected_agent_count、model_record_count、loaded_asset_counts、agents、model_records、harness_artifacts、memory_thread_artifacts、evolution_artifacts、evolution_summary、safety_invariants、real_trade_allowed 和 broker_integration。`fundos system audit --strict --run <run>` 必须校验运行产物中的 manifest 是否满足该 schema；缺少 evolution_summary / safety_invariants 的必填字段，或违反 runtime / broker / paper-only 枚举边界时，strict audit 必须失败。
 
 `fundos eval` 和 `fundos evolve` 必须刷新该清单。`evolve` 后 manifest 必须额外纳入 `evolution/evolution-gate-results.jsonl`、memory writeback、capability version summary、agent performance 和 agent governance artifacts，并汇总 gate_results、memory_writes、approved_candidates、pending_human_apply；这些汇总仍必须保持 `real_trade_allowed=false`、`broker_integration=disabled`。
 

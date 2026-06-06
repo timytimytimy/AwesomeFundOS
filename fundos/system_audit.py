@@ -15,7 +15,7 @@ def run_system_audit(repo_root: Path, out_dir: Path | None = None, run_path: Pat
     agents = roster.get("agents", []) if isinstance(roster, dict) else []
     requirements = build_requirements(root, agents)
     if runtime_run_path:
-        requirements.extend(build_runtime_requirements(runtime_run_path))
+        requirements.extend(build_runtime_requirements(root, runtime_run_path))
     passed = sum(1 for row in requirements if row["status"] == "pass")
     score = round(passed / len(requirements) * 100, 1) if requirements else 0
     report = {
@@ -49,7 +49,7 @@ def run_system_audit(repo_root: Path, out_dir: Path | None = None, run_path: Pat
     return report
 
 
-def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
+def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str, Any]]:
     evidence = load_yaml(run_path / "evidence" / "evidence-pack.yaml", {})
     evaluation = load_yaml(run_path / "evaluations" / "evaluation-report.yaml", {})
     tool_harness = load_yaml(run_path / "harness" / "tool-harness.yaml", {})
@@ -64,6 +64,7 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
     blocking = evaluation.get("blocking_issues", []) if isinstance(evaluation, dict) else []
     selected = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) else []
     model_record_check = runtime_model_records_check(run_doc)
+    manifest_schema_check = validate_operating_system_manifest_schema(repo_root, os_manifest)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -143,6 +144,14 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
             [run_path / "system" / "operating-system-manifest.yaml"],
             operating_system_manifest_ok(os_manifest, run_doc),
             details=operating_system_manifest_details(os_manifest),
+        ),
+        requirement(
+            "runtime.operating_system_manifest_matches_schema",
+            "runtime_governance",
+            "Run operating-system manifest satisfies the source-controlled schema for Agent OS assets, evolution summary, and safety boundaries.",
+            [repo_root / "specs/schemas/operating-system-manifest.schema.yaml", run_path / "system" / "operating-system-manifest.yaml"],
+            manifest_schema_check["ok"],
+            details=manifest_schema_check,
         ),
     ]
 
@@ -556,6 +565,65 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "real_trade_allowed": manifest.get("real_trade_allowed"),
         "broker_integration": manifest.get("broker_integration"),
     }
+
+
+def validate_operating_system_manifest_schema(repo_root: Path, manifest: Any) -> dict[str, Any]:
+    schema_path = repo_root / "specs" / "schemas" / "operating-system-manifest.schema.yaml"
+    schema = load_yaml(schema_path, {})
+    errors = validate_schema_node(schema, manifest, path="$")
+    return {
+        "ok": not errors,
+        "schema_path": str(schema_path),
+        "schema_errors": errors,
+    }
+
+
+def validate_schema_node(schema: Any, value: Any, path: str) -> list[str]:
+    if not isinstance(schema, dict):
+        return []
+    errors: list[str] = []
+    if "enum" in schema and value not in schema["enum"]:
+        errors.append(f"{path}: value {value!r} not in enum {schema['enum']!r}")
+
+    expected_type = schema.get("type")
+    if expected_type and not schema_type_matches(expected_type, value):
+        errors.append(f"{path}: expected type {expected_type}, got {type(value).__name__}")
+        return errors
+
+    if expected_type == "object" or "properties" in schema or "required" in schema:
+        if not isinstance(value, dict):
+            errors.append(f"{path}: expected object, got {type(value).__name__}")
+            return errors
+        for field in schema.get("required", []) or []:
+            if field not in value:
+                errors.append(f"{path}.{field}: missing required field")
+        properties = schema.get("properties", {}) or {}
+        for field, child_schema in properties.items():
+            if field in value:
+                errors.extend(validate_schema_node(child_schema, value[field], f"{path}.{field}"))
+
+    if expected_type == "array" or "items" in schema:
+        if not isinstance(value, list):
+            errors.append(f"{path}: expected array, got {type(value).__name__}")
+            return errors
+        item_schema = schema.get("items", {}) or {}
+        for idx, item in enumerate(value):
+            errors.extend(validate_schema_node(item_schema, item, f"{path}[{idx}]"))
+    return errors
+
+
+def schema_type_matches(expected_type: str, value: Any) -> bool:
+    if expected_type == "object":
+        return isinstance(value, dict)
+    if expected_type == "array":
+        return isinstance(value, list)
+    if expected_type == "string":
+        return isinstance(value, str)
+    if expected_type == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected_type == "boolean":
+        return isinstance(value, bool)
+    return True
 
 
 def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
