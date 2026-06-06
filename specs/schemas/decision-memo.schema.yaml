@@ -46,3 +46,13 @@ properties:
         evidence_id: {type: string}
         claim_id: {type: string}
         usage: {type: string}
+  committee_protocol:
+    type: object
+  collaboration_summary:
+    type: object
+  agent_output_summary:
+    type: array
+    items:
+      type: object
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

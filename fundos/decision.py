@@ -64,6 +64,8 @@ def make_decision_memo(run_id: str, query: str, evidence_pack: dict[str, Any], a
         },
         "agent_output_summary": summarize_agent_outputs(agent_outputs or []),
         "evidence_references": refs,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 

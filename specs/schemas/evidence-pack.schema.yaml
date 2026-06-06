@@ -17,7 +17,7 @@ properties:
       properties:
         id: {type: string}
         source_type:
-          enum: [announcement, financial_report, news, market_data, policy, web, case, memory, practitioner_source, book_summary, course_summary]
+          enum: [announcement, financial_report, news, market_data, policy, web, case, memory, practitioner_source, book_summary, course_summary, learning_pattern, runtime, evidence, writing, portfolio, risk, harness]
         source_tier:
           enum: [tier_1_primary_fact, tier_2_canonical_framework, tier_3_verified_public_practitioner, tier_4_expert_opinion, tier_5_social_signal, tier_6_unverified]
         title: {type: string}
@@ -37,7 +37,7 @@ properties:
               claim_id: {type: string}
               claim_text: {type: string}
               claim_type:
-                enum: [fact, opinion, inference, hypothesis]
+                enum: [fact, opinion, inference, hypothesis, methodology_pattern, methodology_or_context]
               confidence:
                 enum: [high, medium, low]
               relevant_to:
@@ -52,3 +52,11 @@ properties:
   unresolved_gaps:
     type: array
     items: {type: string}
+  claim_index:
+    type: object
+  source_coverage:
+    type: object
+  research_plan_coverage:
+    type: object
+  schema_validation:
+    type: object

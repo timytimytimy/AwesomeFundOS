@@ -158,6 +158,15 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(Path(report['runtime_run_path']).resolve(), (cwd / run_rel).resolve())
             by_id = {row['requirement_id']: row for row in report['requirements']}
             self.assertEqual(by_id['runtime.run_has_public_research_primary_evidence']['status'], 'pass')
+            self.assertEqual(by_id['runtime.core_run_evidence_decision_artifacts_match_schemas']['status'], 'pass')
+            core_schema_details = by_id['runtime.core_run_evidence_decision_artifacts_match_schemas']['details']
+            self.assertEqual(core_schema_details['schema_errors_by_artifact'], {})
+            self.assertEqual(core_schema_details['missing_artifacts'], [])
+            self.assertGreaterEqual(core_schema_details['evidence_items'], 1)
+            self.assertGreaterEqual(core_schema_details['claim_count'], 1)
+            self.assertGreaterEqual(core_schema_details['evidence_references'], 1)
+            self.assertFalse(core_schema_details['real_trade_allowed'])
+            self.assertEqual(core_schema_details['broker_integration'], 'disabled')
             self.assertEqual(by_id['runtime.run_has_no_stub_blocking_issues']['status'], 'pass')
             self.assertEqual(by_id['runtime.model_records_have_concrete_policy_fields']['status'], 'pass')
             self.assertEqual(by_id['runtime.operating_system_manifest_links_agent_os_assets']['status'], 'pass')
@@ -777,6 +786,48 @@ class SystemAuditTests(unittest.TestCase):
             by_id = {row['requirement_id']: row for row in report['requirements']}
             self.assertEqual(by_id['runtime.model_records_have_concrete_policy_fields']['status'], 'fail')
             self.assertIn('missing_model_record_fields', by_id['runtime.model_records_have_concrete_policy_fields']['details'])
+
+    def test_system_audit_strict_mode_fails_core_artifact_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            evidence_yaml = run_path / 'evidence' / 'evidence-pack.yaml'
+            evidence = yaml.safe_load(evidence_yaml.read_text(encoding='utf-8'))
+            evidence['evidence_items'][0]['source_type'] = 'direct_trade_signal'
+            evidence['evidence_items'][0]['claims'][0].pop('claim_type', None)
+            evidence_yaml.write_text(yaml.safe_dump(evidence, allow_unicode=True, sort_keys=False), encoding='utf-8')
+            memo_yaml = run_path / 'decision' / 'final-decision-memo.yaml'
+            memo = yaml.safe_load(memo_yaml.read_text(encoding='utf-8'))
+            memo['final_decision']['label'] = 'buy_now'
+            memo['real_trade_allowed'] = True
+            memo_yaml.write_text(yaml.safe_dump(memo, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.core_run_evidence_decision_artifacts_match_schemas']['status'], 'fail')
+            details = by_id['runtime.core_run_evidence_decision_artifacts_match_schemas']['details']
+            evidence_errors = '\n'.join(details['schema_errors_by_artifact']['evidence-pack.yaml'])
+            self.assertIn('source_type', evidence_errors)
+            self.assertIn('claim_type', evidence_errors)
+            memo_errors = '\n'.join(details['schema_errors_by_artifact']['final-decision-memo.yaml'])
+            self.assertIn('label', memo_errors)
+            mismatches = '\n'.join(details['mismatches'])
+            self.assertIn('final_decision_memo.real_trade_allowed', mismatches)
 
     def test_system_audit_strict_mode_fails_operating_system_manifest_schema_violation(self):
         with tempfile.TemporaryDirectory() as d:

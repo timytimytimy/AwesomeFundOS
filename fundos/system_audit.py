@@ -119,6 +119,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     model_record_check = runtime_model_records_check(run_doc)
     manifest_schema_check = validate_operating_system_manifest_schema(repo_root, os_manifest)
     evaluation_schema_check = validate_evaluation_report_schema(repo_root, evaluation)
+    core_artifact_schema_check = runtime_core_artifact_schema_check(repo_root, run_path, run_doc, evidence, decision_memo)
     manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
     manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
     manifest_evolution_learning_check = operating_system_manifest_evolution_learning_check(
@@ -187,6 +188,21 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [run_path / "evidence/evidence-pack.yaml", run_path / "evidence/public-research-manifest.yaml"],
             len(public_items) >= 1 and len(primary_public_items) >= 1,
             details={"public_research_items": len(public_items), "primary_public_items": len(primary_public_items)},
+        ),
+        requirement(
+            "runtime.core_run_evidence_decision_artifacts_match_schemas",
+            "runtime_operability",
+            "Core run, EvidencePack, and final decision memo artifacts match source-controlled schemas and preserve evidence traceability plus paper-only controls.",
+            [
+                repo_root / "specs/schemas/run.schema.yaml",
+                repo_root / "specs/schemas/evidence-pack.schema.yaml",
+                repo_root / "specs/schemas/decision-memo.schema.yaml",
+                run_path / "run.yaml",
+                run_path / "evidence/evidence-pack.yaml",
+                run_path / "decision/final-decision-memo.yaml",
+            ],
+            core_artifact_schema_check["ok"],
+            details=core_artifact_schema_check,
         ),
         requirement(
             "runtime.run_has_no_stub_blocking_issues",
@@ -1452,6 +1468,110 @@ def runtime_agent_maturity_contract_check(run_path: Path, agent_ids: list[str]) 
         "unique_edge_signatures": len(set(edge_signatures)),
         "required_unique_edge_signatures": max(len([aid for aid in agent_ids if aid]) - 1, 0),
         "missing_by_agent": missing_by_agent,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_core_artifact_schema_check(repo_root: Path, run_path: Path, run_doc: Any, evidence: Any, decision_memo: Any) -> dict[str, Any]:
+    artifacts = {
+        "run.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "run.schema.yaml",
+            "path": run_path / "run.yaml",
+            "value": run_doc,
+        },
+        "evidence-pack.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "evidence-pack.schema.yaml",
+            "path": run_path / "evidence" / "evidence-pack.yaml",
+            "value": evidence,
+        },
+        "final-decision-memo.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "decision-memo.schema.yaml",
+            "path": run_path / "decision" / "final-decision-memo.yaml",
+            "value": decision_memo,
+        },
+    }
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+    for name, config in artifacts.items():
+        schema_path = config["schema"]
+        artifact_path = config["path"]
+        value = config["value"]
+        if not schema_path.exists():
+            schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
+            continue
+        if not artifact_path.exists() or not isinstance(value, dict):
+            missing_artifacts.append(name)
+            continue
+        result = validate_runtime_schema(schema_path, value)
+        if not result["ok"]:
+            schema_errors_by_artifact[name] = result["schema_errors"]
+
+    selected_agents = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) and isinstance(run_doc.get("selected_agents", []), list) else []
+    model_records = run_doc.get("model_records", []) if isinstance(run_doc, dict) and isinstance(run_doc.get("model_records", []), list) else []
+    evidence_items = evidence.get("evidence_items", []) if isinstance(evidence, dict) and isinstance(evidence.get("evidence_items", []), list) else []
+    claim_ids: set[str] = set()
+    evidence_ids: set[str] = set()
+    for item_idx, item in enumerate(evidence_items):
+        if not isinstance(item, dict):
+            mismatches.append(f"evidence_pack.evidence_items[{item_idx}]: expected object")
+            continue
+        evidence_id = item.get("id")
+        if evidence_id:
+            evidence_ids.add(str(evidence_id))
+        claims = item.get("claims", []) if isinstance(item.get("claims", []), list) else []
+        for claim_idx, claim in enumerate(claims):
+            if not isinstance(claim, dict):
+                mismatches.append(f"evidence_pack.evidence_items[{item_idx}].claims[{claim_idx}]: expected object")
+                continue
+            claim_id = claim.get("claim_id")
+            if claim_id:
+                claim_ids.add(str(claim_id))
+    claim_index = evidence.get("claim_index", {}) if isinstance(evidence, dict) and isinstance(evidence.get("claim_index", {}), dict) else {}
+    missing_index_claims = sorted(claim_ids - set(str(key) for key in claim_index.keys()))
+    if missing_index_claims:
+        mismatches.append(f"evidence_pack.claim_index missing {missing_index_claims!r}")
+    validation = evidence.get("schema_validation", {}) if isinstance(evidence, dict) and isinstance(evidence.get("schema_validation", {}), dict) else {}
+    if validation.get("valid") is not True:
+        mismatches.append(f"evidence_pack.schema_validation.valid: expected True, got {validation.get('valid')!r}")
+
+    memo_refs = decision_memo.get("evidence_references", []) if isinstance(decision_memo, dict) and isinstance(decision_memo.get("evidence_references", []), list) else []
+    for idx, ref in enumerate(memo_refs):
+        if not isinstance(ref, dict):
+            mismatches.append(f"final_decision_memo.evidence_references[{idx}]: expected object")
+            continue
+        evidence_id = str(ref.get("evidence_id") or "")
+        claim_id = str(ref.get("claim_id") or "")
+        if evidence_id not in evidence_ids:
+            mismatches.append(f"final_decision_memo.evidence_references[{idx}].evidence_id missing from EvidencePack: {evidence_id!r}")
+        if claim_id not in claim_ids:
+            mismatches.append(f"final_decision_memo.evidence_references[{idx}].claim_id missing from EvidencePack: {claim_id!r}")
+    if isinstance(decision_memo, dict) and decision_memo.get("real_trade_allowed") is not False:
+        mismatches.append(f"final_decision_memo.real_trade_allowed: expected False, got {decision_memo.get('real_trade_allowed')!r}")
+    if isinstance(decision_memo, dict) and decision_memo.get("broker_integration") != "disabled":
+        mismatches.append(f"final_decision_memo.broker_integration: expected 'disabled', got {decision_memo.get('broker_integration')!r}")
+    for idx, record in enumerate(model_records):
+        if not isinstance(record, dict):
+            mismatches.append(f"run.model_records[{idx}]: expected object")
+            continue
+        if record.get("real_trade_allowed") is not False:
+            mismatches.append(f"run.model_records[{idx}].real_trade_allowed: expected False, got {record.get('real_trade_allowed')!r}")
+        if record.get("broker_integration") != "disabled":
+            mismatches.append(f"run.model_records[{idx}].broker_integration: expected 'disabled', got {record.get('broker_integration')!r}")
+
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": missing_artifacts,
+        "mismatches": mismatches,
+        "schema_paths": {name: str(config["schema"]) for name, config in artifacts.items()},
+        "artifact_paths": {name: str(config["path"]) for name, config in artifacts.items()},
+        "selected_agents": len(selected_agents),
+        "model_records": len(model_records),
+        "evidence_items": len(evidence_items),
+        "claim_count": len(claim_ids),
+        "evidence_references": len(memo_refs),
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
