@@ -550,11 +550,11 @@ def command_evolve(args: argparse.Namespace) -> int:
     run_skill_benchmark(run_path)
     write_agent_performance(run_path)
     governance = write_agent_governance(run_path)
-    write_operating_system_manifest(run_path)
     if (run_path / "evidence" / "evidence-pack.yaml").exists():
         evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
         evaluation = make_evaluation_for_run(run_doc.get("run_id", run_path.name), run_doc.get("selected_agents", []), evidence, run_path)
         write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
+    write_operating_system_manifest(run_path)
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")
@@ -586,6 +586,9 @@ def command_inspect(args: argparse.Namespace) -> int:
         manifest = read_yaml(manifest_path) or {}
         loaded_assets = manifest.get("loaded_asset_counts", {}) or {}
         evolution = manifest.get("evolution_summary", {}) or {}
+        performance = manifest.get("agent_performance_summary", {}) or {}
+        governance = manifest.get("agent_governance_summary", {}) or {}
+        evaluation = manifest.get("evaluation_summary", {}) or {}
         safety = manifest.get("safety_invariants", {}) or {}
         print(f"os_manifest={manifest_path}")
         print(f"os_manifest_markdown={run_path / 'system' / 'operating-system-manifest.md'}")
@@ -601,6 +604,10 @@ def command_inspect(args: argparse.Namespace) -> int:
         print(f"evolution_artifacts={len(manifest.get('evolution_artifacts', []) or [])}")
         print(f"evolution_gate_results={evolution.get('gate_results', 0)}")
         print(f"pending_human_apply={evolution.get('pending_human_apply', 0)}")
+        print(f"agent_performance_score={performance.get('average_final_score', 0)}")
+        print(f"agent_governance_score={governance.get('governance_quality_score', 0)}")
+        print(f"evaluation_overall_score={evaluation.get('overall_score', 0)}")
+        print(f"evaluation_blocking_issues={evaluation.get('blocking_issue_count', 0)}")
         print(f"paper_portfolio_only={safety.get('paper_portfolio_only')}")
         print(f"kol_is_hypothesis_only={safety.get('kol_is_hypothesis_only')}")
         print(f"real_trade_allowed={manifest.get('real_trade_allowed')}")

@@ -16,6 +16,9 @@ required:
   - memory_thread_artifacts
   - evolution_artifacts
   - evolution_summary
+  - agent_performance_summary
+  - agent_governance_summary
+  - evaluation_summary
   - safety_invariants
   - real_trade_allowed
   - broker_integration
@@ -173,6 +176,44 @@ properties:
       memory_writes: {type: integer}
       approved_candidates: {type: integer}
       pending_human_apply: {type: integer}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  agent_performance_summary:
+    type: object
+    required: [agent_count, average_final_score, recommended_action_counts, ledger_entries_written, real_trade_allowed, broker_integration]
+    properties:
+      agent_count: {type: integer}
+      average_final_score: {type: number}
+      recommended_action_counts: {type: object}
+      ledger_entries_written: {type: integer}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  agent_governance_summary:
+    type: object
+    required: [agent_count, governance_quality_score, governance_action_counts, seat_competition_count, real_trade_allowed, broker_integration]
+    properties:
+      agent_count: {type: integer}
+      governance_quality_score: {type: number}
+      governance_action_counts: {type: object}
+      seat_competition_count: {type: integer}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  evaluation_summary:
+    type: object
+    required: [overall_score, agent_performance_score, agent_governance_score, agent_os_contract_score, blocking_issue_count, accepted_output_count, real_trade_allowed, broker_integration]
+    properties:
+      overall_score: {type: number}
+      agent_performance_score: {type: number}
+      agent_governance_score: {type: number}
+      agent_os_contract_score: {type: number}
+      blocking_issue_count: {type: integer}
+      accepted_output_count: {type: integer}
       real_trade_allowed:
         enum: [false]
       broker_integration:

@@ -86,6 +86,9 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "memory_thread_artifacts": existing_relative_paths(run_path, MEMORY_THREAD_ARTIFACTS),
         "evolution_artifacts": existing_relative_paths(run_path, EVOLUTION_ARTIFACTS),
         "evolution_summary": evolution_summary(run_path),
+        "agent_performance_summary": agent_performance_summary(run_path),
+        "agent_governance_summary": agent_governance_summary(run_path),
+        "evaluation_summary": evaluation_summary(run_path),
         "safety_invariants": {
             "research_watchlist_paper_only": True,
             "paper_portfolio_only": True,
@@ -122,6 +125,9 @@ def write_operating_system_manifest_markdown(run_path: Path, manifest: dict[str,
 def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     loaded = manifest.get("loaded_asset_counts", {}) or {}
     evolution = manifest.get("evolution_summary", {}) or {}
+    performance = manifest.get("agent_performance_summary", {}) or {}
+    governance = manifest.get("agent_governance_summary", {}) or {}
+    evaluation = manifest.get("evaluation_summary", {}) or {}
     safety = manifest.get("safety_invariants", {}) or {}
     lines = [
         "# Operating System Manifest",
@@ -164,6 +170,10 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- evolution_gate_results: {evolution.get('gate_results', 0)}",
         f"- memory_writes: {evolution.get('memory_writes', 0)}",
         f"- pending_human_apply: {evolution.get('pending_human_apply', 0)}",
+        f"- agent_performance_score: {performance.get('average_final_score', 0)}",
+        f"- agent_governance_score: {governance.get('governance_quality_score', 0)}",
+        f"- evaluation_overall_score: {evaluation.get('overall_score', 0)}",
+        f"- evaluation_blocking_issues: {evaluation.get('blocking_issue_count', 0)}",
         "",
         "## Safety Boundaries",
         "",
@@ -260,6 +270,49 @@ def evolution_summary(run_path: Path) -> dict[str, Any]:
         "memory_writes": int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else 0,
         "approved_candidates": int(capability_summary.get("approved_candidates", 0) or 0) if isinstance(capability_summary, dict) else 0,
         "pending_human_apply": int(capability_summary.get("pending_human_apply", 0) or 0) if isinstance(capability_summary, dict) else 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def agent_performance_summary(run_path: Path) -> dict[str, Any]:
+    report = read_optional_yaml(run_path / "harness" / "agent-performance.yaml", {})
+    counts = report.get("recommended_action_counts", {}) if isinstance(report, dict) else {}
+    return {
+        "agent_count": int(report.get("agent_count", 0) or 0) if isinstance(report, dict) else 0,
+        "average_final_score": float(report.get("average_final_score", 0) or 0) if isinstance(report, dict) else 0,
+        "recommended_action_counts": counts if isinstance(counts, dict) else {},
+        "ledger_entries_written": int(report.get("ledger_entries_written", 0) or 0) if isinstance(report, dict) else 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def agent_governance_summary(run_path: Path) -> dict[str, Any]:
+    report = read_optional_yaml(run_path / "harness" / "agent-governance.yaml", {})
+    counts = report.get("governance_action_counts", {}) if isinstance(report, dict) else {}
+    return {
+        "agent_count": int(report.get("agent_count", 0) or 0) if isinstance(report, dict) else 0,
+        "governance_quality_score": float(report.get("governance_quality_score", 0) or 0) if isinstance(report, dict) else 0,
+        "governance_action_counts": counts if isinstance(counts, dict) else {},
+        "seat_competition_count": len(report.get("seat_competitions", {}) or {}) if isinstance(report, dict) else 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def evaluation_summary(run_path: Path) -> dict[str, Any]:
+    report = read_optional_yaml(run_path / "evaluations" / "evaluation-report.yaml", {})
+    dimensions = report.get("dimension_scores", {}) if isinstance(report, dict) else {}
+    blocking = report.get("blocking_issues", []) if isinstance(report, dict) else []
+    accepted = report.get("accepted_outputs", []) if isinstance(report, dict) else []
+    return {
+        "overall_score": float(report.get("overall_score", 0) or 0) if isinstance(report, dict) else 0,
+        "agent_performance_score": float(dimensions.get("agent_performance", 0) or 0) if isinstance(dimensions, dict) else 0,
+        "agent_governance_score": float(dimensions.get("agent_governance", 0) or 0) if isinstance(dimensions, dict) else 0,
+        "agent_os_contract_score": float(dimensions.get("agent_os_contract", 0) or 0) if isinstance(dimensions, dict) else 0,
+        "blocking_issue_count": len(blocking) if isinstance(blocking, list) else 0,
+        "accepted_output_count": len(accepted) if isinstance(accepted, list) else 0,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
