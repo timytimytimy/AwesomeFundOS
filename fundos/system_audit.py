@@ -380,7 +380,26 @@ def missing_sections_for_agent(root: Path, agent_id: str) -> list[str]:
     if not path.exists():
         return ["agent.md"]
     text = path.read_text(encoding="utf-8").lower()
-    required = ["profile", "skills", "tools", "harness", "context management", "thread", "memory", "evolution"]
+    required = [
+        "profile",
+        "identity",
+        "role mandate",
+        "investment style",
+        "risk preference",
+        "decision principles",
+        "personality",
+        "skills",
+        "tools",
+        "learning patterns",
+        "ability boundaries",
+        "biases and weaknesses",
+        "track record and growth",
+        "memory and thread",
+        "harness and evaluation",
+        "context management policy",
+        "evolution path",
+        "output contract",
+    ]
     return [section for section in required if section not in text]
 
 

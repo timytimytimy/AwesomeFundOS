@@ -471,7 +471,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(memory.exists())
             self.assertTrue(source_registry.exists())
             self.assertTrue(tool_adapter_manifest.exists())
-            self.assertIn("## Memory and Evolution", agent_md.read_text())
+            self.assertIn("## Memory and Thread", agent_md.read_text())
             self.assertIn("name: fundos-fund_manager", skill_md.read_text())
             profile_doc = yaml.safe_load(profile.read_text())
             self.assertEqual(profile_doc["id"], "fund_manager")
