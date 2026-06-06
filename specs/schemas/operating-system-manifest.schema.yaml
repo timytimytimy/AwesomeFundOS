@@ -11,6 +11,7 @@ required:
   - all_agent_os_contracts_valid
   - agent_os_contract_summary
   - agent_maturity_contract_summary
+  - runtime_policy_contract_summary
   - agents
   - model_records
   - harness_artifacts
@@ -97,6 +98,38 @@ properties:
       context_compression_contracts_present: {type: integer}
       evolution_candidate_rules_present: {type: integer}
       minimum_pass_score_floor: {type: integer}
+      missing_by_agent: {type: object}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  runtime_policy_contract_summary:
+    type: object
+    required:
+      - agents_evaluated
+      - context_agent_policy_contracts_present
+      - context_skill_execution_policy_contracts_present
+      - structured_output_policy_contracts_present
+      - memory_policy_sections_present
+      - tool_policy_sections_present
+      - evolution_policy_sections_present
+      - safety_boundary_sections_present
+      - missing_by_agent
+      - controls
+      - real_trade_allowed
+      - broker_integration
+    properties:
+      agents_evaluated: {type: integer}
+      context_agent_policy_contracts_present: {type: integer}
+      context_skill_execution_policy_contracts_present: {type: integer}
+      structured_output_policy_contracts_present: {type: integer}
+      memory_policy_sections_present: {type: integer}
+      tool_policy_sections_present: {type: integer}
+      evolution_policy_sections_present: {type: integer}
+      safety_boundary_sections_present: {type: integer}
       missing_by_agent: {type: object}
       controls:
         type: array

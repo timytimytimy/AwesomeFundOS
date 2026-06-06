@@ -6,7 +6,7 @@ from typing import Any
 
 from fundos.capabilities import write_agent_capability_ledger
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
-from fundos.system_audit import cross_reference_mismatches_for_agent
+from fundos.system_audit import cross_reference_mismatches_for_agent, expected_runtime_policy_contract_summary
 
 
 ASSET_PATHS = {
@@ -84,6 +84,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "all_agent_os_contracts_valid": contract_summary["invalid_contracts"] == 0,
         "agent_os_contract_summary": contract_summary,
         "agent_maturity_contract_summary": agent_maturity_contract_summary(run_path, selected),
+        "runtime_policy_contract_summary": expected_runtime_policy_contract_summary(run_path, [row.get("agent_id", "") for row in selected]),
         "agents": agent_assets,
         "model_records": model_records,
         "harness_artifacts": existing_relative_paths(run_path, HARNESS_ARTIFACTS),
@@ -164,6 +165,7 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         lines.append(f"- {row.get('agent_id')}: {row.get('agent_card_path')} | {row.get('skill_path')}")
     contract_summary = manifest.get("agent_os_contract_summary", {}) or {}
     maturity_summary = manifest.get("agent_maturity_contract_summary", {}) or {}
+    policy_summary = manifest.get("runtime_policy_contract_summary", {}) or {}
     lines.extend([
         "",
         "## Agent OS Contract Checks",
@@ -175,6 +177,10 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- agent_maturity_contracts: {maturity_summary.get('maturity_contracts_present', 0)}",
         f"- agent_maturity_unique_edges: {maturity_summary.get('unique_edge_signatures', 0)}",
         f"- agent_maturity_skill_benchmarks: {maturity_summary.get('skill_benchmarks_present', 0)}",
+        f"- runtime_policy_contracts_loaded: {'runtime_policy_contracts_loaded' in (policy_summary.get('controls', []) or [])}",
+        f"- runtime_policy_agent_contracts: {policy_summary.get('context_agent_policy_contracts_present', 0)}",
+        f"- runtime_policy_skill_contracts: {policy_summary.get('context_skill_execution_policy_contracts_present', 0)}",
+        f"- runtime_policy_output_contracts: {policy_summary.get('structured_output_policy_contracts_present', 0)}",
         "",
     ])
     for row in manifest.get("agents", []) or []:

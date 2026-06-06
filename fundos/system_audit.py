@@ -118,6 +118,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     manifest_agent_capability_ledger_check = operating_system_manifest_agent_capability_ledger_check(os_manifest, agent_capability_ledger)
     runtime_maturity_check = runtime_agent_maturity_contract_check(run_path, [row.get("agent_id", "") for row in selected])
     manifest_maturity_check = operating_system_manifest_agent_maturity_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
+    runtime_policy_check = operating_system_manifest_runtime_policy_contract_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     return [
@@ -201,6 +202,14 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [run_path / "system" / "operating-system-manifest.yaml", run_path / "context", run_path / "agent_work"],
             manifest_maturity_check["ok"],
             details=manifest_maturity_check,
+        ),
+        requirement(
+            "runtime.policy_contracts_loaded_in_context_and_outputs",
+            "runtime_agent_outputs",
+            "Every selected agent loads Memory, Tool, Evolution, and Safety policy contracts from agent.md and SKILL.md into ContextPack, structured output, and the OS manifest.",
+            [run_path / "system" / "operating-system-manifest.yaml", run_path / "context", run_path / "agent_work"],
+            runtime_policy_check["ok"],
+            details=runtime_policy_check,
         ),
         requirement(
             "runtime.model_records_have_concrete_policy_fields",
@@ -1287,6 +1296,110 @@ def expected_agent_maturity_summary(run_path: Path, agent_ids: list[str]) -> dic
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def expected_runtime_policy_contract_summary(run_path: Path, agent_ids: list[str]) -> dict[str, Any]:
+    clean_agent_ids = [aid for aid in agent_ids if aid]
+    missing_by_agent: dict[str, list[str]] = {}
+    context_agent_policy_contracts_present = 0
+    context_skill_execution_policy_contracts_present = 0
+    structured_output_policy_contracts_present = 0
+    memory_policy_sections_present = 0
+    tool_policy_sections_present = 0
+    evolution_policy_sections_present = 0
+    safety_boundary_sections_present = 0
+    for agent_id in clean_agent_ids:
+        issues: list[str] = []
+        context = load_yaml(run_path / "context" / f"{agent_id}.context-pack.yaml", {})
+        output = load_yaml(run_path / "agent_work" / f"{agent_id}.structured.yaml", {})
+        agent_policy = (((context.get("agent_card") or {}).get("policy_contract") or {}) if isinstance(context, dict) else {})
+        skill_policy = (((context.get("skill_contract") or {}).get("execution_policy_contract") or {}) if isinstance(context, dict) else {})
+        output_policy = ((output.get("policy_contract") or {}) if isinstance(output, dict) else {})
+        if agent_policy.get("memory_policy") and agent_policy.get("tool_policy") and agent_policy.get("evolution_contract") and agent_policy.get("safety_boundary"):
+            context_agent_policy_contracts_present += 1
+        else:
+            issues.append("context_agent_policy_contract_missing")
+        if skill_policy.get("tool_use_policy") and skill_policy.get("memory_policy") and skill_policy.get("evolution_policy") and skill_policy.get("safety_boundary"):
+            context_skill_execution_policy_contracts_present += 1
+        else:
+            issues.append("context_skill_execution_policy_contract_missing")
+        required_output = [
+            "agent_memory_policy",
+            "agent_tool_policy",
+            "agent_evolution_contract",
+            "agent_safety_boundary",
+            "skill_tool_use_policy",
+            "skill_memory_policy",
+            "skill_evolution_policy",
+            "skill_safety_boundary",
+        ]
+        if all(output_policy.get(field) for field in required_output):
+            structured_output_policy_contracts_present += 1
+        else:
+            issues.append("structured_output_policy_contract_missing")
+        if agent_policy.get("memory_policy"):
+            memory_policy_sections_present += 1
+        if skill_policy.get("memory_policy"):
+            memory_policy_sections_present += 1
+        if agent_policy.get("tool_policy"):
+            tool_policy_sections_present += 1
+        if skill_policy.get("tool_use_policy"):
+            tool_policy_sections_present += 1
+        if agent_policy.get("evolution_contract"):
+            evolution_policy_sections_present += 1
+        if skill_policy.get("evolution_policy"):
+            evolution_policy_sections_present += 1
+        if agent_policy.get("safety_boundary"):
+            safety_boundary_sections_present += 1
+        if skill_policy.get("safety_boundary"):
+            safety_boundary_sections_present += 1
+        for label, contract in [("context_agent", agent_policy), ("context_skill", skill_policy), ("structured_output", output_policy)]:
+            if contract.get("real_trade_allowed") is not False:
+                issues.append(f"{label}_real_trade_not_disabled")
+            if contract.get("broker_integration") != "disabled":
+                issues.append(f"{label}_broker_not_disabled")
+        if issues:
+            missing_by_agent[agent_id] = issues
+    return {
+        "agents_evaluated": len(clean_agent_ids),
+        "context_agent_policy_contracts_present": context_agent_policy_contracts_present,
+        "context_skill_execution_policy_contracts_present": context_skill_execution_policy_contracts_present,
+        "structured_output_policy_contracts_present": structured_output_policy_contracts_present,
+        "memory_policy_sections_present": memory_policy_sections_present,
+        "tool_policy_sections_present": tool_policy_sections_present,
+        "evolution_policy_sections_present": evolution_policy_sections_present,
+        "safety_boundary_sections_present": safety_boundary_sections_present,
+        "missing_by_agent": missing_by_agent,
+        "controls": [
+            "runtime_policy_contracts_loaded",
+            "memory_tool_evolution_safety_boundaries_required",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def operating_system_manifest_runtime_policy_contract_check(manifest: Any, run_path: Path, agent_ids: list[str]) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not isinstance(manifest, dict):
+        return {"ok": False, "mismatches": ["manifest_missing_or_invalid"]}
+    summary = manifest.get("runtime_policy_contract_summary", {}) or {}
+    if not isinstance(summary, dict) or not summary:
+        return {"ok": False, "mismatches": ["runtime_policy_contract_summary_missing_or_invalid"]}
+    expected = expected_runtime_policy_contract_summary(run_path, agent_ids)
+    for field, expected_value in expected.items():
+        compare_value(mismatches, f"runtime_policy_contract_summary.{field}", summary.get(field), expected_value)
+    controls = set(summary.get("controls", []) or [])
+    for required_control in ["runtime_policy_contracts_loaded", "memory_tool_evolution_safety_boundaries_required", "no_real_trade_action", "broker_integration_disabled"]:
+        if required_control not in controls:
+            mismatches.append(f"runtime_policy_contract_summary.controls: missing {required_control}")
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"runtime_policy_contract_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"runtime_policy_contract_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+    return {"ok": not mismatches and not expected.get("missing_by_agent"), "mismatches": mismatches, **expected}
 
 
 def operating_system_manifest_agent_maturity_check(manifest: Any, run_path: Path, agent_ids: list[str]) -> dict[str, Any]:

@@ -167,6 +167,15 @@ class SystemAuditTests(unittest.TestCase):
             self.assertGreaterEqual(maturity_summary_details['unique_edge_signatures'], 7)
             self.assertFalse(maturity_summary_details['real_trade_allowed'])
             self.assertEqual(maturity_summary_details['broker_integration'], 'disabled')
+            self.assertEqual(by_id['runtime.policy_contracts_loaded_in_context_and_outputs']['status'], 'pass')
+            policy_details = by_id['runtime.policy_contracts_loaded_in_context_and_outputs']['details']
+            self.assertEqual(policy_details['missing_by_agent'], {})
+            self.assertGreaterEqual(policy_details['context_agent_policy_contracts_present'], 7)
+            self.assertGreaterEqual(policy_details['context_skill_execution_policy_contracts_present'], 7)
+            self.assertGreaterEqual(policy_details['structured_output_policy_contracts_present'], 7)
+            self.assertIn('runtime_policy_contracts_loaded', policy_details['controls'])
+            self.assertFalse(policy_details['real_trade_allowed'])
+            self.assertEqual(policy_details['broker_integration'], 'disabled')
             self.assertEqual(by_id['runtime.evolution_learning_loop_matches_manifest']['status'], 'pass')
             evolution_details = by_id['runtime.evolution_learning_loop_matches_manifest']['details']
             self.assertGreaterEqual(evolution_details['agent_learning_candidates'], 1)
@@ -213,6 +222,40 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('system/operating-system-manifest.yaml', manifest_evidence)
             self.assertIn('system/operating-system-manifest.md', manifest_evidence)
 
+
+    def test_system_audit_strict_mode_fails_stale_runtime_policy_contract_manifest_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            manifest_yaml = run_path / 'system' / 'operating-system-manifest.yaml'
+            manifest = yaml.safe_load(manifest_yaml.read_text(encoding='utf-8'))
+            manifest['runtime_policy_contract_summary']['context_agent_policy_contracts_present'] = -1
+            manifest['runtime_policy_contract_summary']['structured_output_policy_contracts_present'] = -1
+            manifest['runtime_policy_contract_summary']['broker_integration'] = 'enabled'
+            manifest_yaml.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(run_path), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.policy_contracts_loaded_in_context_and_outputs']['status'], 'fail')
+            mismatches = '\n'.join(by_id['runtime.policy_contracts_loaded_in_context_and_outputs']['details']['mismatches'])
+            self.assertIn('runtime_policy_contract_summary.context_agent_policy_contracts_present', mismatches)
+            self.assertIn('runtime_policy_contract_summary.structured_output_policy_contracts_present', mismatches)
+            self.assertIn('runtime_policy_contract_summary.broker_integration', mismatches)
 
     def test_system_audit_strict_mode_fails_stale_agent_maturity_manifest_summary(self):
         with tempfile.TemporaryDirectory() as d:

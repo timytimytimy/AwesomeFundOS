@@ -332,6 +332,7 @@ def load_agent_card(agent_id: str) -> dict[str, Any]:
         "context_management_policy": bullet_lines(section_body(text, "Context Management Policy")),
         "evolution_path": bullet_lines(section_body(text, "Evolution Path")),
         "maturity_contract": load_agent_maturity_contract(text),
+        "policy_contract": load_agent_policy_contract(text),
         "output_contract": compact_section(text, "Output Contract", max_lines=10),
     }
 
@@ -368,10 +369,54 @@ def load_skill_contract(agent_id: str) -> dict[str, Any]:
         "role_specific_benchmark": key_value_section(text, "Role-Specific Benchmark"),
         "context_compression_recipe": key_value_section(text, "Context Compression Recipe"),
         "evolution_candidate_rules": key_value_section(text, "Evolution Candidate Rules"),
+        "execution_policy_contract": load_skill_execution_policy_contract(text),
         "real_trade_allowed": False,
         "broker_integration": "disabled",
         "required_closing": compact_section(text, "Required Closing", max_lines=4),
     }
+
+
+def load_agent_policy_contract(text: str) -> dict[str, Any]:
+    return {
+        "memory_policy": bullet_lines(section_body(text, "Memory Policy")),
+        "tool_policy": bullet_lines(section_body(text, "Tool Policy")),
+        "evolution_contract": bullet_lines(section_body(text, "Evolution Contract")),
+        "safety_boundary": normalized_safety_boundary(text),
+        "controls": [
+            "policy_contract_loaded",
+            "memory_tool_evolution_safety_boundaries_required",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def load_skill_execution_policy_contract(text: str) -> dict[str, Any]:
+    return {
+        "tool_use_policy": bullet_lines(section_body(text, "Tool Use Policy")),
+        "memory_policy": bullet_lines(section_body(text, "Memory Policy")),
+        "evolution_policy": bullet_lines(section_body(text, "Evolution Policy")),
+        "safety_boundary": normalized_safety_boundary(text),
+        "controls": [
+            "execution_policy_contract_loaded",
+            "memory_tool_evolution_safety_boundaries_required",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def normalized_safety_boundary(text: str) -> list[str]:
+    boundary = bullet_lines(section_body(text, "Safety Boundary"))
+    invariant = "no real trade action; real_trade_allowed=false; broker_integration=disabled"
+    joined = " ".join(boundary).lower()
+    if "no real" not in joined:
+        boundary.append(invariant)
+    return boundary
 
 
 def load_agent_maturity_contract(text: str) -> dict[str, Any]:

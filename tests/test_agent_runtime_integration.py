@@ -53,6 +53,26 @@ class AgentRuntimeIntegrationTests(unittest.TestCase):
         self.assertTrue(any("EvolutionGate" in item for item in context["skill_contract"]["guardrails"]))
         self.assertTrue(any("先定义下游系统" in item for item in context["skill_contract"]["role_checklist"]))
         self.assertTrue(any("serenity_scheme_first_chokepoint" in item for item in context["agent_card"]["learning_patterns"]))
+        self.assertIn("policy_contract", context["agent_card"])
+        policy = context["agent_card"]["policy_contract"]
+        self.assertTrue(policy["memory_policy"])
+        self.assertTrue(policy["tool_policy"])
+        self.assertTrue(policy["evolution_contract"])
+        self.assertTrue(policy["safety_boundary"])
+        self.assertFalse(policy["real_trade_allowed"])
+        self.assertEqual(policy["broker_integration"], "disabled")
+        self.assertIn("no real", " ".join(policy["safety_boundary"]).lower())
+        self.assertIn("policy_contract_loaded", policy["controls"])
+        self.assertIn("execution_policy_contract", context["skill_contract"])
+        exec_policy = context["skill_contract"]["execution_policy_contract"]
+        self.assertTrue(exec_policy["tool_use_policy"])
+        self.assertTrue(exec_policy["memory_policy"])
+        self.assertTrue(exec_policy["evolution_policy"])
+        self.assertTrue(exec_policy["safety_boundary"])
+        self.assertFalse(exec_policy["real_trade_allowed"])
+        self.assertEqual(exec_policy["broker_integration"], "disabled")
+        self.assertIn("human approval", " ".join(exec_policy["evolution_policy"]).lower())
+        self.assertIn("execution_policy_contract_loaded", exec_policy["controls"])
 
     def test_agent_output_uses_agent_card_and_skill_contract(self):
         roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
@@ -86,6 +106,19 @@ class AgentRuntimeIntegrationTests(unittest.TestCase):
         self.assertTrue(output["role_checklist_applied"])
         self.assertTrue(any("趋势" in item or "止损" in item or "仓位" in item for item in output["role_checklist_applied"]))
         self.assertTrue(any("lihai_a_share_market_state" in item for item in output["agent_declared_learning_patterns"]))
+        self.assertIn("policy_contract", output)
+        policy = output["policy_contract"]
+        self.assertTrue(policy["agent_memory_policy"])
+        self.assertTrue(policy["agent_tool_policy"])
+        self.assertTrue(policy["agent_evolution_contract"])
+        self.assertTrue(policy["agent_safety_boundary"])
+        self.assertTrue(policy["skill_tool_use_policy"])
+        self.assertTrue(policy["skill_memory_policy"])
+        self.assertTrue(policy["skill_evolution_policy"])
+        self.assertTrue(policy["skill_safety_boundary"])
+        self.assertFalse(policy["real_trade_allowed"])
+        self.assertEqual(policy["broker_integration"], "disabled")
+        self.assertIn("runtime_policy_contracts_loaded", policy["controls"])
 
 
     def test_context_pack_embeds_agent_maturity_contract_and_skill_evolution_rules(self):

@@ -138,6 +138,20 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("role_specific_context_compression_required", maturity_summary["controls"])
             self.assertFalse(maturity_summary["real_trade_allowed"])
             self.assertEqual(maturity_summary["broker_integration"], "disabled")
+            self.assertIn("runtime_policy_contract_summary", os_manifest)
+            policy_summary = os_manifest["runtime_policy_contract_summary"]
+            self.assertEqual(policy_summary["agents_evaluated"], len(run_doc["selected_agents"]))
+            self.assertEqual(policy_summary["context_agent_policy_contracts_present"], len(run_doc["selected_agents"]))
+            self.assertEqual(policy_summary["context_skill_execution_policy_contracts_present"], len(run_doc["selected_agents"]))
+            self.assertEqual(policy_summary["structured_output_policy_contracts_present"], len(run_doc["selected_agents"]))
+            self.assertEqual(policy_summary["memory_policy_sections_present"], len(run_doc["selected_agents"]) * 2)
+            self.assertEqual(policy_summary["tool_policy_sections_present"], len(run_doc["selected_agents"]) * 2)
+            self.assertEqual(policy_summary["evolution_policy_sections_present"], len(run_doc["selected_agents"]) * 2)
+            self.assertEqual(policy_summary["safety_boundary_sections_present"], len(run_doc["selected_agents"]) * 2)
+            self.assertEqual(policy_summary["missing_by_agent"], {})
+            self.assertIn("runtime_policy_contracts_loaded", policy_summary["controls"])
+            self.assertFalse(policy_summary["real_trade_allowed"])
+            self.assertEqual(policy_summary["broker_integration"], "disabled")
             for agent_row in os_manifest["agents"]:
                 checks = agent_row["os_contract_checks"]
                 self.assertTrue(checks["agent_card_matches_roster"])
@@ -203,6 +217,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("agent_maturity_contracts", os_manifest_md)
             self.assertIn("agent_maturity_unique_edges", os_manifest_md)
             self.assertIn("agent_maturity_skill_benchmarks", os_manifest_md)
+            self.assertIn("runtime_policy_contracts_loaded", os_manifest_md)
+            self.assertIn("runtime_policy_agent_contracts", os_manifest_md)
+            self.assertIn("runtime_policy_output_contracts", os_manifest_md)
             self.assertIn("## Harness, Memory, Evolution", os_manifest_md)
             self.assertIn("context_management_score", os_manifest_md)
             self.assertIn("tool_runtime_calls", os_manifest_md)
@@ -394,6 +411,7 @@ class FundosCliTests(unittest.TestCase):
             "all_agent_os_contracts_valid",
             "agent_os_contract_summary",
             "agent_maturity_contract_summary",
+            "runtime_policy_contract_summary",
             "agents",
             "model_records",
             "harness_artifacts",
@@ -436,6 +454,24 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn(required, maturity_required)
         self.assertEqual(schema["properties"]["agent_maturity_contract_summary"]["properties"]["real_trade_allowed"]["enum"], [False])
         self.assertEqual(schema["properties"]["agent_maturity_contract_summary"]["properties"]["broker_integration"]["enum"], ["disabled"])
+        policy_required = schema["properties"]["runtime_policy_contract_summary"]["required"]
+        for required in [
+            "agents_evaluated",
+            "context_agent_policy_contracts_present",
+            "context_skill_execution_policy_contracts_present",
+            "structured_output_policy_contracts_present",
+            "memory_policy_sections_present",
+            "tool_policy_sections_present",
+            "evolution_policy_sections_present",
+            "safety_boundary_sections_present",
+            "missing_by_agent",
+            "controls",
+            "real_trade_allowed",
+            "broker_integration",
+        ]:
+            self.assertIn(required, policy_required)
+        self.assertEqual(schema["properties"]["runtime_policy_contract_summary"]["properties"]["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(schema["properties"]["runtime_policy_contract_summary"]["properties"]["broker_integration"]["enum"], ["disabled"])
         self.assertIn("agent_performance_summary", schema["properties"])
         self.assertIn("agent_governance_summary", schema["properties"])
         self.assertIn("evaluation_summary", schema["properties"])
