@@ -62,6 +62,7 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
     unresolved_gaps = evidence.get("unresolved_gaps", []) if isinstance(evidence, dict) else []
     blocking = evaluation.get("blocking_issues", []) if isinstance(evaluation, dict) else []
     selected = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) else []
+    model_record_check = runtime_model_records_check(run_doc)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -123,6 +124,14 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
             [run_path / "selected-agents.yaml", run_path / "context", run_path / "agent_work"],
             all(selected_agent_artifacts_exist(run_path, row.get("agent_id", "")) for row in selected),
             details={"missing": missing_selected_agent_artifacts(run_path, [row.get("agent_id", "") for row in selected])},
+        ),
+        requirement(
+            "runtime.model_records_have_concrete_policy_fields",
+            "runtime_governance",
+            "Every runtime model record declares concrete model/tool policy fields and preserves paper-only safety boundaries.",
+            [run_path / "run.yaml"],
+            model_record_check["ok"],
+            details=model_record_check,
         ),
     ]
 
@@ -437,6 +446,57 @@ def missing_selected_agent_artifacts(run_path: Path, agent_ids: list[str]) -> li
             if not path.exists():
                 missing.append(str(path))
     return missing
+
+
+def runtime_model_records_check(run_doc: Any) -> dict[str, Any]:
+    required = [
+        "agent_id",
+        "model",
+        "model_policy_id",
+        "reasoning_effort",
+        "skill_versions",
+        "tool_versions",
+        "tool_contract_id",
+        "runtime_mode",
+        "real_trade_allowed",
+        "broker_integration",
+    ]
+    records = run_doc.get("model_records", []) if isinstance(run_doc, dict) else []
+    selected = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) else []
+    missing_fields: list[dict[str, Any]] = []
+    safety_violations: list[dict[str, Any]] = []
+    stub_values: list[dict[str, Any]] = []
+    for idx, record in enumerate(records):
+        if not isinstance(record, dict):
+            missing_fields.append({"index": idx, "agent_id": "", "fields": required})
+            continue
+        missing = [field for field in required if field not in record]
+        if missing:
+            missing_fields.append({"index": idx, "agent_id": record.get("agent_id", ""), "fields": missing})
+        if record.get("runtime_mode") != "local_file_protocol":
+            safety_violations.append({"index": idx, "agent_id": record.get("agent_id", ""), "field": "runtime_mode", "value": record.get("runtime_mode")})
+        if record.get("real_trade_allowed") is not False:
+            safety_violations.append({"index": idx, "agent_id": record.get("agent_id", ""), "field": "real_trade_allowed", "value": record.get("real_trade_allowed")})
+        if record.get("broker_integration") != "disabled":
+            safety_violations.append({"index": idx, "agent_id": record.get("agent_id", ""), "field": "broker_integration", "value": record.get("broker_integration")})
+        skill_versions = record.get("skill_versions", [])
+        tool_versions = record.get("tool_versions", [])
+        version_values = (skill_versions if isinstance(skill_versions, list) else []) + (tool_versions if isinstance(tool_versions, list) else [])
+        joined_versions = " ".join(str(item) for item in version_values)
+        if "stub" in joined_versions.lower() or "stub" in str(record.get("model", "")).lower():
+            stub_values.append({"index": idx, "agent_id": record.get("agent_id", ""), "model": record.get("model"), "versions": joined_versions})
+    selected_count = len(selected) if isinstance(selected, list) else 0
+    record_count_matches_selected_agents = bool(records) and len(records) == selected_count
+    ok = record_count_matches_selected_agents and not missing_fields and not safety_violations and not stub_values
+    return {
+        "ok": ok,
+        "model_record_count": len(records) if isinstance(records, list) else 0,
+        "selected_agent_count": selected_count,
+        "record_count_matches_selected_agents": record_count_matches_selected_agents,
+        "missing_model_record_fields": missing_fields,
+        "safety_violations": safety_violations,
+        "stub_values": stub_values,
+    }
 
 
 def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:

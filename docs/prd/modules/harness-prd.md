@@ -78,6 +78,7 @@ Agent-level harness 对每个 selected agent 输出：
 - agent_reasoning_hypothesis_followup_quality：检查 `reasoning_layers.hypotheses_to_validate` 是否被路由为 Research Gap Follow-up task，是否保留 source_agent_id / Evidence ID / Claim ID / validation_required，是否去重，且只允许 follow-up research brief，不允许真实交易或 broker 动作；
 - skill_invocation_quality：检查 `SKILL.md` 是否加载、关键 section 是否存在、runtime skill path 是否与 ContextPack 一致、role checklist、evidence rules 和 Guardrails 是否进入输出；
 - skill_guardrails：检查每个 Agent 的 runtime 输出是否实际声明并遵守 Skill Guardrails，包括 `real_trade_allowed=false`、`broker_integration=disabled`、Profile/Skill/Tool/Memory/Thread/Harness/Evolution 边界、KOL/书籍/课程/案例只作为 hypothesis/checklist/failure pattern、以及 durable learning 必须经过 Harness 和 EvolutionGate；
+- runtime_governance：strict system audit 检查 `run.yaml` 的 `model_records` 是否为每个 selected Agent 记录 concrete model policy、tool contract、runtime mode 和安全边界字段；缺少 `model_policy_id`、`tool_contract_id`、`runtime_mode`、`real_trade_allowed=false` 或 `broker_integration=disabled` 时，strict audit 必须失败；
 - role_consistency_quality：检查 agent_id / role 是否一致、agent card 是否加载、declared skills 是否对齐、边界和免责声明是否存在；
 - blocking_issues：低于阈值或越界时产生阻断项。
 
