@@ -128,6 +128,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue({"chief_of_staff", "fund_manager", "risk_manager", "bear_debater", "evaluation_harness", "review_archivist"}.issubset(ids))
             self.assertTrue("tech_growth_analyst" in ids or "advanced_manufacturing_analyst" in ids)
 
+
             evidence = yaml.safe_load((run_path / "evidence/evidence-pack.yaml").read_text())
             research_manifest = yaml.safe_load((run_path / "evidence/public-research-manifest.yaml").read_text())
             self.assertTrue(evidence["evidence_items"])
@@ -228,6 +229,36 @@ class FundosCliTests(unittest.TestCase):
 
             reflection = yaml.safe_load((run_path / "reflections" / f"{next(iter(ids))}.reflection.yaml").read_text())
             self.assertFalse(any("stub" in str(item).lower() for item in reflection.get("tool_usage_errors", [])))
+
+
+    def test_inspect_run_prints_operating_system_manifest_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            run_result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            run_path = tmp_path / run_rel
+            run_doc = yaml.safe_load((run_path / "run.yaml").read_text())
+            selected = yaml.safe_load((run_path / "selected-agents.yaml").read_text())
+            ids = {item["agent_id"] for item in selected["selected_agents"]}
+
+            inspect = run_cli(["inspect", "--run", run_rel], tmp_path)
+
+            self.assertEqual(inspect.returncode, 0, inspect.stderr)
+            self.assertIn("os_manifest=", inspect.stdout)
+            self.assertIn("runtime_mode=local_file_protocol", inspect.stdout)
+            self.assertIn("model_records=", inspect.stdout)
+            self.assertIn("all_runtime_assets=True", inspect.stdout)
+            self.assertIn("loaded_agent_assets=agent_card:", inspect.stdout)
+            self.assertIn("harness_artifacts=", inspect.stdout)
+            self.assertIn("memory_thread_artifacts=", inspect.stdout)
+            self.assertIn("evolution_artifacts=", inspect.stdout)
+            self.assertIn("evolution_gate_results=", inspect.stdout)
+            self.assertIn("pending_human_apply=", inspect.stdout)
+            self.assertIn("paper_portfolio_only=True", inspect.stdout)
+            self.assertIn("kol_is_hypothesis_only=True", inspect.stdout)
+            self.assertIn("real_trade_allowed=False", inspect.stdout)
+            self.assertIn("broker_integration=disabled", inspect.stdout)
 
     def test_run_schema_declares_concrete_runtime_model_record_fields(self):
         schema = yaml.safe_load((ROOT / "specs/schemas/run.schema.yaml").read_text(encoding="utf-8"))

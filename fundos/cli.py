@@ -577,6 +577,26 @@ def command_inspect(args: argparse.Namespace) -> int:
     print(f"paper_actions={len(portfolio['paper_portfolio'].get('actions', []))}")
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"memory_writes={memory_summary['memory_writes']}")
+    manifest_path = run_path / "system" / "operating-system-manifest.yaml"
+    if manifest_path.exists():
+        manifest = read_yaml(manifest_path) or {}
+        loaded_assets = manifest.get("loaded_asset_counts", {}) or {}
+        evolution = manifest.get("evolution_summary", {}) or {}
+        safety = manifest.get("safety_invariants", {}) or {}
+        print(f"os_manifest={manifest_path}")
+        print(f"runtime_mode={manifest.get('runtime_mode')}")
+        print(f"model_records={manifest.get('model_record_count', 0)}")
+        print(f"all_runtime_assets={manifest.get('all_selected_agents_have_runtime_assets')}")
+        print("loaded_agent_assets=" + inline_counts(loaded_assets))
+        print(f"harness_artifacts={len(manifest.get('harness_artifacts', []) or [])}")
+        print(f"memory_thread_artifacts={len(manifest.get('memory_thread_artifacts', []) or [])}")
+        print(f"evolution_artifacts={len(manifest.get('evolution_artifacts', []) or [])}")
+        print(f"evolution_gate_results={evolution.get('gate_results', 0)}")
+        print(f"pending_human_apply={evolution.get('pending_human_apply', 0)}")
+        print(f"paper_portfolio_only={safety.get('paper_portfolio_only')}")
+        print(f"kol_is_hypothesis_only={safety.get('kol_is_hypothesis_only')}")
+        print(f"real_trade_allowed={manifest.get('real_trade_allowed')}")
+        print(f"broker_integration={manifest.get('broker_integration')}")
     return 0
 
 def command_report(args: argparse.Namespace) -> int:

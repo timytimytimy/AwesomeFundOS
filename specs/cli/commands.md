@@ -171,6 +171,17 @@ runs/{run_id}/evolution/capability-version-summary.yaml
 
 展示 run 状态、artifact 索引、Agent 参与情况、评分摘要和阻断项。
 
+V1 输出必须包含 Agent OS 装配摘要，至少包括：
+
+- `os_manifest` 路径；
+- `runtime_mode`；
+- `model_records` 数量；
+- `all_runtime_assets`；
+- `loaded_agent_assets`，覆盖 Agent Card / SKILL / ContextPolicy / ToolPolicy / MemoryPolicy；
+- Harness / Memory Thread / Evolution artifact 数量；
+- `evolution_gate_results` 与 `pending_human_apply`；
+- `paper_portfolio_only`、`kol_is_hypothesis_only`、`real_trade_allowed`、`broker_integration` 安全边界。
+
 ## 8. `fundos roster list`
 
 列出默认 Agent、角色、能力、ContextPolicy、ModelPolicy。
