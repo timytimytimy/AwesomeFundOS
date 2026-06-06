@@ -352,6 +352,7 @@ def load_skill_contract(agent_id: str) -> dict[str, Any]:
         "when_to_use": compact_section(text, "When to Use This Skill", max_lines=6),
         "inputs": bullet_lines(section_body(text, "Inputs")),
         "operating_workflow": bullet_lines(section_body(text, "Operating Workflow")),
+        "procedure": list_lines(section_body(text, "Procedure")),
         "evidence_rules": bullet_lines(section_body(text, "Evidence Rules")),
         "context_management": bullet_lines(section_body(text, "Context Management")),
         "output_schema": bullet_lines(section_body(text, "Output Schema")),
@@ -359,6 +360,7 @@ def load_skill_contract(agent_id: str) -> dict[str, Any]:
         "learning_patterns": code_or_bullet_values(section_body(text, "Learning Patterns")),
         "role_checklist": bullet_lines(section_body(text, "Role-Specific Checklist")),
         "harness_hooks": bullet_lines(section_body(text, "Harness Hooks")),
+        "quality_gates": list_lines(section_body(text, "Quality Gates")),
         "guardrails": bullet_lines(section_body(text, "Guardrails")),
         "forbidden_outputs": bullet_lines(section_body(text, "Forbidden Outputs")),
         "boundaries": bullet_lines(section_body(text, "Boundaries")),
@@ -404,6 +406,19 @@ def bullet_lines(body: str) -> list[str]:
         stripped = line.strip()
         if stripped.startswith("- "):
             values.append(stripped[2:].strip())
+    return values
+
+
+def list_lines(body: str) -> list[str]:
+    values = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("- "):
+            values.append(stripped[2:].strip())
+            continue
+        match = re.match(r"^\d+\.\s+(.*)$", stripped)
+        if match:
+            values.append(match.group(1).strip())
     return values
 
 

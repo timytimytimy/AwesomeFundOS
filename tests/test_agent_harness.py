@@ -50,9 +50,16 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertTrue(row["skill_invocation_quality"]["guardrails_present"])
             self.assertTrue(row["skill_invocation_quality"]["guardrails_applied"])
             self.assertTrue(row["skill_invocation_quality"]["guardrail_safety_respected"])
+            self.assertTrue(row["skill_invocation_quality"]["procedure_executed"])
+            self.assertTrue(row["skill_invocation_quality"]["quality_gates_checked"])
+            self.assertTrue(row["skill_invocation_quality"]["quality_gate_safety_respected"])
             self.assertIn("Guardrails", row["skill_invocation_quality"]["runtime_sections"])
+            self.assertIn("Procedure", row["skill_invocation_quality"]["runtime_sections"])
+            self.assertIn("Quality Gates", row["skill_invocation_quality"]["runtime_sections"])
             self.assertGreaterEqual(report["aggregate_scores"]["skill_guardrails"], 90)
+            self.assertGreaterEqual(report["aggregate_scores"]["skill_execution"], 90)
             self.assertIn("skill_guardrails_required", report["controls"])
+            self.assertIn("skill_procedure_quality_gates_required", report["controls"])
             self.assertTrue(row["role_consistency_quality"]["agent_card_loaded"])
             self.assertEqual(output["agent_id"], row["agent_id"])
 
@@ -74,6 +81,26 @@ class AgentHarnessTests(unittest.TestCase):
         self.assertFalse(quality["guardrails_applied"])
         self.assertFalse(quality["guardrail_safety_respected"])
         self.assertIn("skill_guardrails_not_applied", report["agent_results"][0]["blocking_issues"])
+
+    def test_agent_harness_blocks_missing_runtime_procedure_and_quality_gates(self):
+        pack = make_evidence_pack("run-agent-procedure-gate-miss", "topic", "机器人产业链投资机会")
+        context = make_context_pack("run-agent-procedure-gate-miss", AGENT, pack)
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
+            output = write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+            output.pop("procedure_steps_executed", None)
+            output.pop("quality_gates_checked", None)
+            output["quality_gate_checks"] = {"identity_gate": True, "evidence_gate": False}
+            write_yaml(run_path / "agent_work" / "tech_growth_analyst.structured.yaml", output)
+
+            report = evaluate_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
+
+        quality = report["agent_results"][0]["skill_invocation_quality"]
+        self.assertFalse(quality["procedure_executed"])
+        self.assertFalse(quality["quality_gates_checked"])
+        self.assertFalse(quality["quality_gate_safety_respected"])
+        self.assertIn("skill_procedure_or_quality_gates_missing", report["agent_results"][0]["blocking_issues"])
 
     def test_write_agent_harness_creates_artifact_and_evaluation_summary_reads_it(self):
         pack = make_evidence_pack("run-agent-harness", "topic", "机器人产业链投资机会")

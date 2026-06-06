@@ -6,7 +6,8 @@ from typing import Any
 from fundos.io import read_yaml, write_yaml
 
 AGENT_HARNESS_VERSION = "0.1.0"
-REQUIRED_SKILL_SECTIONS = {"Evidence Rules", "Context Management", "Role-Specific Checklist", "Guardrails", "Forbidden Outputs"}
+REQUIRED_SKILL_SECTIONS = {"Procedure", "Evidence Rules", "Context Management", "Role-Specific Checklist", "Quality Gates", "Guardrails", "Forbidden Outputs"}
+REQUIRED_QUALITY_GATES = {"identity_gate", "evidence_gate", "source_boundary_gate", "context_gate", "safety_gate", "evolution_gate"}
 
 
 def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> dict[str, Any]:
@@ -34,6 +35,7 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
             "reasoning_layer_separation_required",
             "skill_contract_required",
             "skill_guardrails_required",
+            "skill_procedure_quality_gates_required",
             "agent_card_required",
             "evidence_traceability_required",
             "no_real_trade_action",
@@ -74,6 +76,7 @@ def default_report() -> dict[str, Any]:
             "tool_policy": 0,
             "skill_invocation": 0,
             "skill_guardrails": 0,
+            "skill_execution": 0,
             "role_consistency": 0,
             "overall": 0,
         },
@@ -378,12 +381,23 @@ def evaluate_skill_invocation(context: dict[str, Any], output: dict[str, Any]) -
     guardrails = skill.get("guardrails", []) or []
     output_guardrails = output.get("skill_guardrails_applied", []) or []
     guardrail_checks = output.get("guardrail_checks", {}) or {}
+    procedure = skill.get("procedure", []) or []
+    quality_gates = skill.get("quality_gates", []) or []
+    output_procedure = output.get("procedure_steps_executed", []) or []
+    output_quality_gates = output.get("quality_gates_checked", []) or []
+    quality_gate_checks = output.get("quality_gate_checks", {}) or {}
     required_present = REQUIRED_SKILL_SECTIONS <= sections
     runtime_matches = bool(runtime.get("skill_path")) and runtime.get("skill_path") == skill.get("source_path")
     checklist_count = len(output.get("role_checklist_applied", []))
     evidence_rule_count = len(output.get("skill_evidence_rules", []))
     guardrails_present = "Guardrails" in sections and bool(guardrails)
     guardrails_applied = bool(output_guardrails) and set(output_guardrails) <= set(guardrails)
+    procedure_present = "Procedure" in sections and bool(procedure)
+    procedure_executed = bool(output_procedure) and set(output_procedure) <= set(procedure)
+    quality_gates_present = "Quality Gates" in sections and bool(quality_gates)
+    quality_gates_checked = bool(output_quality_gates) and set(output_quality_gates) <= set(quality_gates)
+    required_quality_gate_checks_present = REQUIRED_QUALITY_GATES <= set(quality_gate_checks)
+    quality_gate_safety_respected = required_quality_gate_checks_present and all(quality_gate_checks.get(gate) is True for gate in REQUIRED_QUALITY_GATES) and quality_gate_checks.get("real_trade_allowed") is False and quality_gate_checks.get("broker_integration") == "disabled"
     guardrail_safety_respected = (
         guardrail_checks.get("real_trade_disabled") is True
         and guardrail_checks.get("broker_integration_disabled") is True
@@ -409,6 +423,10 @@ def evaluate_skill_invocation(context: dict[str, Any], output: dict[str, Any]) -
         score += 5
     if guardrail_safety_respected:
         score += 10
+    if procedure_present and procedure_executed:
+        score += 5
+    if quality_gates_present and quality_gates_checked and quality_gate_safety_respected:
+        score += 5
     return {
         "score": min(100, score),
         "skill_available": bool(skill.get("available")),
@@ -417,9 +435,17 @@ def evaluate_skill_invocation(context: dict[str, Any], output: dict[str, Any]) -
         "guardrails_present": guardrails_present,
         "guardrails_applied": guardrails_applied,
         "guardrail_safety_respected": guardrail_safety_respected,
+        "procedure_present": procedure_present,
+        "procedure_executed": procedure_executed,
+        "quality_gates_present": quality_gates_present,
+        "quality_gates_checked": quality_gates_checked,
+        "required_quality_gate_checks_present": required_quality_gate_checks_present,
+        "quality_gate_safety_respected": quality_gate_safety_respected,
         "runtime_sections": sorted(runtime_sections),
         "role_checklist_items": checklist_count,
         "evidence_rule_items": evidence_rule_count,
+        "procedure_steps": len(output_procedure),
+        "quality_gates": len(output_quality_gates),
         "missing_required_sections": sorted(REQUIRED_SKILL_SECTIONS - sections),
     }
 
@@ -556,7 +582,7 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "reasoning_layer_separation": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "skill_guardrails": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "reasoning_layer_separation": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "skill_guardrails": 0, "skill_execution": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
     context_management_score = avg(row["context_management_quality"]["score"] for row in agent_results)
@@ -567,6 +593,7 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
     guardrail_score = avg(100 if row["skill_invocation_quality"].get("guardrails_present") and row["skill_invocation_quality"].get("guardrails_applied") and row["skill_invocation_quality"].get("guardrail_safety_respected") else 0 for row in agent_results)
+    skill_execution_score = avg(100 if row["skill_invocation_quality"].get("procedure_executed") and row["skill_invocation_quality"].get("quality_gates_checked") and row["skill_invocation_quality"].get("quality_gate_safety_respected") else 0 for row in agent_results)
     role_score = avg(row["role_consistency_quality"]["score"] for row in agent_results)
     return {
         "context_compression": context_score,
@@ -579,6 +606,7 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
         "tool_policy": tool_score,
         "skill_invocation": skill_score,
         "skill_guardrails": guardrail_score,
+        "skill_execution": skill_execution_score,
         "role_consistency": role_score,
         "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_lesson_score + reasoning_layer_score + memory_score + tool_score + skill_score + role_score) / 10, 1),
     }
@@ -599,6 +627,8 @@ def blocking_issues(*quality_docs: dict[str, Any]) -> list[str]:
             break
         if doc.get("guardrails_present") is True and (not doc.get("guardrails_applied") or not doc.get("guardrail_safety_respected")):
             issues.append("skill_guardrails_not_applied")
+        if doc.get("procedure_present") is True and (not doc.get("procedure_executed") or not doc.get("quality_gates_checked") or not doc.get("quality_gate_safety_respected")):
+            issues.append("skill_procedure_or_quality_gates_missing")
     return issues
 
 

@@ -85,6 +85,9 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     thread_influence = thread_memory_influence(thread_memory_summary)
     skill_guardrails = skill_contract.get("guardrails", [])
     guardrail_checks = guardrail_checks_for(skill_guardrails)
+    procedure_steps = skill_contract.get("procedure", [])
+    quality_gates = skill_contract.get("quality_gates", [])
+    quality_gate_checks = quality_gate_checks_for(agent, context, summary, agent_card, skill_contract, guardrail_checks)
     return {
         "run_id": context["run_id"],
         "agent_id": agent["id"],
@@ -103,6 +106,9 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "required_focus": context.get("required_focus", []),
         "decision_principles_applied": agent_card.get("decision_principles", [])[:8],
         "role_checklist_applied": skill_contract.get("role_checklist", [])[:8],
+        "procedure_steps_executed": procedure_steps[:8],
+        "quality_gates_checked": quality_gates[:8],
+        "quality_gate_checks": quality_gate_checks,
         "skill_evidence_rules": skill_contract.get("evidence_rules", [])[:8],
         "skill_guardrails_applied": skill_guardrails[:8],
         "guardrail_checks": guardrail_checks,
@@ -136,6 +142,24 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "forbidden_actions_checked": context.get("forbidden_focus", []),
         "disclaimer": DISCLAIMER,
 }
+
+
+def quality_gate_checks_for(agent: dict[str, Any], context: dict[str, Any], summary: dict[str, Any], agent_card: dict[str, Any], skill_contract: dict[str, Any], guardrail_checks: dict[str, Any]) -> dict[str, Any]:
+    quality_gates = "\n".join(skill_contract.get("quality_gates", []))
+    guardrails = "\n".join(skill_contract.get("guardrails", []))
+    key_claims = summary.get("key_claims", [])
+    has_traceable_claims = bool(key_claims) and all(row.get("evidence_id") and row.get("claim_id") for row in key_claims)
+    has_missing_or_hypothesis_context = bool(context.get("missing_evidence")) or bool(context.get("hypothesis_queue")) or bool(context.get("low_confidence_items"))
+    return {
+        "identity_gate": bool(agent.get("id")) and bool(agent.get("role")) and bool(agent_card.get("identity")),
+        "evidence_gate": has_traceable_claims or has_missing_or_hypothesis_context,
+        "source_boundary_gate": "KOL" in quality_gates and "hypothesis" in quality_gates and "direct" in quality_gates,
+        "context_gate": bool(context.get("context_budget_manifest")) and bool(context.get("context_loss_accounting")),
+        "safety_gate": guardrail_checks.get("real_trade_allowed") is False and guardrail_checks.get("broker_integration") == "disabled",
+        "evolution_gate": "EvolutionGate" in guardrails or "Evolution gate" in quality_gates,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def guardrail_checks_for(guardrails: list[str]) -> dict[str, Any]:
