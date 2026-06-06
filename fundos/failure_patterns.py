@@ -70,6 +70,8 @@ def extract_failure_patterns(run_path: Path) -> dict[str, Any]:
             "no_real_trade_action",
             "do_not_delete_historical_errors",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "disclaimer": DISCLAIMER,
     }
 
@@ -185,7 +187,15 @@ def load_failure_summary(root: Path) -> dict[str, Any]:
         "category_counts": count_by(rows, "category"),
         "severity_counts": count_by(rows, "severity"),
         "latest_pattern_id": rows[-1].get("pattern_id") if rows else None,
-        "controls": ["review_before_evolution", "no_real_trade_action", "do_not_delete_historical_errors"],
+        "controls": [
+            "review_before_evolution",
+            "failure_patterns_are_not_trade_signals",
+            "no_real_trade_action",
+            "do_not_delete_historical_errors",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+        "disclaimer": DISCLAIMER,
     }
 
 
@@ -209,7 +219,15 @@ def default_report() -> dict[str, Any]:
         "category_counts": {},
         "severity_counts": {},
         "patterns": [],
-        "controls": [],
+        "controls": [
+            "review_before_evolution",
+            "failure_patterns_are_not_trade_signals",
+            "no_real_trade_action",
+            "do_not_delete_historical_errors",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+        "disclaimer": DISCLAIMER,
     }
 
 

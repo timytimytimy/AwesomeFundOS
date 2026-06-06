@@ -84,6 +84,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     paper_portfolio = load_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {})
     portfolio_review = load_yaml(run_path / "portfolio" / "portfolio-review.yaml", {})
     outcome_tracking = load_yaml(run_path / "portfolio" / "outcome-tracking.yaml", {})
+    failure_patterns = load_yaml(run_path / "learning" / "failure-patterns.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     agent_learning = load_yaml(run_path / "learning" / "agent-learning-report.yaml", {})
@@ -97,7 +98,9 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     capability_candidates = load_jsonl(run_path / "evolution" / "capability-candidates.jsonl")
     capability_summary = load_yaml(run_path / "evolution" / "capability-version-summary.yaml", {})
     agent_capability_ledger = load_yaml(run_path / "evolution" / "agent-capability-ledger.yaml", {})
-    capability_apply_ledger = load_jsonl(infer_runtime_root(run_path) / "memory" / "organization" / "capability-apply-ledger.jsonl")
+    runtime_root = infer_runtime_root(run_path)
+    capability_apply_ledger = load_jsonl(runtime_root / "memory" / "organization" / "capability-apply-ledger.jsonl")
+    failure_pattern_library = load_jsonl(runtime_root / "memory" / "organization" / "failure-pattern-library.jsonl")
     capability_regression = load_yaml(run_path / "harness" / "capability-regression.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
@@ -137,6 +140,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     portfolio_outcome_schema_check = runtime_portfolio_outcome_schema_check(repo_root, run_path, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
+    failure_pattern_schema_check = runtime_failure_pattern_schema_check(repo_root, run_path, failure_patterns, failure_pattern_library)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -398,6 +402,18 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             portfolio_outcome_schema_check["ok"],
             details=portfolio_outcome_schema_check,
+        ),
+        requirement(
+            "runtime.failure_pattern_library_matches_schema",
+            "learning_evolution",
+            "Runtime failure pattern report and organization library rows match source-controlled schemas and preserve review-before-evolution paper-only controls.",
+            [
+                repo_root / "specs/schemas/failure-pattern-report.schema.yaml",
+                run_path / "learning" / "failure-patterns.yaml",
+                infer_runtime_root(run_path) / "memory" / "organization" / "failure-pattern-library.jsonl",
+            ],
+            failure_pattern_schema_check["ok"],
+            details=failure_pattern_schema_check,
         ),
     ]
 
@@ -1496,6 +1512,95 @@ def runtime_portfolio_outcome_schema_check(repo_root: Path, run_path: Path, watc
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def runtime_failure_pattern_schema_check(repo_root: Path, run_path: Path, report: Any, library_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    schema_path = repo_root / "specs" / "schemas" / "failure-pattern-report.schema.yaml"
+    report_path = run_path / "learning" / "failure-patterns.yaml"
+    library_path = infer_runtime_root(run_path) / "memory" / "organization" / "failure-pattern-library.jsonl"
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+
+    if not schema_path.exists():
+        schema_errors_by_artifact["failure-patterns.yaml"] = [f"missing_schema:{schema_path}"]
+    if not report_path.exists() or not isinstance(report, dict):
+        missing_artifacts.append("failure-patterns.yaml")
+    elif schema_path.exists():
+        result = validate_runtime_schema(schema_path, report)
+        if not result["ok"]:
+            schema_errors_by_artifact["failure-patterns.yaml"] = result["schema_errors"]
+
+    run_id = str(report.get("run_id") or infer_run_id_from_run_doc(run_path)) if isinstance(report, dict) else infer_run_id_from_run_doc(run_path)
+    patterns = report.get("patterns", []) if isinstance(report, dict) and isinstance(report.get("patterns", []), list) else []
+    pattern_ids = [str(pattern.get("pattern_id")) for pattern in patterns if isinstance(pattern, dict) and pattern.get("pattern_id")]
+    library_rows_for_run = [row for row in library_rows if str(row.get("run_id")) == run_id]
+    library_by_pattern = {str(row.get("pattern_id")): row for row in library_rows_for_run if row.get("pattern_id")}
+
+    if not library_path.exists():
+        missing_artifacts.append("failure-pattern-library.jsonl")
+    for pattern_id in pattern_ids:
+        row = library_by_pattern.get(pattern_id)
+        if not isinstance(row, dict):
+            mismatches.append(f"failure-pattern-library.jsonl missing pattern_id {pattern_id}")
+            continue
+        row_report = {
+            "version": report.get("version"),
+            "artifact_type": "failure_pattern_report",
+            "run_id": row.get("run_id"),
+            "pattern_count": 1,
+            "category_counts": {str(row.get("category") or "unknown"): 1},
+            "severity_counts": {str(row.get("severity") or "unknown"): 1},
+            "patterns": [row],
+            "controls": list(report.get("controls", [])) if isinstance(report, dict) else [],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+            "disclaimer": report.get("disclaimer", DISCLAIMER) if isinstance(report, dict) else DISCLAIMER,
+        }
+        if schema_path.exists():
+            row_result = validate_runtime_schema(schema_path, row_report)
+            if not row_result["ok"]:
+                schema_errors_by_artifact[f"failure-pattern-library.jsonl:{pattern_id}"] = row_result["schema_errors"]
+
+    controls = report.get("controls", []) if isinstance(report, dict) and isinstance(report.get("controls", []), list) else []
+    required_controls = {
+        "review_before_evolution",
+        "failure_patterns_are_not_trade_signals",
+        "no_real_trade_action",
+        "do_not_delete_historical_errors",
+    }
+    missing_controls = sorted(required_controls - set(str(control) for control in controls))
+    if missing_controls:
+        mismatches.append(f"failure_pattern_report.controls missing {missing_controls!r}")
+    if isinstance(report, dict) and report.get("pattern_count") != len(patterns):
+        mismatches.append(f"failure_pattern_report.pattern_count: expected {len(patterns)}, got {report.get('pattern_count')!r}")
+    if isinstance(report, dict) and report.get("real_trade_allowed") is not False:
+        mismatches.append(f"failure_pattern_report.real_trade_allowed: expected False, got {report.get('real_trade_allowed')!r}")
+    if isinstance(report, dict) and report.get("broker_integration") != "disabled":
+        mismatches.append(f"failure_pattern_report.broker_integration: expected 'disabled', got {report.get('broker_integration')!r}")
+
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": missing_artifacts,
+        "mismatches": mismatches,
+        "schema_path": str(schema_path),
+        "report_path": str(report_path),
+        "organization_library_path": str(library_path),
+        "report_pattern_count": len(patterns),
+        "organization_library_rows": len(library_rows),
+        "organization_library_rows_for_run": len(library_rows_for_run),
+        "controls": controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def infer_run_id_from_run_doc(run_path: Path) -> str:
+    run_doc = load_yaml(run_path / "run.yaml", {})
+    if isinstance(run_doc, dict):
+        return str(run_doc.get("run_id") or run_path.name)
+    return run_path.name
 
 
 def expected_agent_maturity_summary(run_path: Path, agent_ids: list[str]) -> dict[str, Any]:

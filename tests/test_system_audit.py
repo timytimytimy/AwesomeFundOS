@@ -232,6 +232,14 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(portfolio_schema_details['missing_artifacts'], [])
             self.assertFalse(portfolio_schema_details['real_trade_allowed'])
             self.assertEqual(portfolio_schema_details['broker_integration'], 'disabled')
+            self.assertEqual(by_id['runtime.failure_pattern_library_matches_schema']['status'], 'pass')
+            failure_schema_details = by_id['runtime.failure_pattern_library_matches_schema']['details']
+            self.assertEqual(failure_schema_details['schema_errors_by_artifact'], {})
+            self.assertEqual(failure_schema_details['missing_artifacts'], [])
+            self.assertGreaterEqual(failure_schema_details['organization_library_rows'], failure_schema_details['report_pattern_count'])
+            self.assertIn('failure_patterns_are_not_trade_signals', failure_schema_details['controls'])
+            self.assertFalse(failure_schema_details['real_trade_allowed'])
+            self.assertEqual(failure_schema_details['broker_integration'], 'disabled')
             committee_details = by_id['runtime.committee_debate_risk_decision_loop_complete']['details']
             self.assertGreaterEqual(committee_details['disagreement_count'], 1)
             self.assertGreaterEqual(committee_details['active_veto_count'], 1)
@@ -273,6 +281,39 @@ class SystemAuditTests(unittest.TestCase):
             errors = '\n'.join(by_id['runtime.portfolio_outcome_artifacts_match_schemas']['details']['schema_errors_by_artifact']['paper-portfolio.yaml'])
             self.assertIn('$.broker_integration', errors)
             self.assertIn('$.actions[0].broker_integration', errors)
+
+    def test_system_audit_strict_mode_fails_failure_pattern_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            failure_yaml = cwd / run_rel / 'learning' / 'failure-patterns.yaml'
+            failure_report = yaml.safe_load(failure_yaml.read_text(encoding='utf-8'))
+            failure_report['broker_integration'] = 'enabled'
+            failure_report['patterns'][0].pop('prevention_check', None)
+            failure_report['patterns'][0]['broker_integration'] = 'enabled'
+            failure_yaml.write_text(yaml.safe_dump(failure_report, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.failure_pattern_library_matches_schema']['status'], 'fail')
+            errors = '\n'.join(by_id['runtime.failure_pattern_library_matches_schema']['details']['schema_errors_by_artifact']['failure-patterns.yaml'])
+            self.assertIn('$.broker_integration', errors)
+            self.assertIn('$.patterns[0].prevention_check', errors)
+            self.assertIn('$.patterns[0].broker_integration', errors)
 
 
     def test_system_audit_strict_mode_fails_stale_runtime_policy_contract_manifest_summary(self):

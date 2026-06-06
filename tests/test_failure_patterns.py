@@ -7,6 +7,9 @@ import yaml
 
 from fundos.failure_patterns import extract_failure_patterns, load_failure_summary, write_failure_patterns
 from fundos.io import write_yaml
+from fundos.system_audit import validate_runtime_schema
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class FailurePatternTests(unittest.TestCase):
@@ -48,8 +51,38 @@ class FailurePatternTests(unittest.TestCase):
             self.assertIn("risk_control_failure", categories)
             first = report["patterns"][0]
             self.assertIn("pattern_id", first)
+            self.assertFalse(report["real_trade_allowed"])
+            self.assertEqual(report["broker_integration"], "disabled")
             self.assertFalse(first["real_trade_allowed"])
             self.assertIn("review_before_evolution", report["controls"])
+
+    def test_failure_pattern_schema_exists_and_validates_report_and_rows(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "run-schema"
+            (run_path / "reflections").mkdir(parents=True)
+            write_yaml(run_path / "run.yaml", {"run_id": "run-schema"})
+            write_yaml(run_path / "reflections" / "risk_manager.reflection.yaml", {
+                "agent_id": "risk_manager",
+                "missed_evidence": ["流动性和持仓集中度数据"],
+                "reasoning_errors": [],
+                "tool_usage_errors": [],
+                "bias_detected": [],
+            })
+
+            report = extract_failure_patterns(run_path)
+            schema_path = ROOT / "specs" / "schemas" / "failure-pattern-report.schema.yaml"
+
+            self.assertTrue(schema_path.exists())
+            result = validate_runtime_schema(schema_path, report)
+            self.assertTrue(result["ok"], result["schema_errors"])
+            self.assertFalse(report["real_trade_allowed"])
+            self.assertEqual(report["broker_integration"], "disabled")
+            self.assertIn("failure_patterns_are_not_trade_signals", report["controls"])
+            for pattern in report["patterns"]:
+                self.assertTrue(pattern["review_before_evolution"])
+                self.assertFalse(pattern["real_trade_allowed"])
+                self.assertEqual(pattern["broker_integration"], "disabled")
 
     def test_extract_failure_patterns_from_agent_harness_guardrail_violations(self):
         with tempfile.TemporaryDirectory() as d:
@@ -137,6 +170,8 @@ class FailurePatternTests(unittest.TestCase):
             self.assertEqual(summary["pattern_count"], 3)
             self.assertEqual(summary["category_counts"]["missing_evidence"], 2)
             self.assertEqual(summary["severity_counts"]["high"], 1)
+            self.assertFalse(summary["real_trade_allowed"])
+            self.assertEqual(summary["broker_integration"], "disabled")
 
 
 if __name__ == "__main__":
