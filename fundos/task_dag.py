@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
+from fundos.evidence import enrich_evidence_pack
 from fundos.research_tasks import build_next_research_tasks
 
 SPEC_REL = "specs/workflows/research-task-dag.yaml"
@@ -92,13 +93,22 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
     results = load_research_gap_followup_results(run_path)
     results_by_task_id = {row.get("task_id"): row for row in results if row.get("task_id")}
     answered_count = 0
+    closed_count = 0
     unsafe_blocked_count = 0
     pending_count = 0
+    accepted_evidence_count = 0
     reconciled_tasks = []
     for task in manifest.get("tasks", []):
         reconciled = dict(task)
         result = results_by_task_id.get(task.get("task_id"))
-        if result:
+        if task.get("closure_status") == "closed_by_accepted_evidence":
+            status = "closed_by_accepted_evidence"
+            closed_count += 1
+            accepted_evidence_count += len(task.get("accepted_evidence_ids", []) or [])
+            reconciled["status"] = status
+            reconciled["real_trade_allowed"] = False
+            reconciled["broker_integration"] = "disabled"
+        elif result:
             answered_count += 1
             status = reconciled_status_for_result(result)
             if status == "answered_unsafe_blocked":
@@ -121,8 +131,10 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
     manifest["tasks"] = reconciled_tasks
     manifest["research_gap_count"] = len(reconciled_tasks)
     manifest["answered_count"] = answered_count
+    manifest["closed_count"] = closed_count
     manifest["pending_count"] = pending_count
     manifest["unsafe_blocked_count"] = unsafe_blocked_count
+    manifest["accepted_evidence_count"] = accepted_evidence_count
     manifest["real_trade_allowed"] = False
     manifest["broker_integration"] = "disabled"
     if manifest_path.exists():
@@ -138,7 +150,7 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
                 task = task_by_id.get(updated.get("task_id"))
                 if task:
                     updated["status"] = task.get("status", updated.get("status"))
-                    for key in ["answer_status", "result_path", "result_category", "result_owner_agent_id"]:
+                    for key in ["answer_status", "result_path", "result_category", "result_owner_agent_id", "closure_status", "accepted_evidence_ids", "accepted_claim_ids"]:
                         if key in task:
                             updated[key] = task[key]
                     updated["real_trade_allowed"] = False
@@ -146,8 +158,10 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
             updated_nodes.append(updated)
         dag["nodes"] = updated_nodes
         dag["research_gap_answered_count"] = answered_count
+        dag["research_gap_closed_count"] = closed_count
         dag["research_gap_pending_count"] = pending_count
         dag["research_gap_unsafe_blocked_count"] = unsafe_blocked_count
+        dag["research_gap_accepted_evidence_count"] = accepted_evidence_count
         dag["real_trade_allowed"] = False
         dag["broker_integration"] = "disabled"
         write_yaml(dag_path, dag)
@@ -155,8 +169,10 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
     if harness_path.exists():
         harness = read_yaml(harness_path) or {}
         harness["research_gap_answered_count"] = answered_count
+        harness["research_gap_closed_count"] = closed_count
         harness["research_gap_pending_count"] = pending_count
         harness["research_gap_unsafe_blocked_count"] = unsafe_blocked_count
+        harness["research_gap_accepted_evidence_count"] = accepted_evidence_count
         harness["research_gap_result_paths"] = [task.get("result_path") for task in reconciled_tasks if task.get("result_path")]
         harness["real_trade_allowed"] = False
         harness["broker_integration"] = "disabled"
@@ -171,12 +187,106 @@ def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
         "run_id": manifest.get("run_id") or read_run_id(run_path),
         "research_gap_count": len(reconciled_tasks),
         "answered_count": answered_count,
+        "closed_count": closed_count,
         "pending_count": pending_count,
         "unsafe_blocked_count": unsafe_blocked_count,
+        "accepted_evidence_count": accepted_evidence_count,
         "result_count": len(results),
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def close_research_gap_followup_with_evidence(run_path: Path, task_id: str, accepted_evidence: list[dict[str, Any]]) -> dict[str, Any]:
+    manifest = load_research_gap_task_manifest(run_path)
+    task = next((row for row in manifest.get("tasks", []) if row.get("task_id") == task_id), None)
+    if not task:
+        raise KeyError(task_id)
+    if not accepted_evidence:
+        raise ValueError("accepted_evidence is required to close a research gap")
+    category = str(task.get("category") or "")
+    safe_items = [normalize_followup_evidence_item(item, category) for item in accepted_evidence]
+    pack = load_or_empty_evidence_pack(run_path)
+    existing = pack.get("evidence_items", [])
+    existing_ids = {item.get("id") for item in existing}
+    new_items = [item for item in safe_items if item.get("id") not in existing_ids]
+    pack["evidence_items"] = existing + new_items
+    update_research_plan_coverage_for_closure(pack, category, len(safe_items))
+    enrich_evidence_pack(pack)
+    write_yaml(run_path / "evidence" / "evidence-pack.yaml", pack)
+
+    updated_tasks = []
+    for row in manifest.get("tasks", []):
+        updated = dict(row)
+        if row.get("task_id") == task_id:
+            updated.update(
+                {
+                    "status": "closed_by_accepted_evidence",
+                    "closure_status": "closed_by_accepted_evidence",
+                    "accepted_evidence_ids": [item["id"] for item in safe_items],
+                    "accepted_claim_ids": [claim.get("claim_id") for item in safe_items for claim in item.get("claims", []) if claim.get("claim_id")],
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            )
+        updated_tasks.append(updated)
+    manifest["tasks"] = updated_tasks
+    manifest["real_trade_allowed"] = False
+    manifest["broker_integration"] = "disabled"
+    write_yaml(run_path / "workflow" / "research-gap-tasks.yaml", manifest)
+    reconciliation = reconcile_research_gap_followups(run_path)
+    return {
+        "artifact_type": "research_gap_followup_evidence_closure",
+        "run_id": manifest.get("run_id") or read_run_id(run_path),
+        "task_id": task_id,
+        "category": category,
+        "accepted_evidence_count": len(safe_items),
+        "accepted_evidence_ids": [item["id"] for item in safe_items],
+        "closed_count": reconciliation.get("closed_count", 0),
+        "pending_count": reconciliation.get("pending_count", 0),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def load_or_empty_evidence_pack(run_path: Path) -> dict[str, Any]:
+    path = run_path / "evidence" / "evidence-pack.yaml"
+    if path.exists():
+        return read_yaml(path) or {}
+    return {
+        "run_id": read_run_id(run_path),
+        "market": "CN_A_SHARE",
+        "query": "",
+        "retrieval_plan": [],
+        "evidence_items": [],
+        "unresolved_gaps": [],
+        "research_plan_coverage": {},
+    }
+
+
+def normalize_followup_evidence_item(item: dict[str, Any], category: str) -> dict[str, Any]:
+    normalized = dict(item)
+    normalized.setdefault("source_id", "accepted_followup_evidence")
+    normalized.setdefault("source_type", category)
+    normalized.setdefault("source_tier", "tier_1_primary_fact")
+    normalized.setdefault("confidence", "high" if normalized.get("source_tier") == "tier_1_primary_fact" else "medium")
+    normalized.setdefault("claims", [])
+    normalized["research_category"] = category
+    normalized["accepted_for_research_gap"] = True
+    normalized["real_trade_allowed"] = False
+    normalized["broker_integration"] = "disabled"
+    return normalized
+
+
+def update_research_plan_coverage_for_closure(pack: dict[str, Any], category: str, accepted_count: int) -> None:
+    coverage = pack.get("research_plan_coverage") or {}
+    missing = [row for row in coverage.get("missing_categories", []) if row != category]
+    counts = dict(coverage.get("category_counts", {}))
+    counts[category] = counts.get(category, 0) + accepted_count
+    coverage["missing_categories"] = missing
+    coverage["category_counts"] = counts
+    coverage["categories_covered"] = len([value for value in counts.values() if value > 0])
+    pack["research_plan_coverage"] = coverage
 
 
 def load_research_gap_followup_results(run_path: Path) -> list[dict[str, Any]]:

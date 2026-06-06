@@ -45,6 +45,7 @@ from fundos.system_audit import run_system_audit
 from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
 from fundos.task_dag import (
+    close_research_gap_followup_with_evidence,
     load_research_gap_task_manifest,
     reconcile_research_gap_followups,
     write_research_gap_followup_result,
@@ -790,6 +791,31 @@ def command_followups_answer(args: argparse.Namespace) -> int:
     print(f"broker_integration={result.get('broker_integration', 'disabled')}")
     return 0
 
+def command_followups_close(args: argparse.Namespace) -> int:
+    run_path = resolve_run_path(args.run)
+    evidence_doc = read_yaml(Path(args.evidence))
+    evidence_items = evidence_doc.get("evidence_items") if isinstance(evidence_doc, dict) else evidence_doc
+    if not isinstance(evidence_items, list) or not evidence_items:
+        print("accepted_evidence_required", file=sys.stderr)
+        return 1
+    try:
+        report = close_research_gap_followup_with_evidence(run_path, args.task_id, evidence_items)
+    except KeyError:
+        print(f"followup_task_not_found: {args.task_id}", file=sys.stderr)
+        return 1
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"task_id={report.get('task_id')}")
+    print("closure_status=closed_by_accepted_evidence")
+    print(f"accepted_evidence_count={report.get('accepted_evidence_count')}")
+    print("accepted_evidence_ids=" + ",".join(report.get("accepted_evidence_ids", [])))
+    print(f"closed_count={report.get('closed_count')}")
+    print(f"pending_count={report.get('pending_count')}")
+    print(f"real_trade_allowed={report.get('real_trade_allowed', False)}")
+    print(f"broker_integration={report.get('broker_integration', 'disabled')}")
+    return 0
+
 def resolve_run_path(value: str) -> Path:
     run_path = Path(value)
     if not run_path.is_absolute():
@@ -890,6 +916,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_followups_answer.add_argument("--run", required=True)
     p_followups_answer.add_argument("--task-id", required=True)
     p_followups_answer.set_defaults(func=command_followups_answer)
+    p_followups_close = followups_sub.add_parser("close")
+    p_followups_close.add_argument("--run", required=True)
+    p_followups_close.add_argument("--task-id", required=True)
+    p_followups_close.add_argument("--evidence", required=True, help="YAML/JSON file with evidence_items used to close the research gap")
+    p_followups_close.set_defaults(func=command_followups_close)
 
     p_threads = sub.add_parser("threads")
     threads_sub = p_threads.add_subparsers(dest="threads_command", required=True)

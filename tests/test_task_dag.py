@@ -6,6 +6,7 @@ from fundos.evidence import make_evidence_pack
 from fundos.harness import make_evaluation_for_run
 from fundos.io import REPO_ROOT, read_yaml, write_yaml
 from fundos.task_dag import (
+    close_research_gap_followup_with_evidence,
     load_task_dag_harness,
     load_task_dag_spec,
     reconcile_research_gap_followups,
@@ -239,6 +240,78 @@ class ResearchTaskDagTests(unittest.TestCase):
             self.assertEqual(harness["research_gap_pending_count"], 0)
             self.assertEqual(harness["research_gap_unsafe_blocked_count"], 0)
             self.assertFalse(harness["real_trade_allowed"])
+
+    def test_close_research_gap_followup_with_accepted_evidence_updates_pack_manifest_dag_and_harness(self):
+        pack = make_evidence_pack("dag-gap-close", "topic", "机器人产业链投资机会")
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 5,
+            "missing_categories": ["market_data"],
+            "category_counts": {"announcement": 1, "policy": 1, "news": 1, "social_signal": 1, "case_library": 1},
+            "plan_step_count": 6,
+        }
+        selected = [{"agent_id": "position_trend_trader", "role": "Trader"}]
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-gap-close", "input": {"value": "机器人产业链投资机会"}})
+            write_yaml(run_path / "evidence" / "evidence-pack.yaml", pack)
+            write_task_dag(run_path, selected, pack)
+            task = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")["tasks"][0]
+            write_research_gap_followup_result(run_path, task["task_id"])
+            accepted_evidence = {
+                "id": "FG001",
+                "source_type": "market_data",
+                "source_tier": "tier_1_primary_fact",
+                "source_id": "accepted_followup_evidence",
+                "title": "机器人主题量价摘要",
+                "url": "https://example.com/market-data",
+                "published_at": "2026-06-06",
+                "retrieved_at": "2026-06-06T00:00:00+00:00",
+                "raw_excerpt": "成交额放大但波动仍高。",
+                "summary": "机器人主题成交额放大但波动仍高。",
+                "confidence": "high",
+                "claims": [
+                    {
+                        "claim_id": "CFG001",
+                        "claim_text": "机器人主题成交额放大但波动仍高。",
+                        "claim_type": "fact",
+                        "confidence": "high",
+                        "relevant_to": ["trading", "risk"],
+                        "supports": [],
+                        "contradicts": [],
+                    }
+                ],
+            }
+
+            report = close_research_gap_followup_with_evidence(run_path, task["task_id"], [accepted_evidence])
+
+            self.assertEqual(report["artifact_type"], "research_gap_followup_evidence_closure")
+            self.assertEqual(report["closed_count"], 1)
+            self.assertEqual(report["accepted_evidence_count"], 1)
+            self.assertFalse(report["real_trade_allowed"])
+            self.assertEqual(report["broker_integration"], "disabled")
+
+            updated_pack = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
+            self.assertTrue(any(item["id"] == "FG001" for item in updated_pack["evidence_items"]))
+            self.assertNotIn("market_data", updated_pack["research_plan_coverage"]["missing_categories"])
+            self.assertEqual(updated_pack["research_plan_coverage"]["category_counts"]["market_data"], 1)
+
+            manifest = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
+            reconciled_task = manifest["tasks"][0]
+            self.assertEqual(reconciled_task["status"], "closed_by_accepted_evidence")
+            self.assertEqual(reconciled_task["closure_status"], "closed_by_accepted_evidence")
+            self.assertEqual(reconciled_task["accepted_evidence_ids"], ["FG001"])
+            self.assertFalse(reconciled_task["real_trade_allowed"])
+
+            dag = read_yaml(run_path / "workflow" / "task-dag.yaml")
+            node = {row["node_id"]: row for row in dag["nodes"]}["research_gap:market_data"]
+            self.assertEqual(node["status"], "closed_by_accepted_evidence")
+            self.assertEqual(node["accepted_evidence_ids"], ["FG001"])
+
+            harness = load_task_dag_harness(run_path)
+            self.assertEqual(harness["research_gap_closed_count"], 1)
+            self.assertEqual(harness["research_gap_pending_count"], 0)
+            self.assertEqual(harness["research_gap_accepted_evidence_count"], 1)
 
 
 if __name__ == "__main__":

@@ -25,6 +25,7 @@ fundos cases list
 fundos followups list --run runs/2026-06-05-robotics
 fundos followups show --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001
 fundos followups answer --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001
+fundos followups close --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001 --evidence accepted-evidence.yaml
 fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
 ```
@@ -214,6 +215,14 @@ harness/task-dag-harness.yaml
 ```
 
 缺口任务会从 `planned` 进入 `answered_needs_evidence`，并记录 `answer_status`、`result_path`、answered/pending 计数和安全状态。若 follow-up result 违反 no-real-trade 或 broker-disabled 约束，任务进入 `answered_unsafe_blocked`，但不会获得任何真实交易能力。
+
+`fundos followups close --run <run> --task-id <task_id> --evidence <yaml-or-json>` 将人工或工具补齐并已验收的 EvidenceItem 写回 `evidence/evidence-pack.yaml`，更新 `research_plan_coverage`，并把对应缺口任务、Task DAG 节点和 Task DAG Harness 从 `answered_needs_evidence` 推进到：
+
+```text
+closed_by_accepted_evidence
+```
+
+`--evidence` 文件可以是 `evidence_items: [...]` 映射或 EvidenceItem 数组。close 只接受结构化 EvidenceItem，不接受自由文本观点；写回后仍保持 `real_trade_allowed=false`、`broker_integration=disabled`。
 
 约束：
 

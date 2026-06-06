@@ -545,6 +545,63 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(evaluation["research_gap_followup_quality"]["result_count"], 1)
             self.assertEqual(evaluation["dimension_scores"]["research_gap_followup"], 75)
 
+    def test_followups_close_cli_accepts_evidence_file_and_closes_gap(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人产业。"}
+            ], ensure_ascii=False))
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            task = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"][0]
+            evidence_file = tmp_path / "accepted-evidence.yaml"
+            evidence_file.write_text(yaml.safe_dump({
+                "evidence_items": [
+                    {
+                        "id": "FGCLI001",
+                        "source_type": task["category"],
+                        "source_tier": "tier_1_primary_fact",
+                        "source_id": "accepted_followup_evidence",
+                        "title": "follow-up accepted evidence",
+                        "url": "https://example.com/followup",
+                        "published_at": "2026-06-06",
+                        "retrieved_at": "2026-06-06T00:00:00+00:00",
+                        "raw_excerpt": "补充证据摘要。",
+                        "summary": "补充证据摘要。",
+                        "confidence": "high",
+                        "claims": [
+                            {
+                                "claim_id": "CFGCLI001",
+                                "claim_text": "补充证据摘要。",
+                                "claim_type": "fact",
+                                "confidence": "high",
+                                "relevant_to": ["industry"],
+                                "supports": [],
+                                "contradicts": [],
+                            }
+                        ],
+                    }
+                ]
+            }, allow_unicode=True), encoding="utf-8")
+
+            close_result = run_cli(["followups", "close", "--run", run_rel, "--task-id", task["task_id"], "--evidence", str(evidence_file)], tmp_path)
+
+            self.assertEqual(close_result.returncode, 0, close_result.stderr)
+            self.assertIn("closure_status=closed_by_accepted_evidence", close_result.stdout)
+            manifest = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())
+            closed_task = next(row for row in manifest["tasks"] if row["task_id"] == task["task_id"])
+            self.assertEqual(closed_task["status"], "closed_by_accepted_evidence")
+            self.assertEqual(closed_task["accepted_evidence_ids"], ["FGCLI001"])
+            pack = yaml.safe_load((tmp_path / run_rel / "evidence" / "evidence-pack.yaml").read_text())
+            self.assertTrue(any(item["id"] == "FGCLI001" for item in pack["evidence_items"]))
+
+            show_result = run_cli(["followups", "show", "--run", run_rel, "--task-id", task["task_id"]], tmp_path)
+            self.assertEqual(show_result.returncode, 0, show_result.stderr)
+            self.assertIn("status=closed_by_accepted_evidence", show_result.stdout)
+
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)
