@@ -48,6 +48,7 @@ class SystemAuditTests(unittest.TestCase):
             'prd.overall_and_modules_exist',
             'agents.all_roster_agents_have_cards_and_skills',
             'agents.all_roster_agents_have_context_tool_memory_policies',
+            'agents.agent_os_assets_cross_reference_roster_contract',
             'agents.agent_cards_expose_profile_harness_memory_evolution',
             'agents.skill_files_expose_purpose_workflow_context_safety',
             'memory.persistent_threads_and_memory_policies',

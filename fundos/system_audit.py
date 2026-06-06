@@ -193,6 +193,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details={"missing": missing_agent_assets(root, agent_ids, ["context_policy", "tool_policy", "memory_policy"])},
         ),
         requirement(
+            "agents.agent_os_assets_cross_reference_roster_contract",
+            "agent_skills_tools_memory",
+            "Agent Card, Skill, ContextPolicy, ToolPolicy, and MemoryPolicy are mutually consistent with the default roster contract.",
+            agent_asset_paths(root, agent_ids, ["agent_card", "skill", "context_policy", "tool_policy", "memory_policy"]),
+            agent_os_asset_cross_references_ok(root, agents),
+            details={"mismatches": agent_os_asset_cross_reference_mismatches(root, agents)},
+        ),
+        requirement(
             "agents.agent_cards_expose_profile_harness_memory_evolution",
             "agent_identity",
             "Agent cards define Profile, Skills, Tools, Harness, Context, Thread, Memory, and Evolution.",
@@ -364,6 +372,75 @@ def missing_agent_assets(root: Path, agent_ids: list[str], kinds: list[str]) -> 
             if not path.exists():
                 missing.append(str(path))
     return missing
+
+
+def agent_os_asset_cross_references_ok(root: Path, agents: list[dict[str, Any]]) -> bool:
+    return not agent_os_asset_cross_reference_mismatches(root, agents)
+
+
+def agent_os_asset_cross_reference_mismatches(root: Path, agents: list[dict[str, Any]]) -> dict[str, list[str]]:
+    mismatches = {agent.get("id", "unknown"): cross_reference_mismatches_for_agent(root, agent) for agent in agents}
+    return {aid: rows for aid, rows in mismatches.items() if rows}
+
+
+def cross_reference_mismatches_for_agent(root: Path, agent: dict[str, Any]) -> list[str]:
+    aid = agent.get("id", "")
+    role = agent.get("role", "")
+    skills = set(agent.get("skills", []) or [])
+    tools = set(agent.get("tools", []) or [])
+    issues: list[str] = []
+    agent_card = root / f"specs/agents/agent-cards/{aid}/agent.md"
+    skill = root / f"specs/skills/{aid}/SKILL.md"
+    context_policy = root / f"specs/agents/context-policies/{aid}.yaml"
+    tool_policy = root / f"specs/agents/tool-policies/{aid}.yaml"
+    memory_policy = root / f"specs/agents/memory-policies/{aid}.yaml"
+    if not all(path.exists() for path in [agent_card, skill, context_policy, tool_policy, memory_policy]):
+        return ["missing_agent_os_asset"]
+    card_text = agent_card.read_text(encoding="utf-8")
+    skill_text = skill.read_text(encoding="utf-8")
+    context_doc = load_yaml(context_policy, {})
+    tool_doc = load_yaml(tool_policy, {})
+    memory_doc = load_yaml(memory_policy, {})
+    if f"canonical_agent_id: `{aid}`" not in card_text:
+        issues.append("agent_card_identity_mismatch")
+    if f"organization_role: {role}" not in card_text:
+        issues.append("agent_card_role_mismatch")
+    if f"persistent_thread_manifest: `memory/agents/{aid}/thread.yaml`" not in card_text or f"long_term_namespace: `memory/agents/{aid}`" not in card_text:
+        issues.append("agent_card_memory_thread_namespace_mismatch")
+    for declared_skill in skills:
+        if f"`{declared_skill}`" not in card_text:
+            issues.append(f"agent_card_missing_skill:{declared_skill}")
+    for declared_tool in tools:
+        if f"`{declared_tool}`" not in card_text:
+            issues.append(f"agent_card_missing_tool:{declared_tool}")
+    if f"Agent card: `specs/agents/agent-cards/{aid}/agent.md`" not in skill_text:
+        issues.append("skill_agent_card_reference_mismatch")
+    if f"Relevant long-term memory summary from `memory/agents/{aid}`" not in skill_text:
+        issues.append("skill_memory_namespace_reference_mismatch")
+    for kind, doc in [("context", context_doc), ("tool", tool_doc), ("memory", memory_doc)]:
+        if doc.get("agent_id") != aid:
+            issues.append(f"{kind}_policy_agent_id_mismatch")
+        if doc.get("role") != role:
+            issues.append(f"{kind}_policy_role_mismatch")
+        if doc.get("real_trade_allowed") is not False:
+            issues.append(f"{kind}_policy_real_trade_not_disabled")
+        if doc.get("broker_integration") is not False:
+            issues.append(f"{kind}_policy_broker_not_disabled")
+    if set(tool_doc.get("allowed_tools", []) or []) != tools:
+        issues.append("tool_policy_allowed_tools_mismatch")
+    if not set(tool_doc.get("required_tools", []) or []).issubset(tools):
+        issues.append("tool_policy_required_tools_outside_roster")
+    if f"memory/agents/{aid}" not in set(memory_doc.get("read_namespaces", []) or []):
+        issues.append("memory_policy_missing_agent_read_namespace")
+    if memory_doc.get("write_namespaces") != [f"memory/agents/{aid}"]:
+        issues.append("memory_policy_write_namespace_mismatch")
+    writeback = memory_doc.get("writeback_rules", {}) if isinstance(memory_doc, dict) else {}
+    if writeback.get("requires_evolution_gate") is not True or writeback.get("allow_direct_profile_mutation") is not False:
+        issues.append("memory_policy_evolution_or_profile_guard_mismatch")
+    evidence_selection = context_doc.get("evidence_selection", {}) if isinstance(context_doc, dict) else {}
+    if evidence_selection.get("kol_and_books_as_methodology_only") is not True:
+        issues.append("context_policy_kol_methodology_boundary_missing")
+    return issues
 
 
 def agent_card_has_sections(root: Path, agent_id: str) -> bool:

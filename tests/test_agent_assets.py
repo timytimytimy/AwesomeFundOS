@@ -67,5 +67,40 @@ class AgentAssetTests(unittest.TestCase):
                 ]:
                     self.assertIn(required_guardrail, skill_text)
 
+    def test_agent_os_assets_cross_reference_roster_contract(self):
+        roster = yaml.safe_load((ROOT / "specs" / "agents" / "default-roster.yaml").read_text(encoding="utf-8"))["agents"]
+        for agent in roster:
+            aid = agent["id"]
+            with self.subTest(agent_id=aid):
+                agent_text = (ROOT / "specs" / "agents" / "agent-cards" / aid / "agent.md").read_text(encoding="utf-8")
+                skill_text = (ROOT / "specs" / "skills" / aid / "SKILL.md").read_text(encoding="utf-8")
+                context_policy = yaml.safe_load((ROOT / "specs" / "agents" / "context-policies" / f"{aid}.yaml").read_text(encoding="utf-8"))
+                tool_policy = yaml.safe_load((ROOT / "specs" / "agents" / "tool-policies" / f"{aid}.yaml").read_text(encoding="utf-8"))
+                memory_policy = yaml.safe_load((ROOT / "specs" / "agents" / "memory-policies" / f"{aid}.yaml").read_text(encoding="utf-8"))
+
+                self.assertIn(f"canonical_agent_id: `{aid}`", agent_text)
+                self.assertIn(f"organization_role: {agent['role']}", agent_text)
+                self.assertIn(f"persistent_thread_manifest: `memory/agents/{aid}/thread.yaml`", agent_text)
+                self.assertIn(f"long_term_namespace: `memory/agents/{aid}`", agent_text)
+                for skill in agent.get("skills", []):
+                    self.assertIn(f"`{skill}`", agent_text)
+                for tool in agent.get("tools", []):
+                    self.assertIn(f"`{tool}`", agent_text)
+                self.assertIn(f"Agent card: `specs/agents/agent-cards/{aid}/agent.md`", skill_text)
+                self.assertIn(f"Relevant long-term memory summary from `memory/agents/{aid}`", skill_text)
+
+                for policy in [context_policy, tool_policy, memory_policy]:
+                    self.assertEqual(policy["agent_id"], aid)
+                    self.assertEqual(policy["role"], agent["role"])
+                    self.assertFalse(policy["real_trade_allowed"])
+                    self.assertFalse(policy["broker_integration"])
+                self.assertEqual(set(tool_policy["allowed_tools"]), set(agent.get("tools", [])))
+                self.assertTrue(set(tool_policy["required_tools"]).issubset(set(agent.get("tools", []))))
+                self.assertIn(f"memory/agents/{aid}", memory_policy["read_namespaces"])
+                self.assertEqual(memory_policy["write_namespaces"], [f"memory/agents/{aid}"])
+                self.assertFalse(memory_policy["writeback_rules"]["allow_direct_profile_mutation"])
+                self.assertTrue(memory_policy["writeback_rules"]["requires_evolution_gate"])
+                self.assertTrue(context_policy["evidence_selection"]["kol_and_books_as_methodology_only"])
+
 if __name__ == "__main__":
     unittest.main()
