@@ -86,6 +86,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "memory_thread_artifacts": existing_relative_paths(run_path, MEMORY_THREAD_ARTIFACTS),
         "evolution_artifacts": existing_relative_paths(run_path, EVOLUTION_ARTIFACTS),
         "evolution_summary": evolution_summary(run_path),
+        "evolution_learning_summary": evolution_learning_summary(run_path),
         "source_provenance_summary": source_provenance_summary(run_path),
         "context_management_summary": context_management_summary(run_path),
         "tool_runtime_summary": tool_runtime_summary(run_path),
@@ -129,6 +130,7 @@ def write_operating_system_manifest_markdown(run_path: Path, manifest: dict[str,
 def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     loaded = manifest.get("loaded_asset_counts", {}) or {}
     evolution = manifest.get("evolution_summary", {}) or {}
+    evolution_learning = manifest.get("evolution_learning_summary", {}) or {}
     performance = manifest.get("agent_performance_summary", {}) or {}
     governance = manifest.get("agent_governance_summary", {}) or {}
     evaluation = manifest.get("evaluation_summary", {}) or {}
@@ -178,6 +180,12 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- evolution_gate_results: {evolution.get('gate_results', 0)}",
         f"- memory_writes: {evolution.get('memory_writes', 0)}",
         f"- pending_human_apply: {evolution.get('pending_human_apply', 0)}",
+        f"- evolution_learning_candidates: {evolution_learning.get('agent_learning_candidates', 0)}",
+        f"- evolution_candidates: {evolution_learning.get('evolution_candidates', 0)}",
+        f"- evolution_quarantined: {evolution_learning.get('quarantined', 0)}",
+        f"- evolution_capability_candidates: {evolution_learning.get('capability_candidates', 0)}",
+        f"- evolution_regression_candidates_total: {evolution_learning.get('regression_candidates_total', 0)}",
+        f"- evolution_pending_human_apply: {evolution_learning.get('pending_human_apply', 0)}",
         f"- registry_source_count: {provenance.get('registry_source_count', 0)}",
         f"- ingested_sources: {provenance.get('ingested_sources', 0)}",
         f"- quarantined_sources: {provenance.get('quarantined_sources', 0)}",
@@ -295,6 +303,60 @@ def evolution_summary(run_path: Path) -> dict[str, Any]:
         "memory_writes": int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else 0,
         "approved_candidates": int(capability_summary.get("approved_candidates", 0) or 0) if isinstance(capability_summary, dict) else 0,
         "pending_human_apply": int(capability_summary.get("pending_human_apply", 0) or 0) if isinstance(capability_summary, dict) else 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def evolution_learning_summary(run_path: Path) -> dict[str, Any]:
+    agent_learning = read_optional_yaml(run_path / "learning" / "agent-learning-report.yaml", {})
+    source_ingestion = read_optional_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
+    memory_writeback = read_optional_yaml(run_path / "evolution" / "memory-writeback-summary.yaml", {})
+    capability_summary = read_optional_yaml(run_path / "evolution" / "capability-version-summary.yaml", {})
+    capability_regression = read_optional_yaml(run_path / "harness" / "capability-regression.yaml", {})
+    agent_learning_rows = read_jsonl(run_path / "learning" / "agent-learning-candidates.jsonl")
+    evolution_rows = read_jsonl(run_path / "evolution" / "candidates.jsonl")
+    gate_rows = read_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
+    accepted_rows = read_jsonl(run_path / "evolution" / "accepted.jsonl")
+    quarantine_rows = read_jsonl(run_path / "evolution" / "quarantine.jsonl")
+    rejected_rows = read_jsonl(run_path / "evolution" / "rejected.jsonl")
+    capability_rows = read_jsonl(run_path / "evolution" / "capability-candidates.jsonl")
+    controls = sorted({
+        "quarantine_before_adoption",
+        "evolution_gate_required",
+        "capability_regression_required",
+        "human_approval_before_apply",
+        "no_direct_profile_mutation",
+        "no_direct_skill_mutation",
+        "no_direct_tool_mutation",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    } | set(str(item) for source in [agent_learning, capability_regression] if isinstance(source, dict) for item in source.get("controls", []) if item))
+    return {
+        "agent_learning_candidates": int(agent_learning.get("candidate_count", len(agent_learning_rows)) or 0) if isinstance(agent_learning, dict) else len(agent_learning_rows),
+        "new_agent_learning_candidates": int(agent_learning.get("new_candidates", 0) or 0) if isinstance(agent_learning, dict) else 0,
+        "merged_to_evolution": int(agent_learning.get("merged_to_evolution", 0) or 0) if isinstance(agent_learning, dict) else 0,
+        "agent_learning_route_counts": agent_learning.get("route_counts", {}) if isinstance(agent_learning, dict) and isinstance(agent_learning.get("route_counts", {}), dict) else {},
+        "source_ingestion_candidates": int(source_ingestion.get("evolution_candidates", 0) or 0) if isinstance(source_ingestion, dict) else 0,
+        "source_quarantined": int(source_ingestion.get("quarantined_sources", 0) or 0) if isinstance(source_ingestion, dict) else 0,
+        "evolution_candidates": len(evolution_rows),
+        "gate_results": len(gate_rows),
+        "accepted": len(accepted_rows) if accepted_rows else sum(1 for row in gate_rows if row.get("decision") == "accept"),
+        "quarantined": len(quarantine_rows) if quarantine_rows else sum(1 for row in gate_rows if row.get("decision") == "quarantine"),
+        "rejected": len(rejected_rows) if rejected_rows else sum(1 for row in gate_rows if row.get("decision") == "reject"),
+        "memory_writes": int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else 0,
+        "memory_agent_writes": memory_writeback.get("agent_writes", {}) if isinstance(memory_writeback, dict) and isinstance(memory_writeback.get("agent_writes", {}), dict) else {},
+        "capability_candidates": len(capability_rows),
+        "approved_candidates": int(capability_summary.get("approved_candidates", 0) or 0) if isinstance(capability_summary, dict) else 0,
+        "pending_human_apply": int(capability_summary.get("pending_human_apply", 0) or 0) if isinstance(capability_summary, dict) else 0,
+        "regression_status": str(capability_regression.get("regression_status", "missing")) if isinstance(capability_regression, dict) else "missing",
+        "regression_candidates_total": int(capability_regression.get("candidates_total", 0) or 0) if isinstance(capability_regression, dict) else 0,
+        "regression_passed_candidates": int(capability_regression.get("passed_candidates", 0) or 0) if isinstance(capability_regression, dict) else 0,
+        "regression_blocked_candidates": int(capability_regression.get("blocked_candidates", 0) or 0) if isinstance(capability_regression, dict) else 0,
+        "direct_profile_mutation_allowed": False,
+        "direct_skill_mutation_allowed": False,
+        "direct_tool_mutation_allowed": False,
+        "controls": controls,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

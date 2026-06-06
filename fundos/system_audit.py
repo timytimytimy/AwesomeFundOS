@@ -73,6 +73,17 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     outcome_tracking = load_yaml(run_path / "portfolio" / "outcome-tracking.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
+    agent_learning = load_yaml(run_path / "learning" / "agent-learning-report.yaml", {})
+    agent_learning_candidates = load_jsonl(run_path / "learning" / "agent-learning-candidates.jsonl")
+    evolution_candidates = load_jsonl(run_path / "evolution" / "candidates.jsonl")
+    gate_results = load_jsonl(run_path / "evolution" / "evolution-gate-results.jsonl")
+    accepted_evolution = load_jsonl(run_path / "evolution" / "accepted.jsonl")
+    quarantined_evolution = load_jsonl(run_path / "evolution" / "quarantine.jsonl")
+    rejected_evolution = load_jsonl(run_path / "evolution" / "rejected.jsonl")
+    memory_writeback = load_yaml(run_path / "evolution" / "memory-writeback-summary.yaml", {})
+    capability_candidates = load_jsonl(run_path / "evolution" / "capability-candidates.jsonl")
+    capability_summary = load_yaml(run_path / "evolution" / "capability-version-summary.yaml", {})
+    capability_regression = load_yaml(run_path / "harness" / "capability-regression.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
     items = evidence.get("evidence_items", []) if isinstance(evidence, dict) else []
@@ -86,6 +97,21 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     evaluation_schema_check = validate_evaluation_report_schema(repo_root, evaluation)
     manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
     manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
+    manifest_evolution_learning_check = operating_system_manifest_evolution_learning_check(
+        os_manifest,
+        agent_learning,
+        agent_learning_candidates,
+        source_ingestion,
+        evolution_candidates,
+        gate_results,
+        accepted_evolution,
+        quarantined_evolution,
+        rejected_evolution,
+        memory_writeback,
+        capability_candidates,
+        capability_summary,
+        capability_regression,
+    )
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
     manifest_tool_runtime_check = operating_system_manifest_tool_runtime_check(os_manifest, tool_runtime, tool_call_ledger, tool_runtime_evidence)
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
@@ -213,6 +239,28 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_source_check["ok"],
             details=manifest_source_check,
+        ),
+        requirement(
+            "runtime.evolution_learning_loop_matches_manifest",
+            "learning_evolution",
+            "Learning candidates, source ingestion, EvolutionGate, memory writeback, capability regression, and approval summaries match the OS manifest and preserve quarantine-before-adoption boundaries.",
+            [
+                run_path / "system" / "operating-system-manifest.yaml",
+                run_path / "learning" / "agent-learning-candidates.jsonl",
+                run_path / "learning" / "agent-learning-report.yaml",
+                run_path / "learning" / "source-ingestion-report.yaml",
+                run_path / "evolution" / "candidates.jsonl",
+                run_path / "evolution" / "evolution-gate-results.jsonl",
+                run_path / "evolution" / "accepted.jsonl",
+                run_path / "evolution" / "quarantine.jsonl",
+                run_path / "evolution" / "rejected.jsonl",
+                run_path / "evolution" / "memory-writeback-summary.yaml",
+                run_path / "evolution" / "capability-candidates.jsonl",
+                run_path / "evolution" / "capability-version-summary.yaml",
+                run_path / "harness" / "capability-regression.yaml",
+            ],
+            manifest_evolution_learning_check["ok"],
+            details=manifest_evolution_learning_check,
         ),
         requirement(
             "runtime.operating_system_manifest_context_management_matches_harness",
@@ -1001,6 +1049,7 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "memory_thread_artifacts": manifest.get("memory_thread_artifacts", []),
         "evolution_artifacts": manifest.get("evolution_artifacts", []),
         "evolution_summary": manifest.get("evolution_summary", {}),
+        "evolution_learning_summary": manifest.get("evolution_learning_summary", {}),
         "source_provenance_summary": manifest.get("source_provenance_summary", {}),
         "context_management_summary": manifest.get("context_management_summary", {}),
         "tool_runtime_summary": manifest.get("tool_runtime_summary", {}),
@@ -1157,6 +1206,121 @@ def operating_system_manifest_source_provenance_check(manifest: Any, registry: A
     if boundary_policy.get("primary_evidence_required_for_company_conclusions") is not True:
         mismatches.append("source_registry.boundary_policy.primary_evidence_required_for_company_conclusions: expected True")
     return {"ok": not mismatches, "mismatches": mismatches}
+
+
+def operating_system_manifest_evolution_learning_check(
+    manifest: Any,
+    agent_learning: Any,
+    agent_learning_rows: list[dict[str, Any]],
+    source_ingestion: Any,
+    evolution_rows: list[dict[str, Any]],
+    gate_rows: list[dict[str, Any]],
+    accepted_rows: list[dict[str, Any]],
+    quarantine_rows: list[dict[str, Any]],
+    rejected_rows: list[dict[str, Any]],
+    memory_writeback: Any,
+    capability_rows: list[dict[str, Any]],
+    capability_summary: Any,
+    capability_regression: Any,
+) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not isinstance(manifest, dict):
+        return {"ok": False, "mismatches": ["manifest_missing_or_invalid"]}
+    summary = manifest.get("evolution_learning_summary", {}) or {}
+    if not isinstance(summary, dict):
+        return {"ok": False, "mismatches": ["evolution_learning_summary_missing_or_invalid"]}
+    agent_learning = agent_learning if isinstance(agent_learning, dict) else {}
+    source_ingestion = source_ingestion if isinstance(source_ingestion, dict) else {}
+    memory_writeback = memory_writeback if isinstance(memory_writeback, dict) else {}
+    capability_summary = capability_summary if isinstance(capability_summary, dict) else {}
+    capability_regression = capability_regression if isinstance(capability_regression, dict) else {}
+
+    expected_accepted = len(accepted_rows) if accepted_rows else sum(1 for row in gate_rows if row.get("decision") == "accept")
+    expected_quarantined = len(quarantine_rows) if quarantine_rows else sum(1 for row in gate_rows if row.get("decision") == "quarantine")
+    expected_rejected = len(rejected_rows) if rejected_rows else sum(1 for row in gate_rows if row.get("decision") == "reject")
+    expected_controls = set(summary.get("controls", []) or [])
+
+    compare_value(mismatches, "evolution_learning_summary.agent_learning_candidates", summary.get("agent_learning_candidates"), int(agent_learning.get("candidate_count", len(agent_learning_rows)) or 0))
+    compare_value(mismatches, "evolution_learning_summary.new_agent_learning_candidates", summary.get("new_agent_learning_candidates"), int(agent_learning.get("new_candidates", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.merged_to_evolution", summary.get("merged_to_evolution"), int(agent_learning.get("merged_to_evolution", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.agent_learning_route_counts", summary.get("agent_learning_route_counts"), agent_learning.get("route_counts", {}))
+    compare_value(mismatches, "evolution_learning_summary.source_ingestion_candidates", summary.get("source_ingestion_candidates"), int(source_ingestion.get("evolution_candidates", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.source_quarantined", summary.get("source_quarantined"), int(source_ingestion.get("quarantined_sources", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.evolution_candidates", summary.get("evolution_candidates"), len(evolution_rows))
+    compare_value(mismatches, "evolution_learning_summary.gate_results", summary.get("gate_results"), len(gate_rows))
+    compare_value(mismatches, "evolution_learning_summary.accepted", summary.get("accepted"), expected_accepted)
+    compare_value(mismatches, "evolution_learning_summary.quarantined", summary.get("quarantined"), expected_quarantined)
+    compare_value(mismatches, "evolution_learning_summary.rejected", summary.get("rejected"), expected_rejected)
+    compare_value(mismatches, "evolution_learning_summary.memory_writes", summary.get("memory_writes"), int(memory_writeback.get("memory_writes", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.memory_agent_writes", summary.get("memory_agent_writes"), memory_writeback.get("agent_writes", {}))
+    compare_value(mismatches, "evolution_learning_summary.capability_candidates", summary.get("capability_candidates"), len(capability_rows))
+    compare_value(mismatches, "evolution_learning_summary.approved_candidates", summary.get("approved_candidates"), int(capability_summary.get("approved_candidates", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.pending_human_apply", summary.get("pending_human_apply"), int(capability_summary.get("pending_human_apply", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.regression_status", summary.get("regression_status"), str(capability_regression.get("regression_status", "missing")))
+    compare_value(mismatches, "evolution_learning_summary.regression_candidates_total", summary.get("regression_candidates_total"), int(capability_regression.get("candidates_total", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.regression_passed_candidates", summary.get("regression_passed_candidates"), int(capability_regression.get("passed_candidates", 0) or 0))
+    compare_value(mismatches, "evolution_learning_summary.regression_blocked_candidates", summary.get("regression_blocked_candidates"), int(capability_regression.get("blocked_candidates", 0) or 0))
+
+    required_controls = {
+        "quarantine_before_adoption",
+        "evolution_gate_required",
+        "capability_regression_required",
+        "human_approval_before_apply",
+        "no_direct_profile_mutation",
+        "no_direct_skill_mutation",
+        "no_direct_tool_mutation",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    }
+    missing_controls = sorted(required_controls - expected_controls)
+    if missing_controls:
+        mismatches.append(f"evolution_learning_summary.controls: missing {missing_controls!r}")
+    if summary.get("direct_profile_mutation_allowed") is not False:
+        mismatches.append(f"evolution_learning_summary.direct_profile_mutation_allowed: expected False, got {summary.get('direct_profile_mutation_allowed')!r}")
+    if summary.get("direct_skill_mutation_allowed") is not False:
+        mismatches.append(f"evolution_learning_summary.direct_skill_mutation_allowed: expected False, got {summary.get('direct_skill_mutation_allowed')!r}")
+    if summary.get("direct_tool_mutation_allowed") is not False:
+        mismatches.append(f"evolution_learning_summary.direct_tool_mutation_allowed: expected False, got {summary.get('direct_tool_mutation_allowed')!r}")
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"evolution_learning_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"evolution_learning_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+
+    for idx, row in enumerate(gate_rows):
+        controls = set(row.get("controls", []) or []) if isinstance(row, dict) else set()
+        if "no_direct_profile_mutation" not in controls:
+            mismatches.append(f"evolution_gate_results[{idx}].controls: missing no_direct_profile_mutation")
+        if "no_real_trade_action" not in controls:
+            mismatches.append(f"evolution_gate_results[{idx}].controls: missing no_real_trade_action")
+        if isinstance(row, dict) and row.get("adoption_route") in {"managed_capability_pending_human_apply", "skill_patch_pending_human_apply"} and row.get("memory_write_allowed") is True:
+            mismatches.append(f"evolution_gate_results[{idx}].memory_write_allowed: capability candidate must wait for human apply")
+    for idx, row in enumerate(capability_rows):
+        if not isinstance(row, dict):
+            mismatches.append(f"capability_candidates[{idx}]: expected object")
+            continue
+        if row.get("application_status") == "applied":
+            mismatches.append(f"capability_candidates[{idx}].application_status: expected pending/blocked before human apply, got 'applied'")
+
+    return {
+        "ok": not mismatches,
+        "mismatches": mismatches,
+        "agent_learning_candidates": int(agent_learning.get("candidate_count", len(agent_learning_rows)) or 0),
+        "evolution_candidates": len(evolution_rows),
+        "gate_results": len(gate_rows),
+        "accepted": expected_accepted,
+        "quarantined": expected_quarantined,
+        "rejected": expected_rejected,
+        "memory_writes": int(memory_writeback.get("memory_writes", 0) or 0),
+        "capability_candidates": len(capability_rows),
+        "pending_human_apply": int(capability_summary.get("pending_human_apply", 0) or 0),
+        "regression_candidates_total": int(capability_regression.get("candidates_total", 0) or 0),
+        "controls": sorted(expected_controls),
+        "direct_profile_mutation_allowed": False,
+        "direct_skill_mutation_allowed": False,
+        "direct_tool_mutation_allowed": False,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def operating_system_manifest_runtime_summary_check(manifest: Any, performance: Any, governance: Any, evaluation: Any) -> dict[str, Any]:

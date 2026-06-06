@@ -153,6 +153,20 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(portfolio_summary["real_trade_violations"], 0)
             self.assertFalse(portfolio_summary["real_trade_allowed"])
             self.assertEqual(portfolio_summary["broker_integration"], "disabled")
+            self.assertIn("evolution_learning_summary", os_manifest)
+            evolution_learning = os_manifest["evolution_learning_summary"]
+            agent_learning_report = yaml.safe_load((run_path / "learning/agent-learning-report.yaml").read_text())
+            self.assertEqual(evolution_learning["agent_learning_candidates"], agent_learning_report["candidate_count"])
+            self.assertEqual(evolution_learning["merged_to_evolution"], agent_learning_report["merged_to_evolution"])
+            self.assertEqual(evolution_learning["evolution_candidates"], sum(1 for line in (run_path / "evolution/candidates.jsonl").read_text().splitlines() if line.strip()))
+            self.assertIn("quarantine_before_adoption", evolution_learning["controls"])
+            self.assertFalse(evolution_learning["direct_profile_mutation_allowed"])
+            self.assertFalse(evolution_learning["direct_skill_mutation_allowed"])
+            self.assertFalse(evolution_learning["direct_tool_mutation_allowed"])
+            self.assertFalse(evolution_learning["real_trade_allowed"])
+            self.assertEqual(evolution_learning["broker_integration"], "disabled")
+            self.assertIn("evolution_learning_candidates", os_manifest_md)
+            self.assertIn("evolution_quarantined", os_manifest_md)
             self.assertIn("tool_runtime_summary", os_manifest)
             tool_runtime_summary = os_manifest["tool_runtime_summary"]
             tool_runtime_report = yaml.safe_load((run_path / "tools/tool-runtime-report.yaml").read_text())
@@ -367,6 +381,7 @@ class FundosCliTests(unittest.TestCase):
             "memory_thread_artifacts",
             "evolution_artifacts",
             "evolution_summary",
+            "evolution_learning_summary",
             "source_provenance_summary",
             "context_management_summary",
             "tool_runtime_summary",
@@ -417,6 +432,23 @@ class FundosCliTests(unittest.TestCase):
         self.assertIn("gate_results", evolution_required)
         self.assertIn("memory_writes", evolution_required)
         self.assertIn("pending_human_apply", evolution_required)
+        evolution_learning_required = schema["properties"]["evolution_learning_summary"]["required"]
+        for required in [
+            "agent_learning_candidates",
+            "evolution_candidates",
+            "gate_results",
+            "memory_writes",
+            "capability_candidates",
+            "regression_candidates_total",
+            "pending_human_apply",
+            "direct_profile_mutation_allowed",
+            "direct_skill_mutation_allowed",
+            "direct_tool_mutation_allowed",
+            "controls",
+            "real_trade_allowed",
+            "broker_integration",
+        ]:
+            self.assertIn(required, evolution_learning_required)
 
     def test_eval_and_evolve_can_reprocess_run(self):
         with tempfile.TemporaryDirectory() as d:
@@ -510,6 +542,20 @@ class FundosCliTests(unittest.TestCase):
             self.assertGreaterEqual(os_manifest["evolution_summary"]["gate_results"], 1)
             self.assertGreaterEqual(os_manifest["evolution_summary"]["memory_writes"], 1)
             self.assertGreaterEqual(os_manifest["evolution_summary"]["pending_human_apply"], 1)
+            self.assertIn("evolution_learning_summary", os_manifest)
+            evolution_learning = os_manifest["evolution_learning_summary"]
+            self.assertGreaterEqual(evolution_learning["agent_learning_candidates"], 1)
+            self.assertGreaterEqual(evolution_learning["gate_results"], 1)
+            self.assertGreaterEqual(evolution_learning["memory_writes"], 1)
+            self.assertGreaterEqual(evolution_learning["capability_candidates"], 1)
+            self.assertGreaterEqual(evolution_learning["regression_candidates_total"], 1)
+            self.assertGreaterEqual(evolution_learning["pending_human_apply"], 1)
+            self.assertIn("human_approval_before_apply", evolution_learning["controls"])
+            self.assertFalse(evolution_learning["direct_profile_mutation_allowed"])
+            self.assertFalse(evolution_learning["direct_skill_mutation_allowed"])
+            self.assertFalse(evolution_learning["direct_tool_mutation_allowed"])
+            self.assertFalse(evolution_learning["real_trade_allowed"])
+            self.assertEqual(evolution_learning["broker_integration"], "disabled")
             self.assertEqual(os_manifest["agent_performance_summary"]["agent_count"], performance["agent_count"])
             self.assertEqual(os_manifest["agent_performance_summary"]["average_final_score"], performance["average_final_score"])
             self.assertIn("recommended_action_counts", os_manifest["agent_performance_summary"])

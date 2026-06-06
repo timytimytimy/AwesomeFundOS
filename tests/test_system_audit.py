@@ -149,6 +149,16 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(by_id['runtime.model_records_have_concrete_policy_fields']['status'], 'pass')
             self.assertEqual(by_id['runtime.operating_system_manifest_links_agent_os_assets']['status'], 'pass')
             self.assertEqual(by_id['runtime.committee_debate_risk_decision_loop_complete']['status'], 'pass')
+            self.assertEqual(by_id['runtime.evolution_learning_loop_matches_manifest']['status'], 'pass')
+            evolution_details = by_id['runtime.evolution_learning_loop_matches_manifest']['details']
+            self.assertGreaterEqual(evolution_details['agent_learning_candidates'], 1)
+            self.assertGreaterEqual(evolution_details['evolution_candidates'], 1)
+            self.assertIn('quarantine_before_adoption', evolution_details['controls'])
+            self.assertFalse(evolution_details['direct_profile_mutation_allowed'])
+            self.assertFalse(evolution_details['direct_skill_mutation_allowed'])
+            self.assertFalse(evolution_details['direct_tool_mutation_allowed'])
+            self.assertFalse(evolution_details['real_trade_allowed'])
+            self.assertEqual(evolution_details['broker_integration'], 'disabled')
             self.assertEqual(by_id['runtime.tool_runtime_ledger_matches_manifest']['status'], 'pass')
             tool_runtime_details = by_id['runtime.tool_runtime_ledger_matches_manifest']['details']
             self.assertGreaterEqual(tool_runtime_details['tool_call_count'], 1)
@@ -176,6 +186,41 @@ class SystemAuditTests(unittest.TestCase):
             manifest_evidence = '\n'.join(by_id['runtime.operating_system_manifest_links_agent_os_assets']['evidence'])
             self.assertIn('system/operating-system-manifest.yaml', manifest_evidence)
             self.assertIn('system/operating-system-manifest.md', manifest_evidence)
+
+
+    def test_system_audit_strict_mode_fails_stale_evolution_learning_manifest_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            manifest_yaml = run_path / 'system' / 'operating-system-manifest.yaml'
+            manifest = yaml.safe_load(manifest_yaml.read_text(encoding='utf-8'))
+            manifest['evolution_learning_summary']['agent_learning_candidates'] = -1
+            manifest['evolution_learning_summary']['evolution_candidates'] = -1
+            manifest['evolution_learning_summary']['broker_integration'] = 'enabled'
+            manifest_yaml.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(run_path), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.evolution_learning_loop_matches_manifest']['status'], 'fail')
+            mismatches = '\n'.join(by_id['runtime.evolution_learning_loop_matches_manifest']['details']['mismatches'])
+            self.assertIn('evolution_learning_summary.agent_learning_candidates', mismatches)
+            self.assertIn('evolution_learning_summary.evolution_candidates', mismatches)
+            self.assertIn('evolution_learning_summary.broker_integration', mismatches)
 
     def test_system_audit_strict_mode_fails_stale_tool_runtime_manifest_summary(self):
         with tempfile.TemporaryDirectory() as d:
