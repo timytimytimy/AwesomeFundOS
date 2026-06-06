@@ -57,6 +57,7 @@ class SystemAuditTests(unittest.TestCase):
             'evolution.human_approval_capability_apply_guarded',
             'safety.no_real_trade_or_broker_integration',
             'runtime.operating_system_manifest_schema_exists',
+            'runtime.evaluation_report_schema_exists',
         ]:
             self.assertEqual(by_id[requirement_id]['status'], 'pass', requirement_id)
             self.assertTrue(by_id[requirement_id]['evidence'], requirement_id)

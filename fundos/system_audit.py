@@ -309,6 +309,20 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             [root / "specs/schemas/operating-system-manifest.schema.yaml"],
             file_contains(root / "specs/schemas/operating-system-manifest.schema.yaml", ["operating_system_manifest", "evolution_summary", "safety_invariants", "broker_integration"]),
         ),
+        requirement(
+            "runtime.evaluation_report_schema_exists",
+            "harness_evaluation",
+            "Evaluation report has a schema governing scoring dimensions, harness quality blocks, governance signals, and safety boundaries.",
+            [root / "specs/schemas/evaluation-report.schema.yaml"],
+            file_contains(root / "specs/schemas/evaluation-report.schema.yaml", [
+                "dimension_scores",
+                "agent_governance",
+                "agent_performance",
+                "agent_os_contract",
+                "real_trade_allowed",
+                "broker_integration",
+            ]),
+        ),
     ]
 
 
