@@ -252,6 +252,44 @@ class FundosCliTests(unittest.TestCase):
         self.assertEqual(model_record["properties"]["real_trade_allowed"]["enum"], [False])
         self.assertEqual(model_record["properties"]["broker_integration"]["enum"], ["disabled"])
 
+    def test_operating_system_manifest_schema_declares_os_boundaries(self):
+        schema = yaml.safe_load((ROOT / "specs/schemas/operating-system-manifest.schema.yaml").read_text(encoding="utf-8"))
+
+        self.assertEqual(schema["type"], "object")
+        for field in [
+            "artifact_type",
+            "run_id",
+            "runtime_mode",
+            "selected_agent_count",
+            "model_record_count",
+            "loaded_asset_counts",
+            "all_selected_agents_have_runtime_assets",
+            "agents",
+            "model_records",
+            "harness_artifacts",
+            "memory_thread_artifacts",
+            "evolution_artifacts",
+            "evolution_summary",
+            "safety_invariants",
+            "real_trade_allowed",
+            "broker_integration",
+        ]:
+            self.assertIn(field, schema["required"])
+            self.assertIn(field, schema["properties"])
+
+        self.assertEqual(schema["properties"]["artifact_type"]["enum"], ["operating_system_manifest"])
+        self.assertEqual(schema["properties"]["runtime_mode"]["enum"], ["local_file_protocol"])
+        self.assertEqual(schema["properties"]["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(schema["properties"]["broker_integration"]["enum"], ["disabled"])
+        safety_required = schema["properties"]["safety_invariants"]["required"]
+        self.assertIn("paper_portfolio_only", safety_required)
+        self.assertIn("kol_is_hypothesis_only", safety_required)
+        self.assertIn("durable_learning_requires_harness_and_evolution_gate", safety_required)
+        evolution_required = schema["properties"]["evolution_summary"]["required"]
+        self.assertIn("gate_results", evolution_required)
+        self.assertIn("memory_writes", evolution_required)
+        self.assertIn("pending_human_apply", evolution_required)
+
     def test_eval_and_evolve_can_reprocess_run(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

@@ -274,6 +274,13 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             [root / "fundos/cli.py", root / "tests/test_cli_unittest.py"],
             file_contains(root / "fundos/cli.py", ["command_run", "command_eval", "command_evolve", "command_capabilities_apply", "command_sources_ingest", "command_threads_show", "command_governance_summary"]),
         ),
+        requirement(
+            "runtime.operating_system_manifest_schema_exists",
+            "cli_operability",
+            "Operating-system manifest has a schema governing Agent OS assets, evolution summary, and safety boundaries.",
+            [root / "specs/schemas/operating-system-manifest.schema.yaml"],
+            file_contains(root / "specs/schemas/operating-system-manifest.schema.yaml", ["operating_system_manifest", "evolution_summary", "safety_invariants", "broker_integration"]),
+        ),
     ]
 
 

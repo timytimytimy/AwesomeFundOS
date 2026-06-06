@@ -1,0 +1,158 @@
+version: 0.1.0
+type: object
+required:
+  - artifact_type
+  - run_id
+  - runtime_mode
+  - selected_agent_count
+  - model_record_count
+  - loaded_asset_counts
+  - all_selected_agents_have_runtime_assets
+  - agents
+  - model_records
+  - harness_artifacts
+  - memory_thread_artifacts
+  - evolution_artifacts
+  - evolution_summary
+  - safety_invariants
+  - real_trade_allowed
+  - broker_integration
+properties:
+  artifact_type:
+    enum: [operating_system_manifest]
+  run_id: {type: string}
+  input:
+    type: object
+    properties:
+      input_type:
+        enum: [topic, stock, question]
+      value: {type: string}
+  market: {type: string}
+  runtime_mode:
+    enum: [local_file_protocol]
+  selected_agent_count: {type: integer}
+  model_record_count: {type: integer}
+  loaded_asset_counts:
+    type: object
+    required: [agent_card, skill, context_policy, tool_policy, memory_policy]
+    properties:
+      agent_card: {type: integer}
+      skill: {type: integer}
+      context_policy: {type: integer}
+      tool_policy: {type: integer}
+      memory_policy: {type: integer}
+  all_selected_agents_have_runtime_assets: {type: boolean}
+  missing_agent_assets:
+    type: array
+    items:
+      type: object
+      properties:
+        agent_id: {type: string}
+        asset_kind: {type: string}
+        path: {type: string}
+  agents:
+    type: array
+    items:
+      type: object
+      required: [agent_id, agent_card_path, skill_path, context_policy_path, tool_policy_path, memory_policy_path]
+      properties:
+        agent_id: {type: string}
+        agent_card_path: {type: string}
+        skill_path: {type: string}
+        context_policy_path: {type: string}
+        tool_policy_path: {type: string}
+        memory_policy_path: {type: string}
+        assets:
+          type: object
+  model_records:
+    type: array
+    items:
+      type: object
+      required:
+        - agent_id
+        - model
+        - model_policy_id
+        - reasoning_effort
+        - skill_versions
+        - tool_versions
+        - tool_contract_id
+        - runtime_mode
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        agent_id: {type: string}
+        model: {type: string}
+        model_policy_id: {type: string}
+        reasoning_effort: {type: string}
+        skill_versions:
+          type: array
+          items: {type: string}
+        tool_versions:
+          type: array
+          items: {type: string}
+        tool_contract_id: {type: string}
+        runtime_mode:
+          enum: [local_file_protocol]
+        real_trade_allowed:
+          enum: [false]
+        broker_integration:
+          enum: [disabled]
+  harness_artifacts:
+    type: array
+    items: {type: string}
+  memory_thread_artifacts:
+    type: array
+    items: {type: string}
+  evolution_artifacts:
+    type: array
+    items: {type: string}
+  evolution_summary:
+    type: object
+    required:
+      - gate_results
+      - accepted
+      - quarantined
+      - rejected
+      - memory_writes
+      - approved_candidates
+      - pending_human_apply
+      - real_trade_allowed
+      - broker_integration
+    properties:
+      gate_results: {type: integer}
+      accepted: {type: integer}
+      quarantined: {type: integer}
+      rejected: {type: integer}
+      memory_writes: {type: integer}
+      approved_candidates: {type: integer}
+      pending_human_apply: {type: integer}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  safety_invariants:
+    type: object
+    required:
+      - research_watchlist_paper_only
+      - paper_portfolio_only
+      - no_personalized_investment_advice
+      - no_real_trade
+      - broker_integration_disabled
+      - kol_is_hypothesis_only
+      - durable_learning_requires_harness_and_evolution_gate
+    properties:
+      research_watchlist_paper_only: {type: boolean}
+      paper_portfolio_only: {type: boolean}
+      no_personalized_investment_advice: {type: boolean}
+      no_real_trade: {type: boolean}
+      broker_integration_disabled: {type: boolean}
+      kol_is_hypothesis_only: {type: boolean}
+      durable_learning_requires_harness_and_evolution_gate: {type: boolean}
+  controls:
+    type: array
+    items: {type: string}
+  disclaimer: {type: string}
+  real_trade_allowed:
+    enum: [false]
+  broker_integration:
+    enum: [disabled]
