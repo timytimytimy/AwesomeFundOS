@@ -42,7 +42,7 @@ from fundos.reporting import write_first_version_report
 from fundos.skill_benchmark import run_skill_benchmark
 from fundos.source_ingestion import ingest_source_candidates
 from fundos.system_audit import run_system_audit
-from fundos.tool_adapters import write_tool_adapter_manifest
+from fundos.tool_adapters import load_tool_adapter_contracts, write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
 from fundos.task_dag import (
     close_research_gap_followup_with_evidence,
@@ -320,6 +320,9 @@ def research_plan_coverage(public_results: list[dict[str, Any]], research_plan: 
 def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: str) -> None:
     ref_dir = run_path / "reflections"
     ref_dir.mkdir(parents=True, exist_ok=True)
+    tool_runtime = read_yaml(run_path / "tools" / "tool-runtime-report.yaml") if (run_path / "tools" / "tool-runtime-report.yaml").exists() else {}
+    tool_report = read_yaml(run_path / "harness" / "agent-tool-use.yaml") if (run_path / "harness" / "agent-tool-use.yaml").exists() else {}
+    tool_errors = reflection_tool_usage_errors(tool_runtime, tool_report)
     for item in selected:
         agent_id = item["agent_id"]
         reflection = {
@@ -327,10 +330,10 @@ def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: st
             "agent_id": agent_id,
             "what_i_believed": "需要先建立证据追溯再形成判断。",
             "what_i_got_right": "保持了模拟研究和真实投资建议的边界。",
-            "what_i_got_wrong": "真实数据工具尚未接入，证据密度不足。",
+            "what_i_got_wrong": "仍需继续补齐公告、新闻、行情和财报等外部证据密度。",
             "missed_evidence": ["真实公告", "实时新闻", "行情摘要"],
             "reasoning_errors": [],
-            "tool_usage_errors": ["tool interface is stub"],
+            "tool_usage_errors": tool_errors,
             "bias_detected": ["可能高估 seed methodology 的可迁移性"],
             "proposed_memory_updates": ["方法论源必须回到一手事实验证。"],
             "proposed_skill_updates": ["增加真实公告检索工具适配器。"],
@@ -370,6 +373,41 @@ def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: st
     evo.parent.mkdir(parents=True, exist_ok=True)
     evo.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in [candidate, skill_candidate]), encoding="utf-8")
 
+
+def reflection_tool_usage_errors(tool_runtime: dict[str, Any], tool_report: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for issue in tool_runtime.get("blocking_issues", []) or []:
+        if issue and issue != "missing_tool_runtime_report":
+            errors.append(str(issue))
+    for row in tool_report.get("agent_results", []) or []:
+        for tool in row.get("forbidden_called_tools", []) or []:
+            errors.append(f"forbidden_tool_called:{row.get('agent_id')}:{tool}")
+        for tool in row.get("missing_required_tools", []) or []:
+            errors.append(f"missing_required_tool:{row.get('agent_id')}:{tool}")
+    return sorted(set(errors))
+
+
+def build_model_records(selected: list[dict[str, str]], agents_by_id: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    contracts = load_tool_adapter_contracts()
+    contract_id = contracts.get("contract_id", "tool_adapter_contracts_v1")
+    records: list[dict[str, Any]] = []
+    for item in selected:
+        agent = agents_by_id[item["agent_id"]]
+        model_policy = build_model_policy(agent)
+        records.append({
+            "agent_id": item["agent_id"],
+            "model": model_policy["default_model"],
+            "model_policy_id": model_policy.get("id"),
+            "reasoning_effort": model_policy.get("reasoning_effort"),
+            "skill_versions": [f"fundos-{item['agent_id']}@0.1.0"],
+            "tool_versions": [contract_id],
+            "tool_contract_id": contract_id,
+            "runtime_mode": "local_file_protocol",
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        })
+    return records
+
 def command_run(args: argparse.Namespace) -> int:
     input_type, value = infer_input(args)
     run_id = f"{today_prefix()}-{slugify(value)}"
@@ -404,16 +442,7 @@ def command_run(args: argparse.Namespace) -> int:
         "selected_agents": selected,
         "status": "archived",
         "artifacts": [],
-        "model_records": [
-            {
-                "agent_id": item["agent_id"],
-                "model": "codex-default-stub",
-                "reasoning_effort": "medium",
-                "skill_versions": ["v0.1.0"],
-                "tool_versions": ["stub-v0.1.0"],
-            }
-            for item in selected
-        ],
+        "model_records": build_model_records(selected, agents_by_id),
     }
     write_yaml(run_path / "run.yaml", run_doc)
     materialize_agent_threads(Path.cwd(), roster)

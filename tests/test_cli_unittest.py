@@ -94,6 +94,14 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(run_doc["market"], "CN_A_SHARE")
             self.assertGreaterEqual(len(run_doc["selected_agents"]), 7)
             self.assertLessEqual(len(run_doc["selected_agents"]), 10)
+            self.assertTrue(run_doc["model_records"])
+            for record in run_doc["model_records"]:
+                self.assertEqual(record["model"], "codex-default")
+                self.assertNotIn("stub", " ".join(record.get("tool_versions", [])))
+                self.assertNotIn("stub", " ".join(record.get("skill_versions", [])))
+                self.assertIn("model_policy_id", record)
+                self.assertIn("tool_contract_id", record)
+                self.assertIn("runtime_mode", record)
 
             selected = yaml.safe_load((run_path / "selected-agents.yaml").read_text())
             ids = {item["agent_id"] for item in selected["selected_agents"]}
@@ -197,6 +205,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(review["real_trade_violations"], 0)
             self.assertEqual(outcome["artifact_type"], "portfolio_outcome_tracking")
             self.assertIn("outcome_tracking", review)
+
+            reflection = yaml.safe_load((run_path / "reflections" / f"{next(iter(ids))}.reflection.yaml").read_text())
+            self.assertFalse(any("stub" in str(item).lower() for item in reflection.get("tool_usage_errors", [])))
 
     def test_eval_and_evolve_can_reprocess_run(self):
         with tempfile.TemporaryDirectory() as d:
