@@ -144,6 +144,15 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("role_specific_compression", context_summary["controls"])
             self.assertFalse(context_summary["real_trade_allowed"])
             self.assertEqual(context_summary["broker_integration"], "disabled")
+            self.assertIn("portfolio_outcome_summary", os_manifest)
+            portfolio_summary = os_manifest["portfolio_outcome_summary"]
+            self.assertEqual(portfolio_summary["watchlist_items"], 1)
+            self.assertEqual(portfolio_summary["paper_actions"], 1)
+            self.assertEqual(portfolio_summary["reviewed_actions"], 1)
+            self.assertEqual(portfolio_summary["outcome_status"], "missing_market_replay")
+            self.assertEqual(portfolio_summary["real_trade_violations"], 0)
+            self.assertFalse(portfolio_summary["real_trade_allowed"])
+            self.assertEqual(portfolio_summary["broker_integration"], "disabled")
             self.assertTrue(os_manifest["safety_invariants"]["paper_portfolio_only"])
             self.assertTrue(os_manifest["safety_invariants"]["kol_is_hypothesis_only"])
             self.assertIn("# Operating System Manifest", os_manifest_md)
@@ -153,6 +162,8 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("all_agent_os_contracts_valid: True", os_manifest_md)
             self.assertIn("## Harness, Memory, Evolution", os_manifest_md)
             self.assertIn("context_management_score", os_manifest_md)
+            self.assertIn("portfolio_reviewed_actions", os_manifest_md)
+            self.assertIn("outcome_status", os_manifest_md)
             self.assertIn("## Safety Boundaries", os_manifest_md)
             self.assertIn("real_trade_allowed: False", os_manifest_md)
             self.assertIn("broker_integration: disabled", os_manifest_md)
@@ -345,6 +356,7 @@ class FundosCliTests(unittest.TestCase):
             "evolution_summary",
             "source_provenance_summary",
             "context_management_summary",
+            "portfolio_outcome_summary",
             "safety_invariants",
             "real_trade_allowed",
             "broker_integration",
@@ -364,6 +376,11 @@ class FundosCliTests(unittest.TestCase):
         self.assertIn("loss_accounting_present", context_required)
         self.assertIn("role_specific_compression_present", context_required)
         self.assertIn("thread_memory_summary_quality", context_required)
+        portfolio_required = schema["properties"]["portfolio_outcome_summary"]["required"]
+        self.assertIn("watchlist_items", portfolio_required)
+        self.assertIn("paper_actions", portfolio_required)
+        self.assertIn("outcome_status", portfolio_required)
+        self.assertIn("real_trade_violations", portfolio_required)
         source_required = schema["properties"]["source_provenance_summary"]["required"]
         self.assertIn("registry_source_count", source_required)
         self.assertIn("quarantined_sources", source_required)

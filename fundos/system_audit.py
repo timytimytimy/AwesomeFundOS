@@ -63,6 +63,10 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     disagreement_register = load_yaml(run_path / "committee" / "disagreement-register.yaml", {})
     veto_table = load_yaml(run_path / "committee" / "veto-table.yaml", {})
     decision_memo = load_yaml(run_path / "decision" / "final-decision-memo.yaml", {})
+    watchlist = load_yaml(run_path / "portfolio" / "watchlist.yaml", {})
+    paper_portfolio = load_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {})
+    portfolio_review = load_yaml(run_path / "portfolio" / "portfolio-review.yaml", {})
+    outcome_tracking = load_yaml(run_path / "portfolio" / "outcome-tracking.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
@@ -80,6 +84,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
+    portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -229,6 +234,20 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             committee_check["ok"],
             details=committee_check,
+        ),
+        requirement(
+            "runtime.portfolio_outcome_loop_matches_manifest",
+            "portfolio_outcome",
+            "Runtime watchlist, Paper Portfolio, review, and outcome tracking loop matches the OS manifest summary and preserves paper-only no-broker boundaries.",
+            [
+                run_path / "system" / "operating-system-manifest.yaml",
+                run_path / "portfolio" / "watchlist.yaml",
+                run_path / "portfolio" / "paper-portfolio.yaml",
+                run_path / "portfolio" / "portfolio-review.yaml",
+                run_path / "portfolio" / "outcome-tracking.yaml",
+            ],
+            portfolio_outcome_check["ok"],
+            details=portfolio_outcome_check,
         ),
     ]
 
@@ -741,6 +760,105 @@ def committee_debate_risk_decision_loop_check(readiness: Any, disagreements: Any
     }
 
 
+def operating_system_manifest_portfolio_outcome_check(manifest: Any, watchlist: Any, paper: Any, review: Any, outcome: Any) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not all(isinstance(item, dict) for item in [manifest, watchlist, paper, review, outcome]):
+        return {"ok": False, "mismatches": ["manifest_or_portfolio_artifact_missing_or_invalid"]}
+    summary = manifest.get("portfolio_outcome_summary", {}) or {}
+    if not isinstance(summary, dict):
+        return {"ok": False, "mismatches": ["portfolio_outcome_summary_missing_or_invalid"]}
+
+    watch_items = watchlist.get("items", []) if isinstance(watchlist.get("items", []), list) else []
+    actions = paper.get("actions", []) if isinstance(paper.get("actions", []), list) else []
+    attribution_items = review.get("attribution_items", []) if isinstance(review.get("attribution_items", []), list) else []
+    learning_candidates = review.get("learning_candidates", []) if isinstance(review.get("learning_candidates", []), list) else []
+    outcome_results = outcome.get("results", []) if isinstance(outcome.get("results", []), list) else []
+    expected_controls = sorted({
+        str(control)
+        for source in [review, outcome]
+        for control in (source.get("controls", []) if isinstance(source.get("controls", []), list) else [])
+        if control
+    })
+
+    compare_value(mismatches, "portfolio_outcome_summary.watchlist_items", summary.get("watchlist_items"), len(watch_items))
+    compare_value(mismatches, "portfolio_outcome_summary.paper_actions", summary.get("paper_actions"), len(actions))
+    compare_value(mismatches, "portfolio_outcome_summary.reviewed_actions", summary.get("reviewed_actions"), int(review.get("reviewed_actions", 0) or 0))
+    compare_value(mismatches, "portfolio_outcome_summary.attribution_items", summary.get("attribution_items"), len(attribution_items))
+    compare_value(mismatches, "portfolio_outcome_summary.learning_candidates", summary.get("learning_candidates"), len(learning_candidates))
+    compare_value(mismatches, "portfolio_outcome_summary.outcome_status", summary.get("outcome_status"), str(outcome.get("outcome_status", "missing_market_replay")))
+    compare_value(mismatches, "portfolio_outcome_summary.actions_evaluated", summary.get("actions_evaluated"), int(outcome.get("actions_evaluated", 0) or 0))
+    compare_value(mismatches, "portfolio_outcome_summary.actions_missing_market_replay", summary.get("actions_missing_market_replay"), int(outcome.get("actions_missing_market_replay", 0) or 0))
+    compare_value(mismatches, "portfolio_outcome_summary.outcome_quality_score", summary.get("outcome_quality_score"), float(outcome.get("outcome_quality_score", 0) or 0))
+    compare_value(mismatches, "portfolio_outcome_summary.real_trade_violations", summary.get("real_trade_violations"), int(review.get("real_trade_violations", 0) or 0))
+    compare_value(mismatches, "portfolio_outcome_summary.review_verdict", summary.get("review_verdict"), str(review.get("review_verdict", "missing_portfolio_review")))
+    compare_value(mismatches, "portfolio_outcome_summary.controls", summary.get("controls"), expected_controls)
+
+    required_controls = {
+        "paper_only",
+        "no_broker_integration",
+        "no_real_trade_action",
+        "review_before_upgrade",
+        "market_replay_is_not_trade_signal",
+        "outcome_tracking_requires_fixture_or_adapter",
+    }
+    missing_controls = sorted(required_controls - set(expected_controls))
+    if missing_controls:
+        mismatches.append(f"portfolio_outcome_summary.controls: missing {missing_controls!r}")
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"portfolio_outcome_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"portfolio_outcome_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+
+    constraints = paper.get("constraints", {}) if isinstance(paper.get("constraints", {}), dict) else {}
+    if constraints.get("real_trade_allowed") is not False:
+        mismatches.append(f"paper_portfolio.constraints.real_trade_allowed: expected False, got {constraints.get('real_trade_allowed')!r}")
+    if constraints.get("broker_integration") != "disabled":
+        mismatches.append(f"paper_portfolio.constraints.broker_integration: expected 'disabled', got {constraints.get('broker_integration')!r}")
+    for idx, action in enumerate(actions):
+        if not isinstance(action, dict):
+            mismatches.append(f"paper_portfolio.actions[{idx}]: expected object")
+            continue
+        if action.get("real_trade_allowed") is not False:
+            mismatches.append(f"paper_portfolio.actions[{idx}].real_trade_allowed: expected False, got {action.get('real_trade_allowed')!r}")
+    for idx, item in enumerate(attribution_items):
+        if not isinstance(item, dict):
+            mismatches.append(f"portfolio_review.attribution_items[{idx}]: expected object")
+            continue
+        if item.get("real_trade_violation") not in {False, None}:
+            mismatches.append(f"portfolio_review.attribution_items[{idx}].real_trade_violation: expected False, got {item.get('real_trade_violation')!r}")
+        if item.get("broker_integration") != "disabled":
+            mismatches.append(f"portfolio_review.attribution_items[{idx}].broker_integration: expected 'disabled', got {item.get('broker_integration')!r}")
+    for idx, result in enumerate(outcome_results):
+        if not isinstance(result, dict):
+            mismatches.append(f"outcome_tracking.results[{idx}]: expected object")
+            continue
+        if result.get("real_trade_allowed") is not False:
+            mismatches.append(f"outcome_tracking.results[{idx}].real_trade_allowed: expected False, got {result.get('real_trade_allowed')!r}")
+        if result.get("broker_integration") != "disabled":
+            mismatches.append(f"outcome_tracking.results[{idx}].broker_integration: expected 'disabled', got {result.get('broker_integration')!r}")
+    if int(review.get("real_trade_violations", 0) or 0) != 0:
+        mismatches.append(f"portfolio_review.real_trade_violations: expected 0, got {review.get('real_trade_violations')!r}")
+
+    return {
+        "ok": not mismatches,
+        "mismatches": mismatches,
+        "watchlist_items": len(watch_items),
+        "paper_actions": len(actions),
+        "reviewed_actions": int(review.get("reviewed_actions", 0) or 0),
+        "attribution_items": len(attribution_items),
+        "learning_candidates": len(learning_candidates),
+        "outcome_status": str(outcome.get("outcome_status", "missing_market_replay")),
+        "actions_evaluated": int(outcome.get("actions_evaluated", 0) or 0),
+        "actions_missing_market_replay": int(outcome.get("actions_missing_market_replay", 0) or 0),
+        "outcome_quality_score": float(outcome.get("outcome_quality_score", 0) or 0),
+        "real_trade_violations": int(review.get("real_trade_violations", 0) or 0),
+        "review_verdict": str(review.get("review_verdict", "missing_portfolio_review")),
+        "controls": expected_controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
 def selected_agent_artifacts_exist(run_path: Path, agent_id: str) -> bool:
     if not agent_id:
         return False
@@ -857,6 +975,7 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "evolution_summary": manifest.get("evolution_summary", {}),
         "source_provenance_summary": manifest.get("source_provenance_summary", {}),
         "context_management_summary": manifest.get("context_management_summary", {}),
+        "portfolio_outcome_summary": manifest.get("portfolio_outcome_summary", {}),
         "agent_performance_summary": manifest.get("agent_performance_summary", {}),
         "agent_governance_summary": manifest.get("agent_governance_summary", {}),
         "evaluation_summary": manifest.get("evaluation_summary", {}),

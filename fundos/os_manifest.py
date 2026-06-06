@@ -88,6 +88,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "evolution_summary": evolution_summary(run_path),
         "source_provenance_summary": source_provenance_summary(run_path),
         "context_management_summary": context_management_summary(run_path),
+        "portfolio_outcome_summary": portfolio_outcome_summary(run_path),
         "agent_performance_summary": agent_performance_summary(run_path),
         "agent_governance_summary": agent_governance_summary(run_path),
         "evaluation_summary": evaluation_summary(run_path),
@@ -132,6 +133,7 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     evaluation = manifest.get("evaluation_summary", {}) or {}
     provenance = manifest.get("source_provenance_summary", {}) or {}
     context_management = manifest.get("context_management_summary", {}) or {}
+    portfolio_outcome = manifest.get("portfolio_outcome_summary", {}) or {}
     safety = manifest.get("safety_invariants", {}) or {}
     lines = [
         "# Operating System Manifest",
@@ -183,6 +185,10 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- context_agents_evaluated: {context_management.get('agents_evaluated', 0)}",
         f"- context_token_budget_respected: {context_management.get('token_budget_respected', 0)}",
         f"- context_loss_accounting_present: {context_management.get('loss_accounting_present', 0)}",
+        f"- portfolio_watchlist_items: {portfolio_outcome.get('watchlist_items', 0)}",
+        f"- portfolio_paper_actions: {portfolio_outcome.get('paper_actions', 0)}",
+        f"- portfolio_reviewed_actions: {portfolio_outcome.get('reviewed_actions', 0)}",
+        f"- outcome_status: {portfolio_outcome.get('outcome_status', 'missing_market_replay')}",
         f"- agent_performance_score: {performance.get('average_final_score', 0)}",
         f"- agent_governance_score: {governance.get('governance_quality_score', 0)}",
         f"- evaluation_overall_score: {evaluation.get('overall_score', 0)}",
@@ -346,6 +352,33 @@ def context_management_summary(run_path: Path) -> dict[str, Any]:
             "no_real_trade_action",
             "broker_integration_disabled",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def portfolio_outcome_summary(run_path: Path) -> dict[str, Any]:
+    watchlist = read_optional_yaml(run_path / "portfolio" / "watchlist.yaml", {})
+    paper = read_optional_yaml(run_path / "portfolio" / "paper-portfolio.yaml", {})
+    review = read_optional_yaml(run_path / "portfolio" / "portfolio-review.yaml", {})
+    outcome = read_optional_yaml(run_path / "portfolio" / "outcome-tracking.yaml", {})
+    actions = paper.get("actions", []) if isinstance(paper, dict) and isinstance(paper.get("actions", []), list) else []
+    watch_items = watchlist.get("items", []) if isinstance(watchlist, dict) and isinstance(watchlist.get("items", []), list) else []
+    attribution_items = review.get("attribution_items", []) if isinstance(review, dict) and isinstance(review.get("attribution_items", []), list) else []
+    controls = sorted({str(control) for source in [review, outcome] if isinstance(source, dict) for control in source.get("controls", []) if control})
+    return {
+        "watchlist_items": len(watch_items),
+        "paper_actions": len(actions),
+        "reviewed_actions": int(review.get("reviewed_actions", 0) or 0) if isinstance(review, dict) else 0,
+        "attribution_items": len(attribution_items),
+        "learning_candidates": len(review.get("learning_candidates", []) or []) if isinstance(review, dict) and isinstance(review.get("learning_candidates", []), list) else 0,
+        "outcome_status": str(outcome.get("outcome_status", "missing_market_replay")) if isinstance(outcome, dict) else "missing_market_replay",
+        "actions_evaluated": int(outcome.get("actions_evaluated", 0) or 0) if isinstance(outcome, dict) else 0,
+        "actions_missing_market_replay": int(outcome.get("actions_missing_market_replay", 0) or 0) if isinstance(outcome, dict) else 0,
+        "outcome_quality_score": float(outcome.get("outcome_quality_score", 0) or 0) if isinstance(outcome, dict) else 0,
+        "real_trade_violations": int(review.get("real_trade_violations", 0) or 0) if isinstance(review, dict) else 0,
+        "review_verdict": str(review.get("review_verdict", "missing_portfolio_review")) if isinstance(review, dict) else "missing_portfolio_review",
+        "controls": controls,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
