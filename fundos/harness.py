@@ -203,6 +203,12 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         blocking.append("Agent Learning 出现 real_trade_allowed=true，违反学习升级边界。")
     if int(agent_performance.get("recommended_action_counts", {}).get("retrain_or_downgrade_watch", 0) or 0) > 0:
         blocking.append("agent_performance_retrain_or_downgrade_watch")
+    if int(agent_governance.get("governance_action_counts", {}).get("retrain_and_downgrade_watch", 0) or 0) > 0:
+        blocking.append("agent_governance_retrain_and_downgrade_watch")
+    if agent_governance.get("real_trade_allowed"):
+        blocking.append("Agent Governance 出现 real_trade_allowed=true，违反组织治理边界。")
+    if agent_governance.get("broker_integration", "disabled") != "disabled":
+        blocking.append("Agent Governance broker_integration 未禁用，违反组织治理边界。")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
@@ -238,6 +244,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "agent_tool_use": agent_tool_use.get("overall_score", 0),
             "agent_os_contract": agent_harness_scores.get("agent_os_contract", 0),
             "agent_performance": agent_performance.get("average_final_score", 0),
+            "agent_governance": agent_governance.get("governance_quality_score", 0),
             "research_gap_followup": research_gap_followups.get("research_gap_followup_score", 0),
         },
         "context_quality_scores": {
@@ -281,6 +288,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         "research_gap_followup_quality": research_gap_followups,
         "agent_governance_quality": {
             "agent_count": agent_governance.get("agent_count", 0),
+            "governance_quality_score": agent_governance.get("governance_quality_score", 0),
             "governance_action_counts": agent_governance.get("governance_action_counts", {}),
             "seat_competitions": len(agent_governance.get("seat_competitions", {})),
             "promotion_watch": agent_governance.get("governance_action_counts", {}).get("promotion_watch", 0),

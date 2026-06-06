@@ -36,11 +36,13 @@ def evaluate_agent_governance(run_path: Path) -> dict[str, Any]:
     seat_groups = group_reviews(reviews)
     seat_competitions = {seat: summarize_seat(seat, rows) for seat, rows in seat_groups.items()}
     action_counts = count_by(reviews, "governance_action")
+    governance_quality_score = score_governance_quality(reviews, action_counts)
     return {
         "version": GOVERNANCE_VERSION,
         "artifact_type": "agent_governance_report",
         "run_id": performance.get("run_id", run_path.name),
         "agent_count": len(reviews),
+        "governance_quality_score": governance_quality_score,
         "governance_action_counts": action_counts,
         "seat_groups": {seat: [row["agent_id"] for row in rows] for seat, rows in seat_groups.items()},
         "seat_competitions": seat_competitions,
@@ -98,6 +100,21 @@ def infer_seat_group(role: str) -> str:
     if "Analyst" in role:
         return "research"
     return "core_operating"
+
+
+def score_governance_quality(reviews: list[dict[str, Any]], action_counts: dict[str, int]) -> float:
+    if not reviews:
+        return 0
+    average_score = sum(float(row.get("final_score", 0) or 0) for row in reviews) / len(reviews)
+    downgrade_penalty = int(action_counts.get("retrain_and_downgrade_watch", 0) or 0) * 12
+    observation_penalty = int(action_counts.get("needs_more_observations", 0) or 0) * 4
+    safety_penalty = 0
+    for row in reviews:
+        if row.get("risk_limit_changed") or row.get("profile_mutated") or row.get("memory_deleted"):
+            safety_penalty += 15
+        if row.get("real_trade_allowed") or row.get("broker_integration") != "disabled":
+            safety_penalty += 30
+    return round(max(0, min(100, average_score - downgrade_penalty - observation_penalty - safety_penalty)), 1)
 
 
 def group_reviews(reviews: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
@@ -174,6 +191,7 @@ def default_report() -> dict[str, Any]:
         "version": GOVERNANCE_VERSION,
         "artifact_type": "agent_governance_report",
         "agent_count": 0,
+        "governance_quality_score": 0,
         "governance_action_counts": {},
         "seat_groups": {},
         "seat_competitions": {},

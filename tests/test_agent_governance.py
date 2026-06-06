@@ -96,6 +96,26 @@ class AgentGovernanceTests(unittest.TestCase):
             self.assertIn("agent_governance", evaluation["accepted_outputs"])
             self.assertFalse(evaluation["agent_governance_quality"]["real_trade_allowed"])
 
+    def test_evaluation_scores_agent_governance_and_blocks_downgrade_watch(self):
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d) / "runs" / "governance-blocking-eval"
+            (run_path / "harness").mkdir(parents=True)
+            write_yaml(run_path / "harness" / "agent-performance.yaml", {
+                "agent_results": [
+                    {"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst", "final_score": 92, "recommended_action": "promote_watch", "blocking_issues": [], "real_trade_allowed": False},
+                    {"agent_id": "swing_trader", "role": "SwingTrader", "final_score": 48, "recommended_action": "retrain_or_downgrade_watch", "blocking_issues": ["agent_harness_score_below_60"], "real_trade_allowed": False},
+                ]
+            })
+            governance = write_agent_governance(run_path)
+            evidence_pack = {"evidence_items": [{"source_id": "public_research", "source_tier": "tier_1_primary_fact"}]}
+
+            evaluation = make_evaluation_for_run("governance-blocking-eval", [{"agent_id": "tech_growth_analyst"}, {"agent_id": "swing_trader"}], evidence_pack, run_path)
+
+            self.assertIn("governance_quality_score", governance)
+            self.assertEqual(evaluation["dimension_scores"]["agent_governance"], governance["governance_quality_score"])
+            self.assertEqual(evaluation["agent_governance_quality"]["governance_quality_score"], governance["governance_quality_score"])
+            self.assertIn("agent_governance_retrain_and_downgrade_watch", evaluation["blocking_issues"])
+
     def test_governance_summary_cli_after_evolve(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

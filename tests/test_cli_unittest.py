@@ -983,6 +983,7 @@ class EvaluationReportSchemaContractTests(unittest.TestCase):
             "agent_tool_use",
             "agent_os_contract",
             "agent_performance",
+            "agent_governance",
             "research_gap_followup",
         ]:
             self.assertIn(field, dimensions)
@@ -1019,5 +1020,6 @@ class EvaluationReportSchemaContractTests(unittest.TestCase):
             self.assertIn(field, agent_performance)
         governance = schema["properties"]["agent_governance_quality"]["properties"]
         self.assertIn("retrain_and_downgrade_watch", governance)
+        self.assertIn("governance_quality_score", governance)
         self.assertEqual(governance["real_trade_allowed"]["enum"], [False])
         self.assertEqual(governance["broker_integration"]["enum"], ["disabled"])
