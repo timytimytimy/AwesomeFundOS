@@ -260,6 +260,61 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('agent_governance_summary.broker_integration', mismatches)
             self.assertIn('evaluation_summary.agent_governance_score', mismatches)
 
+    def test_system_audit_strict_mode_fails_stale_os_manifest_source_provenance_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            source_fixture = cwd / 'source-candidates.yaml'
+            source_fixture.write_text(yaml.safe_dump({'candidates': [
+                {
+                    'source_id': 'serenity_x_thread_robotics',
+                    'display_name': 'Serenity robotics X thread',
+                    'source_type': 'public_practitioner',
+                    'summary': '机器人产业链瓶颈研究思路',
+                    'claims': ['先从系统架构找瓶颈，再映射公司'],
+                    'requested_outputs': ['research_lens', 'checklist'],
+                    'target_agents': ['tech_growth_analyst'],
+                },
+                {
+                    'source_id': 'unknown_hot_tip',
+                    'source_type': 'social_signal',
+                    'summary': '直接买入某股票',
+                    'claims': ['直接买入'],
+                    'requested_outputs': ['direct_buy_signal'],
+                },
+            ]}, allow_unicode=True), encoding='utf-8')
+            ingest_result = run_cli(['sources', 'ingest', '--run', str(run_path), '--fixture', str(source_fixture)], cwd)
+            self.assertEqual(ingest_result.returncode, 0, ingest_result.stderr)
+            manifest_yaml = run_path / 'system' / 'operating-system-manifest.yaml'
+            manifest = yaml.safe_load(manifest_yaml.read_text(encoding='utf-8'))
+            manifest['source_provenance_summary']['registry_source_count'] = -1
+            manifest['source_provenance_summary']['ingested_sources'] = -1
+            manifest['source_provenance_summary']['methodology_sources_are_hypothesis_only'] = False
+            manifest_yaml.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(run_path), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.operating_system_manifest_source_provenance_matches_sources']['status'], 'fail')
+            mismatches = '\n'.join(by_id['runtime.operating_system_manifest_source_provenance_matches_sources']['details']['mismatches'])
+            self.assertIn('source_provenance_summary.registry_source_count', mismatches)
+            self.assertIn('source_provenance_summary.ingested_sources', mismatches)
+            self.assertIn('source_provenance_summary.methodology_sources_are_hypothesis_only', mismatches)
+
 
 if __name__ == '__main__':
     unittest.main()

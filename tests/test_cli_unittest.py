@@ -332,6 +332,7 @@ class FundosCliTests(unittest.TestCase):
             "memory_thread_artifacts",
             "evolution_artifacts",
             "evolution_summary",
+            "source_provenance_summary",
             "safety_invariants",
             "real_trade_allowed",
             "broker_integration",
@@ -346,6 +347,12 @@ class FundosCliTests(unittest.TestCase):
         self.assertIn("agent_performance_summary", schema["properties"])
         self.assertIn("agent_governance_summary", schema["properties"])
         self.assertIn("evaluation_summary", schema["properties"])
+        source_required = schema["properties"]["source_provenance_summary"]["required"]
+        self.assertIn("registry_source_count", source_required)
+        self.assertIn("quarantined_sources", source_required)
+        self.assertIn("evidence_tier_counts", source_required)
+        self.assertIn("methodology_sources_are_hypothesis_only", source_required)
+        self.assertIn("primary_evidence_required_for_company_conclusions", source_required)
         self.assertEqual(schema["properties"]["real_trade_allowed"]["enum"], [False])
         self.assertEqual(schema["properties"]["broker_integration"]["enum"], ["disabled"])
         safety_required = schema["properties"]["safety_invariants"]["required"]
@@ -605,6 +612,57 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(report["ingested_sources"], 2)
             self.assertEqual(report["quarantined_sources"], 1)
             self.assertFalse(report["real_trade_allowed"])
+
+    def test_sources_ingest_refreshes_os_manifest_source_provenance_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            run_result = run_cli(["run", "--topic", "机器人产业链投资机会"], tmp_path)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            run_path = tmp_path / run_rel
+            fixture = tmp_path / "source-candidates.yaml"
+            fixture.write_text(yaml.safe_dump({
+                "candidates": [
+                    {
+                        "source_id": "serenity_x_thread_robotics",
+                        "display_name": "Serenity robotics X thread",
+                        "source_type": "public_practitioner",
+                        "url": "https://x.com/aleabitoreddit/status/123",
+                        "author": "Serenity",
+                        "summary": "机器人产业链瓶颈研究思路",
+                        "claims": ["先从系统架构找瓶颈，再映射公司"],
+                        "requested_outputs": ["research_lens", "checklist"],
+                        "target_agents": ["tech_growth_analyst"],
+                    },
+                    {
+                        "source_id": "unknown_hot_tip",
+                        "source_type": "social_signal",
+                        "summary": "直接买入某股票",
+                        "claims": ["直接买入"],
+                        "requested_outputs": ["direct_buy_signal"],
+                    },
+                ]
+            }, allow_unicode=True), encoding="utf-8")
+
+            ingest_result = run_cli(["sources", "ingest", "--run", str(run_path), "--fixture", str(fixture)], tmp_path)
+
+            self.assertEqual(ingest_result.returncode, 0, ingest_result.stderr)
+            manifest = yaml.safe_load((run_path / "system/operating-system-manifest.yaml").read_text())
+            registry = yaml.safe_load((run_path / "learning/source-registry.yaml").read_text())
+            ingestion = yaml.safe_load((run_path / "learning/source-ingestion-report.yaml").read_text())
+            evidence = yaml.safe_load((run_path / "evidence/evidence-pack.yaml").read_text())
+            provenance = manifest["source_provenance_summary"]
+            self.assertEqual(provenance["registry_source_count"], registry["source_count"])
+            self.assertEqual(provenance["registry_source_tier_counts"], registry["source_tier_counts"])
+            self.assertEqual(provenance["ingested_sources"], ingestion["ingested_sources"])
+            self.assertEqual(provenance["quarantined_sources"], ingestion["quarantined_sources"])
+            self.assertEqual(provenance["pattern_candidates"], ingestion["pattern_candidates"])
+            self.assertEqual(provenance["evidence_item_count"], len(evidence["evidence_items"]))
+            self.assertEqual(provenance["evidence_tier_counts"], evidence["source_coverage"]["tier_counts"])
+            self.assertTrue(provenance["methodology_sources_are_hypothesis_only"])
+            self.assertTrue(provenance["direct_trade_signal_blocked"])
+            self.assertFalse(provenance["real_trade_allowed"])
+            self.assertEqual(provenance["broker_integration"], "disabled")
 
 
     def test_failures_summary_cli_reads_organization_library(self):

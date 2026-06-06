@@ -16,6 +16,7 @@ required:
   - memory_thread_artifacts
   - evolution_artifacts
   - evolution_summary
+  - source_provenance_summary
   - agent_performance_summary
   - agent_governance_summary
   - evaluation_summary
@@ -176,6 +177,50 @@ properties:
       memory_writes: {type: integer}
       approved_candidates: {type: integer}
       pending_human_apply: {type: integer}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  source_provenance_summary:
+    type: object
+    required:
+      - registry_source_count
+      - registry_source_tier_counts
+      - registry_source_type_counts
+      - ingested_sources
+      - quarantined_sources
+      - pattern_candidates
+      - evolution_candidates
+      - direct_trade_signal_blocked
+      - copyright_violation_blocked
+      - all_patterns_start_quarantined
+      - evidence_item_count
+      - evidence_tier_counts
+      - evidence_type_counts
+      - primary_fact_evidence_items
+      - low_tier_evidence_items
+      - methodology_sources_are_hypothesis_only
+      - primary_evidence_required_for_company_conclusions
+      - real_trade_allowed
+      - broker_integration
+    properties:
+      registry_source_count: {type: integer}
+      registry_source_tier_counts: {type: object}
+      registry_source_type_counts: {type: object}
+      ingested_sources: {type: integer}
+      quarantined_sources: {type: integer}
+      pattern_candidates: {type: integer}
+      evolution_candidates: {type: integer}
+      direct_trade_signal_blocked: {type: boolean}
+      copyright_violation_blocked: {type: boolean}
+      all_patterns_start_quarantined: {type: boolean}
+      evidence_item_count: {type: integer}
+      evidence_tier_counts: {type: object}
+      evidence_type_counts: {type: object}
+      primary_fact_evidence_items: {type: integer}
+      low_tier_evidence_items: {type: integer}
+      methodology_sources_are_hypothesis_only: {type: boolean}
+      primary_evidence_required_for_company_conclusions: {type: boolean}
       real_trade_allowed:
         enum: [false]
       broker_integration:

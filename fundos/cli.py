@@ -722,7 +722,10 @@ def command_sources_ingest(args: argparse.Namespace) -> int:
     if not isinstance(candidates, list):
         print("source fixture must be a YAML list or a mapping with candidates: [...]", file=sys.stderr)
         return 2
+    write_run_learning_source_registry(run_path)
     report = ingest_source_candidates(run_path, candidates)
+    if (run_path / "run.yaml").exists():
+        write_operating_system_manifest(run_path)
     print(f"source_ingestion_report={run_path / 'learning' / 'source-ingestion-report.yaml'}")
     print(f"ingested_sources={report['ingested_sources']}")
     print(f"quarantined_sources={report['quarantined_sources']}")

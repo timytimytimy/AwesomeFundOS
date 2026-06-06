@@ -86,6 +86,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "memory_thread_artifacts": existing_relative_paths(run_path, MEMORY_THREAD_ARTIFACTS),
         "evolution_artifacts": existing_relative_paths(run_path, EVOLUTION_ARTIFACTS),
         "evolution_summary": evolution_summary(run_path),
+        "source_provenance_summary": source_provenance_summary(run_path),
         "agent_performance_summary": agent_performance_summary(run_path),
         "agent_governance_summary": agent_governance_summary(run_path),
         "evaluation_summary": evaluation_summary(run_path),
@@ -128,6 +129,7 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     performance = manifest.get("agent_performance_summary", {}) or {}
     governance = manifest.get("agent_governance_summary", {}) or {}
     evaluation = manifest.get("evaluation_summary", {}) or {}
+    provenance = manifest.get("source_provenance_summary", {}) or {}
     safety = manifest.get("safety_invariants", {}) or {}
     lines = [
         "# Operating System Manifest",
@@ -170,6 +172,11 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- evolution_gate_results: {evolution.get('gate_results', 0)}",
         f"- memory_writes: {evolution.get('memory_writes', 0)}",
         f"- pending_human_apply: {evolution.get('pending_human_apply', 0)}",
+        f"- registry_source_count: {provenance.get('registry_source_count', 0)}",
+        f"- ingested_sources: {provenance.get('ingested_sources', 0)}",
+        f"- quarantined_sources: {provenance.get('quarantined_sources', 0)}",
+        f"- evidence_item_count: {provenance.get('evidence_item_count', 0)}",
+        f"- methodology_sources_are_hypothesis_only: {provenance.get('methodology_sources_are_hypothesis_only')}",
         f"- agent_performance_score: {performance.get('average_final_score', 0)}",
         f"- agent_governance_score: {governance.get('governance_quality_score', 0)}",
         f"- evaluation_overall_score: {evaluation.get('overall_score', 0)}",
@@ -270,6 +277,35 @@ def evolution_summary(run_path: Path) -> dict[str, Any]:
         "memory_writes": int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else 0,
         "approved_candidates": int(capability_summary.get("approved_candidates", 0) or 0) if isinstance(capability_summary, dict) else 0,
         "pending_human_apply": int(capability_summary.get("pending_human_apply", 0) or 0) if isinstance(capability_summary, dict) else 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def source_provenance_summary(run_path: Path) -> dict[str, Any]:
+    registry = read_optional_yaml(run_path / "learning" / "source-registry.yaml", {})
+    ingestion = read_optional_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
+    evidence = read_optional_yaml(run_path / "evidence" / "evidence-pack.yaml", {})
+    source_coverage = evidence.get("source_coverage", {}) if isinstance(evidence, dict) else {}
+    boundary_policy = registry.get("boundary_policy", {}) if isinstance(registry, dict) else {}
+    return {
+        "registry_source_count": int(registry.get("source_count", 0) or 0) if isinstance(registry, dict) else 0,
+        "registry_source_tier_counts": registry.get("source_tier_counts", {}) if isinstance(registry, dict) and isinstance(registry.get("source_tier_counts", {}), dict) else {},
+        "registry_source_type_counts": registry.get("source_type_counts", {}) if isinstance(registry, dict) and isinstance(registry.get("source_type_counts", {}), dict) else {},
+        "ingested_sources": int(ingestion.get("ingested_sources", 0) or 0) if isinstance(ingestion, dict) else 0,
+        "quarantined_sources": int(ingestion.get("quarantined_sources", 0) or 0) if isinstance(ingestion, dict) else 0,
+        "pattern_candidates": int(ingestion.get("pattern_candidates", 0) or 0) if isinstance(ingestion, dict) else 0,
+        "evolution_candidates": int(ingestion.get("evolution_candidates", 0) or 0) if isinstance(ingestion, dict) else 0,
+        "direct_trade_signal_blocked": bool(ingestion.get("direct_trade_signal_blocked", False)) if isinstance(ingestion, dict) else False,
+        "copyright_violation_blocked": bool(ingestion.get("copyright_violation_blocked", False)) if isinstance(ingestion, dict) else False,
+        "all_patterns_start_quarantined": bool(ingestion.get("all_patterns_start_quarantined", False)) if isinstance(ingestion, dict) else False,
+        "evidence_item_count": int(source_coverage.get("total_items", 0) or len(evidence.get("evidence_items", []) or [])) if isinstance(evidence, dict) and isinstance(source_coverage, dict) else 0,
+        "evidence_tier_counts": source_coverage.get("tier_counts", {}) if isinstance(source_coverage, dict) and isinstance(source_coverage.get("tier_counts", {}), dict) else {},
+        "evidence_type_counts": source_coverage.get("type_counts", {}) if isinstance(source_coverage, dict) and isinstance(source_coverage.get("type_counts", {}), dict) else {},
+        "primary_fact_evidence_items": int(source_coverage.get("primary_fact_items", 0) or 0) if isinstance(source_coverage, dict) else 0,
+        "low_tier_evidence_items": int(source_coverage.get("low_tier_items", 0) or 0) if isinstance(source_coverage, dict) else 0,
+        "methodology_sources_are_hypothesis_only": bool(boundary_policy.get("methodology_sources_are_hypothesis_generators", False)) if isinstance(boundary_policy, dict) else False,
+        "primary_evidence_required_for_company_conclusions": bool(boundary_policy.get("primary_evidence_required_for_company_conclusions", False)) if isinstance(boundary_policy, dict) else False,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

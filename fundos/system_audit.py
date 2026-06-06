@@ -57,6 +57,8 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     claim_graph = load_yaml(run_path / "harness" / "claim-graph.yaml", {})
     agent_performance = load_yaml(run_path / "harness" / "agent-performance.yaml", {})
     agent_governance = load_yaml(run_path / "harness" / "agent-governance.yaml", {})
+    source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
+    source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
     items = evidence.get("evidence_items", []) if isinstance(evidence, dict) else []
@@ -69,6 +71,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     manifest_schema_check = validate_operating_system_manifest_schema(repo_root, os_manifest)
     evaluation_schema_check = validate_evaluation_report_schema(repo_root, evaluation)
     manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
+    manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -179,6 +182,19 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_summary_check["ok"],
             details=manifest_summary_check,
+        ),
+        requirement(
+            "runtime.operating_system_manifest_source_provenance_matches_sources",
+            "runtime_governance",
+            "Operating-system manifest source provenance summary matches registry, ingestion, and evidence source coverage while preserving KOL methodology-only boundaries.",
+            [
+                run_path / "system" / "operating-system-manifest.yaml",
+                run_path / "learning" / "source-registry.yaml",
+                run_path / "learning" / "source-ingestion-report.yaml",
+                run_path / "evidence" / "evidence-pack.yaml",
+            ],
+            manifest_source_check["ok"],
+            details=manifest_source_check,
         ),
     ]
 
@@ -701,12 +717,48 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "memory_thread_artifacts": manifest.get("memory_thread_artifacts", []),
         "evolution_artifacts": manifest.get("evolution_artifacts", []),
         "evolution_summary": manifest.get("evolution_summary", {}),
+        "source_provenance_summary": manifest.get("source_provenance_summary", {}),
         "agent_performance_summary": manifest.get("agent_performance_summary", {}),
         "agent_governance_summary": manifest.get("agent_governance_summary", {}),
         "evaluation_summary": manifest.get("evaluation_summary", {}),
         "real_trade_allowed": manifest.get("real_trade_allowed"),
         "broker_integration": manifest.get("broker_integration"),
     }
+
+
+def operating_system_manifest_source_provenance_check(manifest: Any, registry: Any, ingestion: Any, evidence: Any) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not all(isinstance(item, dict) for item in [manifest, registry, ingestion, evidence]):
+        return {"ok": False, "mismatches": ["manifest_or_source_provenance_report_missing_or_invalid"]}
+    summary = manifest.get("source_provenance_summary", {}) or {}
+    source_coverage = evidence.get("source_coverage", {}) or {}
+    boundary_policy = registry.get("boundary_policy", {}) or {}
+    compare_value(mismatches, "source_provenance_summary.registry_source_count", summary.get("registry_source_count"), registry.get("source_count", 0))
+    compare_value(mismatches, "source_provenance_summary.registry_source_tier_counts", summary.get("registry_source_tier_counts"), registry.get("source_tier_counts", {}))
+    compare_value(mismatches, "source_provenance_summary.registry_source_type_counts", summary.get("registry_source_type_counts"), registry.get("source_type_counts", {}))
+    compare_value(mismatches, "source_provenance_summary.ingested_sources", summary.get("ingested_sources"), ingestion.get("ingested_sources", 0))
+    compare_value(mismatches, "source_provenance_summary.quarantined_sources", summary.get("quarantined_sources"), ingestion.get("quarantined_sources", 0))
+    compare_value(mismatches, "source_provenance_summary.pattern_candidates", summary.get("pattern_candidates"), ingestion.get("pattern_candidates", 0))
+    compare_value(mismatches, "source_provenance_summary.evolution_candidates", summary.get("evolution_candidates"), ingestion.get("evolution_candidates", 0))
+    compare_value(mismatches, "source_provenance_summary.direct_trade_signal_blocked", summary.get("direct_trade_signal_blocked"), ingestion.get("direct_trade_signal_blocked", False))
+    compare_value(mismatches, "source_provenance_summary.copyright_violation_blocked", summary.get("copyright_violation_blocked"), ingestion.get("copyright_violation_blocked", False))
+    compare_value(mismatches, "source_provenance_summary.all_patterns_start_quarantined", summary.get("all_patterns_start_quarantined"), ingestion.get("all_patterns_start_quarantined", False))
+    compare_value(mismatches, "source_provenance_summary.evidence_item_count", summary.get("evidence_item_count"), source_coverage.get("total_items", len(evidence.get("evidence_items", []) or [])))
+    compare_value(mismatches, "source_provenance_summary.evidence_tier_counts", summary.get("evidence_tier_counts"), source_coverage.get("tier_counts", {}))
+    compare_value(mismatches, "source_provenance_summary.evidence_type_counts", summary.get("evidence_type_counts"), source_coverage.get("type_counts", {}))
+    compare_value(mismatches, "source_provenance_summary.primary_fact_evidence_items", summary.get("primary_fact_evidence_items"), source_coverage.get("primary_fact_items", 0))
+    compare_value(mismatches, "source_provenance_summary.low_tier_evidence_items", summary.get("low_tier_evidence_items"), source_coverage.get("low_tier_items", 0))
+    compare_value(mismatches, "source_provenance_summary.methodology_sources_are_hypothesis_only", summary.get("methodology_sources_are_hypothesis_only"), boundary_policy.get("methodology_sources_are_hypothesis_generators", False))
+    compare_value(mismatches, "source_provenance_summary.primary_evidence_required_for_company_conclusions", summary.get("primary_evidence_required_for_company_conclusions"), boundary_policy.get("primary_evidence_required_for_company_conclusions", False))
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"source_provenance_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"source_provenance_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+    if boundary_policy.get("methodology_sources_are_hypothesis_generators") is not True:
+        mismatches.append("source_registry.boundary_policy.methodology_sources_are_hypothesis_generators: expected True")
+    if boundary_policy.get("primary_evidence_required_for_company_conclusions") is not True:
+        mismatches.append("source_registry.boundary_policy.primary_evidence_required_for_company_conclusions: expected True")
+    return {"ok": not mismatches, "mismatches": mismatches}
 
 
 def operating_system_manifest_runtime_summary_check(manifest: Any, performance: Any, governance: Any, evaluation: Any) -> dict[str, Any]:
