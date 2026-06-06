@@ -780,6 +780,20 @@ def command_followups_answer(args: argparse.Namespace) -> int:
         print(f"followup_task_not_found: {args.task_id}", file=sys.stderr)
         return 1
     reconciliation = reconcile_research_gap_followups(run_path)
+    record_followup_thread_event(
+        run_path,
+        result.get("owner_agent_id"),
+        event_type="research_gap_followup_answered",
+        payload={
+            "task_id": result.get("task_id"),
+            "category": result.get("category"),
+            "status": result.get("status"),
+            "result_path": result.get("result_path"),
+            "evidence_request_count": len(result.get("evidence_requests", []) or []),
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        },
+    )
     stem = args.task_id.replace(":", "_")
     print(f"followup_result={run_path / 'follow_up' / 'results' / (stem + '.yaml')}")
     print(f"task_id={result.get('task_id')}")
@@ -793,6 +807,8 @@ def command_followups_answer(args: argparse.Namespace) -> int:
 
 def command_followups_close(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
+    manifest_before_close = load_research_gap_task_manifest(run_path)
+    task_before_close = next((row for row in manifest_before_close.get("tasks", []) if row.get("task_id") == args.task_id), {})
     evidence_doc = read_yaml(Path(args.evidence))
     evidence_items = evidence_doc.get("evidence_items") if isinstance(evidence_doc, dict) else evidence_doc
     if not isinstance(evidence_items, list) or not evidence_items:
@@ -806,6 +822,22 @@ def command_followups_close(args: argparse.Namespace) -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
+    record_followup_thread_event(
+        run_path,
+        task_before_close.get("owner_agent_id") or task_before_close.get("owner_agent"),
+        event_type="research_gap_followup_closed",
+        payload={
+            "task_id": report.get("task_id"),
+            "category": report.get("category"),
+            "closure_status": "closed_by_accepted_evidence",
+            "accepted_evidence_count": report.get("accepted_evidence_count"),
+            "accepted_evidence_ids": report.get("accepted_evidence_ids", []),
+            "closed_count": report.get("closed_count"),
+            "pending_count": report.get("pending_count"),
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        },
+    )
     print(f"task_id={report.get('task_id')}")
     print("closure_status=closed_by_accepted_evidence")
     print(f"accepted_evidence_count={report.get('accepted_evidence_count')}")
@@ -815,6 +847,16 @@ def command_followups_close(args: argparse.Namespace) -> int:
     print(f"real_trade_allowed={report.get('real_trade_allowed', False)}")
     print(f"broker_integration={report.get('broker_integration', 'disabled')}")
     return 0
+
+def record_followup_thread_event(run_path: Path, owner_agent_id: Any, event_type: str, payload: dict[str, Any]) -> None:
+    if not owner_agent_id:
+        return
+    record_run_threads(
+        run_path,
+        [{"agent_id": str(owner_agent_id), "role": "research_gap_followup_owner"}],
+        event_type=event_type,
+        payload=payload,
+    )
 
 def resolve_run_path(value: str) -> Path:
     run_path = Path(value)

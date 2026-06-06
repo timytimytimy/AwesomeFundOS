@@ -538,6 +538,10 @@ class FundosCliTests(unittest.TestCase):
             self.assertGreaterEqual(harness["research_gap_answered_count"], 1)
             self.assertFalse(harness["real_trade_allowed"])
 
+            thread_manifest = yaml.safe_load((tmp_path / run_rel / "memory" / "agent-thread-manifest.yaml").read_text())
+            self.assertEqual(thread_manifest["event_type"], "research_gap_followup_answered")
+            self.assertEqual(thread_manifest["threads"][0]["agent_id"], task["owner_agent_id"])
+
             eval_result = run_cli(["eval", "--run", run_rel], tmp_path)
             self.assertEqual(eval_result.returncode, 0, eval_result.stderr)
             evaluation = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
@@ -597,6 +601,10 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(closed_task["accepted_evidence_ids"], ["FGCLI001"])
             pack = yaml.safe_load((tmp_path / run_rel / "evidence" / "evidence-pack.yaml").read_text())
             self.assertTrue(any(item["id"] == "FGCLI001" for item in pack["evidence_items"]))
+
+            thread_manifest = yaml.safe_load((tmp_path / run_rel / "memory" / "agent-thread-manifest.yaml").read_text())
+            self.assertEqual(thread_manifest["event_type"], "research_gap_followup_closed")
+            self.assertEqual(thread_manifest["threads"][0]["agent_id"], task["owner_agent_id"])
 
             show_result = run_cli(["followups", "show", "--run", run_rel, "--task-id", task["task_id"]], tmp_path)
             self.assertEqual(show_result.returncode, 0, show_result.stderr)

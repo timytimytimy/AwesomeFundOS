@@ -10,7 +10,7 @@ import yaml
 
 from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
 from fundos.harness import make_evaluation_for_run
-from fundos.io import REPO_ROOT, read_yaml
+from fundos.io import REPO_ROOT, read_yaml, write_yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = [sys.executable, "-m", "fundos.cli"]
@@ -103,6 +103,93 @@ class AgentThreadTests(unittest.TestCase):
             self.assertIn("agent_thread_quality", report)
             self.assertEqual(report["agent_thread_quality"]["thread_count"], 0)
             self.assertIn("missing_agent_thread_manifest", report["agent_thread_quality"]["blocking_issues"])
+
+    def test_followup_answer_and_close_append_owner_agent_thread_events(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            init_result = run_cli(["init"], root)
+            self.assertEqual(init_result.returncode, 0, init_result.stderr)
+            fixture = root / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人。"},
+                {"title": "机器人新闻", "url": "https://example.com/news", "snippet": "新闻关注机器人。", "fixture_category": "news"},
+                {"title": "机器人热度", "url": "https://x.com/example/status/1", "snippet": "社媒热度。"},
+            ]), encoding="utf-8")
+            run_result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], root)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            run_path = root / run_rel
+            task = yaml.safe_load((run_path / "workflow" / "research-gap-tasks.yaml").read_text(encoding="utf-8"))["tasks"][0]
+            agent_id = task["owner_agent_id"]
+
+            answer_result = run_cli(["followups", "answer", "--run", run_rel, "--task-id", task["task_id"]], root)
+
+            self.assertEqual(answer_result.returncode, 0, answer_result.stderr)
+            events_path = root / "memory" / "agents" / agent_id / "thread-events.jsonl"
+            events = [json.loads(line) for line in events_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            self.assertEqual(events[-1]["event_type"], "research_gap_followup_answered")
+            self.assertEqual(events[-1]["run_id"], run_path.name)
+            self.assertEqual(events[-1]["payload"]["task_id"], task["task_id"])
+            self.assertEqual(events[-1]["payload"]["category"], task["category"])
+            self.assertEqual(events[-1]["payload"]["status"], "needs_evidence")
+            self.assertEqual(events[-1]["payload"]["result_path"], f"follow_up/results/{task['task_id'].replace(':', '_')}.yaml")
+            self.assertFalse(events[-1]["real_trade_allowed"])
+            self.assertEqual(events[-1]["broker_integration"], "disabled")
+            thread_manifest = yaml.safe_load((run_path / "memory" / "agent-thread-manifest.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(thread_manifest["event_type"], "research_gap_followup_answered")
+            self.assertEqual(thread_manifest["threads"][0]["agent_id"], agent_id)
+
+            evidence_file = root / "accepted-evidence.yaml"
+            write_yaml(evidence_file, {
+                "evidence_items": [
+                    {
+                        "id": "FGTHREAD001",
+                        "source_type": task["category"],
+                        "source_tier": "tier_1_primary_fact",
+                        "source_id": "accepted_followup_evidence",
+                        "title": "机器人主题缺口证据",
+                        "url": "https://example.com/thread-evidence",
+                        "published_at": "2026-06-06",
+                        "retrieved_at": "2026-06-06T00:00:00+00:00",
+                        "summary": "补齐该研究缺口所需的已验收事实证据。",
+                        "confidence": "high",
+                        "claims": [
+                            {
+                                "claim_id": "CFGTHREAD001",
+                                "claim_text": "补齐该研究缺口所需的已验收事实证据。",
+                                "claim_type": "fact",
+                                "confidence": "high",
+                                "relevant_to": ["research_gap", task["category"]],
+                                "supports": [],
+                                "contradicts": [],
+                            }
+                        ],
+                    }
+                ]
+            })
+
+            close_result = run_cli(["followups", "close", "--run", run_rel, "--task-id", task["task_id"], "--evidence", str(evidence_file)], root)
+
+            self.assertEqual(close_result.returncode, 0, close_result.stderr)
+            events = [json.loads(line) for line in events_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            self.assertEqual(events[-1]["event_type"], "research_gap_followup_closed")
+            self.assertEqual(events[-1]["payload"]["task_id"], task["task_id"])
+            self.assertEqual(events[-1]["payload"]["category"], task["category"])
+            self.assertEqual(events[-1]["payload"]["closure_status"], "closed_by_accepted_evidence")
+            self.assertEqual(events[-1]["payload"]["accepted_evidence_ids"], ["FGTHREAD001"])
+            self.assertFalse(events[-1]["real_trade_allowed"])
+            self.assertEqual(events[-1]["broker_integration"], "disabled")
+            thread_manifest = yaml.safe_load((run_path / "memory" / "agent-thread-manifest.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(thread_manifest["event_type"], "research_gap_followup_closed")
+
+            eval_result = run_cli(["eval", "--run", run_rel], root)
+            self.assertEqual(eval_result.returncode, 0, eval_result.stderr)
+            evaluation = yaml.safe_load((run_path / "evaluations" / "evaluation-report.yaml").read_text(encoding="utf-8"))
+            self.assertIn("agent_threads", evaluation["accepted_outputs"])
+            self.assertIn("research_gap_closures", evaluation["accepted_outputs"])
+            self.assertFalse(evaluation["agent_thread_quality"]["real_trade_allowed"])
+            self.assertEqual(evaluation["agent_thread_quality"]["broker_integration"], "disabled")
 
 
 if __name__ == "__main__":

@@ -216,6 +216,8 @@ harness/task-dag-harness.yaml
 
 缺口任务会从 `planned` 进入 `answered_needs_evidence`，并记录 `answer_status`、`result_path`、answered/pending 计数和安全状态。若 follow-up result 违反 no-real-trade 或 broker-disabled 约束，任务进入 `answered_unsafe_blocked`，但不会获得任何真实交易能力。
 
+同时，`answer` 会向任务归属 Agent 的长期线程追加 `research_gap_followup_answered` 事件，并刷新本 run 的 `memory/agent-thread-manifest.yaml`。事件 payload 包含 task_id、category、status、result_path 和 evidence_request_count，使垂直研究员或交易员能够在后续复盘、Memory 和 Evolution 中追踪自己曾经提出过哪些证据缺口，而不是只在单次 run 内短暂存在。
+
 `fundos followups close --run <run> --task-id <task_id> --evidence <yaml-or-json>` 将人工或工具补齐并已验收的 EvidenceItem 写回 `evidence/evidence-pack.yaml`，更新 `research_plan_coverage`，并把对应缺口任务、Task DAG 节点和 Task DAG Harness 从 `answered_needs_evidence` 推进到：
 
 ```text
@@ -225,6 +227,8 @@ closed_by_accepted_evidence
 `--evidence` 文件可以是 `evidence_items: [...]` 映射或 EvidenceItem 数组。close 只接受结构化 EvidenceItem，不接受自由文本观点；写回后仍保持 `real_trade_allowed=false`、`broker_integration=disabled`。被接受的 EvidenceItem 必须有 id、source_type、source_tier、summary、confidence 和非空 claims；source_tier 只能是 tier_1_primary_fact、tier_2_canonical_framework 或 tier_3_verified_public_practitioner；source_type 必须匹配该 research gap category 的可接受来源类型。低质量社媒、空 claims、错 category 或任何真实交易/broker 泄漏都会被 `evidence_validation_failed` 拒绝，不能关闭缺口。
 
 后续再次运行 `fundos eval --run <run>` 或重新生成 Research Task DAG 时，已关闭的缺口必须继续保留在 manifest / DAG / Harness 中，不能因为 `research_plan_coverage.missing_categories` 已移除该 category 而丢失审计历史。
+
+`close` 成功后会向原任务归属 Agent 的长期线程追加 `research_gap_followup_closed` 事件，并刷新本 run 的 `memory/agent-thread-manifest.yaml`。事件 payload 包含 task_id、category、closure_status、accepted_evidence_count、accepted_evidence_ids、closed_count 和 pending_count。该线程事件只记录研究学习闭环，不改变 Agent profile、权限、真实资金动作或 broker 状态。
 
 Evaluation 会把已关闭缺口作为一等 Harness 信号：`research_gap_followup_quality` 输出 `closed_count`、`closed_categories`、`accepted_evidence_count` 和 `accepted_evidence_ids`，并在 `accepted_outputs` 中加入 `research_gap_closures`。关闭缺口会提高 `dimension_scores.research_gap_followup`，但仍不产生真实交易权限。
 
