@@ -115,6 +115,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
     manifest_tool_runtime_check = operating_system_manifest_tool_runtime_check(os_manifest, tool_runtime, tool_call_ledger, tool_runtime_evidence)
     runtime_maturity_check = runtime_agent_maturity_contract_check(run_path, [row.get("agent_id", "") for row in selected])
+    manifest_maturity_check = operating_system_manifest_agent_maturity_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     return [
@@ -190,6 +191,14 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [run_path / "context", run_path / "agent_work"],
             runtime_maturity_check["ok"],
             details=runtime_maturity_check,
+        ),
+        requirement(
+            "runtime.agent_maturity_contract_summary_matches_sources",
+            "runtime_agent_outputs",
+            "Operating-system manifest agent maturity summary matches ContextPack and structured output maturity contracts while preserving paper-only safety boundaries.",
+            [run_path / "system" / "operating-system-manifest.yaml", run_path / "context", run_path / "agent_work"],
+            manifest_maturity_check["ok"],
+            details=manifest_maturity_check,
         ),
         requirement(
             "runtime.model_records_have_concrete_policy_fields",
@@ -1120,6 +1129,121 @@ def runtime_agent_maturity_contract_check(run_path: Path, agent_ids: list[str]) 
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def expected_agent_maturity_summary(run_path: Path, agent_ids: list[str]) -> dict[str, Any]:
+    clean_agent_ids = [aid for aid in agent_ids if aid]
+    missing_by_agent: dict[str, list[str]] = {}
+    edge_signatures: list[str] = []
+    maturity_contracts_present = 0
+    capability_benchmarks_present = 0
+    skill_benchmarks_present = 0
+    context_compression_contracts_present = 0
+    evolution_candidate_rules_present = 0
+    minimum_scores: list[int] = []
+    for agent_id in clean_agent_ids:
+        issues: list[str] = []
+        context = load_yaml(run_path / "context" / f"{agent_id}.context-pack.yaml", {})
+        output = load_yaml(run_path / "agent_work" / f"{agent_id}.structured.yaml", {})
+        card_contract = (((context.get("agent_card") or {}).get("maturity_contract") or {}) if isinstance(context, dict) else {})
+        skill_contract = ((context.get("skill_contract") or {}) if isinstance(context, dict) else {})
+        output_contract = ((output.get("maturity_contract") or {}) if isinstance(output, dict) else {})
+        edge = card_contract.get("differentiated_edge", {}) or {}
+        capability = card_contract.get("capability_benchmarks", {}) or {}
+        card_compression = card_contract.get("context_compression", {}) or {}
+        skill_benchmark = skill_contract.get("role_specific_benchmark", {}) or {}
+        skill_compression = skill_contract.get("context_compression_recipe", {}) or {}
+        evolution_rules = skill_contract.get("evolution_candidate_rules", {}) or {}
+        if edge.get("edge_signature") and output_contract.get("edge_signature"):
+            maturity_contracts_present += 1
+            edge_signatures.append(str(output_contract.get("edge_signature")))
+        else:
+            issues.append("maturity_contract_edge_signature_missing")
+        if capability.get("benchmark_id") and output_contract.get("capability_benchmark_id"):
+            capability_benchmarks_present += 1
+        else:
+            issues.append("capability_benchmark_missing")
+        if skill_benchmark.get("benchmark_id") and output_contract.get("skill_benchmark_id"):
+            skill_benchmarks_present += 1
+        else:
+            issues.append("skill_benchmark_missing")
+        if (card_compression.get("context_priority_order") or skill_compression.get("context_priority_order")) and output_contract.get("context_priority_order") and output_contract.get("must_preserve_context"):
+            context_compression_contracts_present += 1
+        else:
+            issues.append("context_compression_contract_missing")
+        if evolution_rules.get("approval_route") and output_contract.get("evolution_approval_route"):
+            evolution_candidate_rules_present += 1
+        else:
+            issues.append("evolution_candidate_rules_missing")
+        score = parse_int(output_contract.get("minimum_pass_score") or capability.get("minimum_pass_score") or skill_benchmark.get("minimum_pass_score"))
+        if score is not None:
+            minimum_scores.append(score)
+        else:
+            issues.append("minimum_pass_score_missing")
+        if output_contract.get("real_trade_allowed") is not False:
+            issues.append("real_trade_not_disabled")
+        if output_contract.get("broker_integration") != "disabled":
+            issues.append("broker_integration_not_disabled")
+        if issues:
+            missing_by_agent[agent_id] = issues
+    return {
+        "agents_evaluated": len(clean_agent_ids),
+        "maturity_contracts_present": maturity_contracts_present,
+        "edge_signature_count": len(edge_signatures),
+        "unique_edge_signatures": len(set(edge_signatures)),
+        "required_unique_edge_signatures": max(len(clean_agent_ids) - 1, 0),
+        "capability_benchmarks_present": capability_benchmarks_present,
+        "skill_benchmarks_present": skill_benchmarks_present,
+        "context_compression_contracts_present": context_compression_contracts_present,
+        "evolution_candidate_rules_present": evolution_candidate_rules_present,
+        "minimum_pass_score_floor": min(minimum_scores) if minimum_scores else 0,
+        "missing_by_agent": missing_by_agent,
+        "controls": [
+            "differentiated_agent_edge_required",
+            "role_specific_benchmark_required",
+            "role_specific_context_compression_required",
+            "evolution_candidate_rules_required",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def operating_system_manifest_agent_maturity_check(manifest: Any, run_path: Path, agent_ids: list[str]) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not isinstance(manifest, dict):
+        return {"ok": False, "mismatches": ["manifest_missing_or_invalid"]}
+    summary = manifest.get("agent_maturity_contract_summary", {}) or {}
+    if not isinstance(summary, dict) or not summary:
+        return {"ok": False, "mismatches": ["agent_maturity_contract_summary_missing_or_invalid"]}
+    expected = expected_agent_maturity_summary(run_path, agent_ids)
+    for field, expected_value in expected.items():
+        compare_value(mismatches, f"agent_maturity_contract_summary.{field}", summary.get(field), expected_value)
+    if summary.get("unique_edge_signatures", 0) < summary.get("required_unique_edge_signatures", 0):
+        mismatches.append(
+            "agent_maturity_contract_summary.unique_edge_signatures: "
+            f"expected >= required_unique_edge_signatures, got {summary.get('unique_edge_signatures')!r} < {summary.get('required_unique_edge_signatures')!r}"
+        )
+    if summary.get("minimum_pass_score_floor", 0) < 80:
+        mismatches.append(f"agent_maturity_contract_summary.minimum_pass_score_floor: expected >=80, got {summary.get('minimum_pass_score_floor')!r}")
+    controls = set(summary.get("controls", []) or [])
+    for required_control in ["differentiated_agent_edge_required", "role_specific_benchmark_required", "role_specific_context_compression_required", "evolution_candidate_rules_required"]:
+        if required_control not in controls:
+            mismatches.append(f"agent_maturity_contract_summary.controls: missing {required_control}")
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"agent_maturity_contract_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"agent_maturity_contract_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+    return {"ok": not mismatches, "mismatches": mismatches, **expected}
+
+
+def parse_int(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def runtime_model_records_check(run_doc: Any) -> dict[str, Any]:

@@ -123,6 +123,21 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(os_manifest["all_agent_os_contracts_valid"])
             self.assertEqual(os_manifest["agent_os_contract_summary"]["valid_contracts"], len(run_doc["selected_agents"]))
             self.assertEqual(os_manifest["agent_os_contract_summary"]["invalid_contracts"], 0)
+            self.assertIn("agent_maturity_contract_summary", os_manifest)
+            maturity_summary = os_manifest["agent_maturity_contract_summary"]
+            self.assertEqual(maturity_summary["agents_evaluated"], len(run_doc["selected_agents"]))
+            self.assertEqual(maturity_summary["maturity_contracts_present"], len(run_doc["selected_agents"]))
+            self.assertGreaterEqual(maturity_summary["unique_edge_signatures"], len(run_doc["selected_agents"]) - 1)
+            self.assertEqual(maturity_summary["capability_benchmarks_present"], len(run_doc["selected_agents"]))
+            self.assertEqual(maturity_summary["skill_benchmarks_present"], len(run_doc["selected_agents"]))
+            self.assertEqual(maturity_summary["context_compression_contracts_present"], len(run_doc["selected_agents"]))
+            self.assertEqual(maturity_summary["evolution_candidate_rules_present"], len(run_doc["selected_agents"]))
+            self.assertEqual(maturity_summary["minimum_pass_score_floor"], 80)
+            self.assertEqual(maturity_summary["missing_by_agent"], {})
+            self.assertIn("differentiated_agent_edge_required", maturity_summary["controls"])
+            self.assertIn("role_specific_context_compression_required", maturity_summary["controls"])
+            self.assertFalse(maturity_summary["real_trade_allowed"])
+            self.assertEqual(maturity_summary["broker_integration"], "disabled")
             for agent_row in os_manifest["agents"]:
                 checks = agent_row["os_contract_checks"]
                 self.assertTrue(checks["agent_card_matches_roster"])
@@ -185,6 +200,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("## Agent Runtime Assets", os_manifest_md)
             self.assertIn("## Agent OS Contract Checks", os_manifest_md)
             self.assertIn("all_agent_os_contracts_valid: True", os_manifest_md)
+            self.assertIn("agent_maturity_contracts", os_manifest_md)
+            self.assertIn("agent_maturity_unique_edges", os_manifest_md)
+            self.assertIn("agent_maturity_skill_benchmarks", os_manifest_md)
             self.assertIn("## Harness, Memory, Evolution", os_manifest_md)
             self.assertIn("context_management_score", os_manifest_md)
             self.assertIn("tool_runtime_calls", os_manifest_md)
@@ -375,6 +393,7 @@ class FundosCliTests(unittest.TestCase):
             "all_selected_agents_have_runtime_assets",
             "all_agent_os_contracts_valid",
             "agent_os_contract_summary",
+            "agent_maturity_contract_summary",
             "agents",
             "model_records",
             "harness_artifacts",
@@ -397,6 +416,25 @@ class FundosCliTests(unittest.TestCase):
         self.assertEqual(schema["properties"]["runtime_mode"]["enum"], ["local_file_protocol"])
         self.assertIn("os_contract_checks", schema["properties"]["agents"]["items"]["properties"])
         self.assertIn("agent_os_contract_summary", schema["properties"])
+        maturity_required = schema["properties"]["agent_maturity_contract_summary"]["required"]
+        for required in [
+            "agents_evaluated",
+            "maturity_contracts_present",
+            "unique_edge_signatures",
+            "required_unique_edge_signatures",
+            "capability_benchmarks_present",
+            "skill_benchmarks_present",
+            "context_compression_contracts_present",
+            "evolution_candidate_rules_present",
+            "minimum_pass_score_floor",
+            "missing_by_agent",
+            "controls",
+            "real_trade_allowed",
+            "broker_integration",
+        ]:
+            self.assertIn(required, maturity_required)
+        self.assertEqual(schema["properties"]["agent_maturity_contract_summary"]["properties"]["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(schema["properties"]["agent_maturity_contract_summary"]["properties"]["broker_integration"]["enum"], ["disabled"])
         self.assertIn("agent_performance_summary", schema["properties"])
         self.assertIn("agent_governance_summary", schema["properties"])
         self.assertIn("evaluation_summary", schema["properties"])

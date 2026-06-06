@@ -10,6 +10,7 @@ required:
   - all_selected_agents_have_runtime_assets
   - all_agent_os_contracts_valid
   - agent_os_contract_summary
+  - agent_maturity_contract_summary
   - agents
   - model_records
   - harness_artifacts
@@ -61,6 +62,42 @@ properties:
       valid_contracts: {type: integer}
       invalid_contracts: {type: integer}
       mismatched_agents:
+        type: array
+        items: {type: string}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  agent_maturity_contract_summary:
+    type: object
+    required:
+      - agents_evaluated
+      - maturity_contracts_present
+      - edge_signature_count
+      - unique_edge_signatures
+      - required_unique_edge_signatures
+      - capability_benchmarks_present
+      - skill_benchmarks_present
+      - context_compression_contracts_present
+      - evolution_candidate_rules_present
+      - minimum_pass_score_floor
+      - missing_by_agent
+      - controls
+      - real_trade_allowed
+      - broker_integration
+    properties:
+      agents_evaluated: {type: integer}
+      maturity_contracts_present: {type: integer}
+      edge_signature_count: {type: integer}
+      unique_edge_signatures: {type: integer}
+      required_unique_edge_signatures: {type: integer}
+      capability_benchmarks_present: {type: integer}
+      skill_benchmarks_present: {type: integer}
+      context_compression_contracts_present: {type: integer}
+      evolution_candidate_rules_present: {type: integer}
+      minimum_pass_score_floor: {type: integer}
+      missing_by_agent: {type: object}
+      controls:
         type: array
         items: {type: string}
       real_trade_allowed:
