@@ -368,6 +368,7 @@ def missing_skill_sections_for_agent(root: Path, agent_id: str) -> list[str]:
         "context management",
         "output schema",
         "harness hooks",
+        "guardrails",
         "safety",
         "boundaries",
     ]

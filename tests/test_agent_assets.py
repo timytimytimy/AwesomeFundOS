@@ -43,10 +43,20 @@ class AgentAssetTests(unittest.TestCase):
                     "## Failure Modes",
                     "## Learning Patterns",
                     "## Harness Hooks",
+                    "## Guardrails",
                     "## Forbidden Outputs",
+                    "## Safety",
                     "## Boundaries",
                 ]:
                     self.assertIn(required, skill_text)
+                for required_guardrail in [
+                    "Research / watchlist / Paper Portfolio only",
+                    "real_trade_allowed=false",
+                    "broker_integration=disabled",
+                    "Profile, Skill, Tool, Memory, Thread, Harness, and Evolution boundaries",
+                    "EvolutionGate",
+                ]:
+                    self.assertIn(required_guardrail, skill_text)
 
 if __name__ == "__main__":
     unittest.main()

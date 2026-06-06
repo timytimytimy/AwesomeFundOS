@@ -99,6 +99,16 @@ This skill must expose signals for Agent Harness, Tool Harness, Context Harness,
 - collaboration_quality: handoffs to other agents are explicit.
 - evolution_quality: proposed upgrades are small, testable, reversible, and linked to evidence or failure patterns.
 
+## Guardrails
+
+- Research / watchlist / Paper Portfolio only; never produce personalized investment advice or real-money instructions.
+- Keep `real_trade_allowed=false` and `broker_integration=disabled` in all outputs, metadata, memory candidates, and handoffs.
+- Preserve Profile, Skill, Tool, Memory, Thread, Harness, and Evolution boundaries: this skill may propose upgrades, but must not self-mutate its core identity, permissions, risk limits, or organization role.
+- KOL, book, course, Serenity, 里海, and historical-case material may create hypotheses, checklists, or failure patterns only; direct conclusions require primary or cross-validated evidence.
+- Durable learning must pass Harness review and EvolutionGate before entering long-term memory, capability registries, or managed runtime skill blocks.
+- If context is missing, contradictory, stale, or outside the assigned ContextPack, cap confidence and create a follow-up research task instead of filling gaps with assumptions.
+- Do not output broker actions, order placement instructions, capital authority changes, profile mutations, or tool-permission changes.
+
 ## Forbidden Outputs
 
 - Real investment advice, real trade orders, or brokerage instructions.
