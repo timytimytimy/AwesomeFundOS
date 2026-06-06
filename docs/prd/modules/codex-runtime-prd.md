@@ -92,10 +92,16 @@ V1 当前先生成 `docs/` 和 `specs/`，后续实现时再创建 runtime 目�
 
 - agent_id
 - model
+- model_policy_id
 - reasoning_effort
-- context_pack_id
 - skill_versions
 - tool_versions
+- tool_contract_id
+- runtime_mode
+- real_trade_allowed
+- broker_integration
+
+`runs/{run_id}/run.yaml` 中的 `model_records` 是运行时治理证据，而不是展示字段。V1 必须使用具体本地运行策略记录：`model=codex-default`、Agent roster 中的 `model_policy_id`、具体 `reasoning_effort`、`fundos-{agent_id}@0.1.0` 形式的 skill version、`tool_adapter_contracts_v1` 工具合约、`runtime_mode=local_file_protocol`，并显式保持 `real_trade_allowed=false`、`broker_integration=disabled`。不得写入 `codex-default-stub`、`stub-v0.1.0` 或会暗示真实券商权限的 runtime record。
 
 ## 5. CLI 命令
 

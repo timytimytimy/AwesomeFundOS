@@ -209,6 +209,29 @@ class FundosCliTests(unittest.TestCase):
             reflection = yaml.safe_load((run_path / "reflections" / f"{next(iter(ids))}.reflection.yaml").read_text())
             self.assertFalse(any("stub" in str(item).lower() for item in reflection.get("tool_usage_errors", [])))
 
+    def test_run_schema_declares_concrete_runtime_model_record_fields(self):
+        schema = yaml.safe_load((ROOT / "specs/schemas/run.schema.yaml").read_text(encoding="utf-8"))
+        model_record = schema["properties"]["model_records"]["items"]
+
+        self.assertEqual(model_record["type"], "object")
+        for field in [
+            "agent_id",
+            "model",
+            "model_policy_id",
+            "reasoning_effort",
+            "skill_versions",
+            "tool_versions",
+            "tool_contract_id",
+            "runtime_mode",
+            "real_trade_allowed",
+            "broker_integration",
+        ]:
+            self.assertIn(field, model_record["properties"])
+
+        self.assertEqual(model_record["properties"]["runtime_mode"]["enum"], ["local_file_protocol"])
+        self.assertEqual(model_record["properties"]["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(model_record["properties"]["broker_integration"]["enum"], ["disabled"])
+
     def test_eval_and_evolve_can_reprocess_run(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

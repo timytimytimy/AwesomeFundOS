@@ -178,5 +178,6 @@ Agent 不可以：
 - 每个 Agent 有 Profile、ContextPolicy、ModelPolicy、Skillset 和 Tool policy。
 - 每次 run 能动态选择 7-10 个 Agent，并记录选择原因。
 - 每个 Agent 输出都能绑定 context_pack_id、skill_versions、tool_versions、model_policy。
+- 每次 run 的 `run.yaml` 必须为参与 Agent 写入 concrete `model_records`：agent_id、model、model_policy_id、reasoning_effort、skill_versions、tool_versions、tool_contract_id、runtime_mode、real_trade_allowed 和 broker_integration。该记录必须与 Agent roster、Tool Adapter Contract 和安全边界一致，不得使用 stub 占位符。
 - Harness 能按 Agent 维度评分。
 - Harness 能检查 Agent Card / Skill Contract / ContextPack / structured output 的一致性，并生成 `harness/agent-harness.yaml`。

@@ -96,6 +96,8 @@ runs/{date}-{slug}/
   evolution/
 ```
 
+`run.yaml` 必须包含参与 Agent 的 concrete `model_records`，用于审计 Codex runtime 策略是否真正落地。每条记录至少包含：agent_id、model、model_policy_id、reasoning_effort、skill_versions、tool_versions、tool_contract_id、runtime_mode、real_trade_allowed、broker_integration。V1 固定保持 `runtime_mode=local_file_protocol`、`real_trade_allowed=false`、`broker_integration=disabled`，并禁止用 stub model/tool version 代表真实 runtime 状态。
+
 ## 4. `fundos eval --run`
 
 重新运行 Harness，生成：
