@@ -510,7 +510,8 @@ class FundosCliTests(unittest.TestCase):
             result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
             self.assertEqual(result.returncode, 0, result.stderr)
             run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
-            task = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"][0]
+            tasks = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"]
+            task = next(row for row in tasks if row.get("source") == "agent_reasoning_layer")
 
             answer_result = run_cli(["followups", "answer", "--run", run_rel, "--task-id", task["task_id"]], tmp_path)
 
@@ -577,7 +578,8 @@ class FundosCliTests(unittest.TestCase):
             result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
             self.assertEqual(result.returncode, 0, result.stderr)
             run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
-            task = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"][0]
+            tasks = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"]
+            task = next(row for row in tasks if row.get("source") == "agent_reasoning_layer")
             evidence_file = tmp_path / "accepted-evidence.yaml"
             evidence_file.write_text(yaml.safe_dump({
                 "evidence_items": [
@@ -647,6 +649,11 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(len(thread_candidates), 1)
             self.assertEqual(thread_candidates[0]["target_agent"], task["owner_agent_id"])
             self.assertIn("FGCLI001", thread_candidates[0]["proposal"])
+            self.assertEqual(thread_candidates[0]["metadata"].get("source"), "agent_reasoning_layer")
+            self.assertEqual(thread_candidates[0]["metadata"].get("source_agent_id"), task["source_agent_id"])
+            self.assertEqual(thread_candidates[0]["metadata"].get("source_claim_id"), task["source_claim_id"])
+            self.assertEqual(thread_candidates[0]["metadata"].get("validation_required"), task["validation_required"])
+            self.assertIn(task["source_claim_id"], thread_candidates[0]["proposal"])
 
             evolve_result = run_cli(["evolve", "--run", run_rel], tmp_path)
             self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)

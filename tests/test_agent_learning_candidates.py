@@ -170,6 +170,12 @@ class AgentLearningCandidateTests(unittest.TestCase):
                     'payload': {
                         'task_id': 'run_thread_learning:research_gap:001',
                         'category': 'market_data',
+                        'source': 'agent_reasoning_layer',
+                        'source_agent_id': 'tech_growth_analyst',
+                        'source_evidence_id': 'E_social_001',
+                        'source_claim_id': 'claim_robot_heat',
+                        'hypothesis': 'X 上机器人产业热度可能指向订单拐点。',
+                        'validation_required': 'primary_or_cross_validated_evidence_required',
                         'closure_status': 'closed_by_accepted_evidence',
                         'accepted_evidence_count': 1,
                         'accepted_evidence_ids': ['FGTHREAD001'],
@@ -206,6 +212,13 @@ class AgentLearningCandidateTests(unittest.TestCase):
             self.assertEqual(candidate['adoption_route'], 'memory_writeback_after_evolution')
             self.assertIn('market_data', candidate['proposal'])
             self.assertIn('FGTHREAD001', candidate['proposal'])
+            self.assertIn('claim_robot_heat', candidate['proposal'])
+            self.assertEqual(candidate['metadata']['source'], 'agent_reasoning_layer')
+            self.assertEqual(candidate['metadata']['source_agent_id'], 'tech_growth_analyst')
+            self.assertEqual(candidate['metadata']['source_evidence_id'], 'E_social_001')
+            self.assertEqual(candidate['metadata']['source_claim_id'], 'claim_robot_heat')
+            self.assertEqual(candidate['metadata']['validation_required'], 'primary_or_cross_validated_evidence_required')
+            self.assertEqual(candidate['metadata']['hypothesis'], 'X 上机器人产业热度可能指向订单拐点。')
             self.assertIn('agent_thread_event_log', candidate['source_basis'][0]['source_id'])
             self.assertIn('historical_case_replay', candidate['required_tests'])
             self.assertFalse(candidate['real_trade_allowed'])

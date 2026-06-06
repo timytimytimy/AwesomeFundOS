@@ -230,7 +230,7 @@ closed_by_accepted_evidence
 
 后续再次运行 `fundos eval --run <run>` 或重新生成 Research Task DAG 时，已关闭的缺口必须继续保留在 manifest / DAG / Harness 中，不能因为 `research_plan_coverage.missing_categories` 已移除该 category 而丢失审计历史。
 
-`close` 成功后会向原任务归属 Agent 的长期线程追加 `research_gap_followup_closed` 事件，并刷新本 run 的 `memory/agent-thread-manifest.yaml`。事件 payload 包含 task_id、category、closure_status、accepted_evidence_count、accepted_evidence_ids、closed_count 和 pending_count。该线程事件只记录研究学习闭环，不改变 Agent profile、权限、真实资金动作或 broker 状态。
+`close` 成功后会向原任务归属 Agent 的长期线程追加 `research_gap_followup_closed` 事件，并刷新本 run 的 `memory/agent-thread-manifest.yaml`。事件 payload 包含 task_id、category、closure_status、accepted_evidence_count、accepted_evidence_ids、closed_count 和 pending_count；如果任务来自 `reasoning_layers.hypotheses_to_validate`，还必须保留 source、source_agent_id、source_evidence_id、source_claim_id、hypothesis 和 validation_required。该线程事件只记录研究学习闭环，不改变 Agent profile、权限、真实资金动作或 broker 状态。
 
 Evaluation 会把已关闭缺口作为一等 Harness 信号：`research_gap_followup_quality` 输出 `closed_count`、`closed_categories`、`accepted_evidence_count` 和 `accepted_evidence_ids`，并在 `accepted_outputs` 中加入 `research_gap_closures`。关闭缺口会提高 `dimension_scores.research_gap_followup`，但仍不产生真实交易权限。
 

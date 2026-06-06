@@ -15,6 +15,7 @@ from fundos.task_dag import (
 )
 
 
+
 class ResearchTaskDagTests(unittest.TestCase):
     def test_source_controlled_task_dag_spec_defines_org_workflow_and_controls(self):
         path = REPO_ROOT / "specs" / "workflows" / "research-task-dag.yaml"
@@ -209,6 +210,69 @@ class ResearchTaskDagTests(unittest.TestCase):
             self.assertIn("agent_reasoning_hypothesis_followups", evaluation["accepted_outputs"])
             self.assertEqual(evaluation["task_dag_quality"]["agent_reasoning_hypothesis_task_count"], 1)
             self.assertEqual(evaluation["task_dag_quality"]["agent_reasoning_hypothesis_quality"]["score"], 100)
+
+    def test_closing_agent_reasoning_followup_preserves_hypothesis_origin_for_learning(self):
+        pack = make_evidence_pack("dag-agent-hypothesis-close", "topic", "机器人产业链投资机会")
+        selected = [{"agent_id": "tech_growth_analyst", "role": "IndustryAnalyst"}]
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "dag-agent-hypothesis-close"
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-agent-hypothesis-close", "input": {"value": "机器人产业链投资机会"}})
+            write_yaml(run_path / "agent_work" / "tech_growth_analyst.structured.yaml", {
+                "agent_id": "tech_growth_analyst",
+                "reasoning_layers": {
+                    "hypotheses_to_validate": [
+                        {
+                            "layer": "hypothesis_to_validate",
+                            "evidence_id": "E_social_001",
+                            "claim_id": "claim_robot_heat",
+                            "source_type": "social_signal",
+                            "source_tier": "tier_5_social_signal",
+                            "claim_text": "X 上机器人产业热度可能指向订单拐点。",
+                            "validation_required": "primary_or_cross_validated_evidence_required",
+                        }
+                    ],
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+            })
+            report = write_task_dag(run_path, selected, pack)
+            task = next(row for row in report["next_research_tasks"] if row.get("source") == "agent_reasoning_layer")
+            evidence = {
+                "id": "FGHYP001",
+                "source_type": task["category"],
+                "source_tier": "tier_1_primary_fact",
+                "source_id": "accepted_followup_evidence",
+                "title": "accepted evidence for hypothesis",
+                "summary": "补充证据摘要。",
+                "confidence": "high",
+                "claims": [
+                    {
+                        "claim_id": "CFGHYP001",
+                        "claim_text": "补充证据摘要。",
+                        "claim_type": "fact",
+                        "confidence": "high",
+                        "relevant_to": ["industry"],
+                        "supports": [],
+                        "contradicts": [],
+                    }
+                ],
+            }
+
+            closure = close_research_gap_followup_with_evidence(run_path, task["task_id"], [evidence])
+
+            self.assertEqual(closure["source"], "agent_reasoning_layer")
+            self.assertEqual(closure["source_agent_id"], "tech_growth_analyst")
+            self.assertEqual(closure["source_evidence_id"], "E_social_001")
+            self.assertEqual(closure["source_claim_id"], "claim_robot_heat")
+            self.assertEqual(closure["validation_required"], "primary_or_cross_validated_evidence_required")
+
+            result = write_research_gap_followup_result(run_path, task["task_id"])
+            self.assertEqual(result["source"], "agent_reasoning_layer")
+            self.assertEqual(result["source_agent_id"], "tech_growth_analyst")
+            self.assertEqual(result["source_evidence_id"], "E_social_001")
+            self.assertEqual(result["source_claim_id"], "claim_robot_heat")
+            self.assertEqual(result["validation_required"], "primary_or_cross_validated_evidence_required")
 
     def test_evaluation_reads_task_dag_quality_and_accepts_output(self):
         pack = make_evidence_pack("dag-eval", "topic", "机器人产业链投资机会")

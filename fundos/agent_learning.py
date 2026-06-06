@@ -216,18 +216,34 @@ def candidates_from_thread_events(run_path: Path, run_id: str, manifest: dict[st
                 task_id = str(payload.get("task_id") or "")
                 category = str(payload.get("category") or "unknown_category")
                 accepted_evidence_ids = [str(item) for item in payload.get("accepted_evidence_ids", []) or []]
+                source = str(payload.get("source") or "")
+                source_agent_id = str(payload.get("source_agent_id") or "")
+                source_evidence_id = str(payload.get("source_evidence_id") or "")
+                source_claim_id = str(payload.get("source_claim_id") or "")
+                hypothesis = str(payload.get("hypothesis") or "")
+                validation_required = str(payload.get("validation_required") or "")
                 if not task_id:
                     continue
+                origin_note = ""
+                if source == "agent_reasoning_layer":
+                    origin_note = (
+                        f" The closed gap originated from Agent reasoning hypothesis"
+                        f" source_agent={source_agent_id or 'unknown'}"
+                        f" evidence_id={source_evidence_id or 'none'}"
+                        f" claim_id={source_claim_id or 'none'}"
+                        f" validation_required={validation_required or 'unspecified'}"
+                        f" hypothesis={hypothesis or 'not recorded'}."
+                    )
                 candidates.append(make_candidate(
                     run_id=run_id,
                     target_agent=agent_id,
-                    reason_key=f"thread_followup_closed_{task_id}_{category}_{','.join(accepted_evidence_ids)}",
+                    reason_key=f"thread_followup_closed_{task_id}_{category}_{source_claim_id}_{','.join(accepted_evidence_ids)}",
                     candidate_type="reflection_update",
                     target_scope="agent_memory",
                     proposal=(
                         f"Record a post-research reflection for closed research gap {category}: the agent first marked "
                         f"task {task_id} as needing evidence and it was later closed with accepted evidence "
-                        f"{', '.join(accepted_evidence_ids) or 'none'}. In future similar work, preserve the original evidence gap, "
+                        f"{', '.join(accepted_evidence_ids) or 'none'}.{origin_note} In future similar work, preserve the original evidence gap, "
                         "cite the accepted evidence IDs, and keep confidence capped until the gap is closed."
                     ),
                     source_basis=[{
@@ -241,6 +257,12 @@ def candidates_from_thread_events(run_path: Path, run_id: str, manifest: dict[st
                         "task_id": task_id,
                         "category": category,
                         "accepted_evidence_ids": accepted_evidence_ids,
+                        "source": source or None,
+                        "source_agent_id": source_agent_id or None,
+                        "source_evidence_id": source_evidence_id or None,
+                        "source_claim_id": source_claim_id or None,
+                        "hypothesis": hypothesis or None,
+                        "validation_required": validation_required or None,
                         "thread_event_log_path": str(event_log_rel),
                     },
                 ))

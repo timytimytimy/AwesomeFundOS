@@ -129,7 +129,7 @@ Agent Thread 是长期连续性日志，不等同于自动记忆。V1 必须把�
 
 该候选只能表达“未来类似任务要保留证据缺口、引用已验收证据 ID、在缺口关闭前保持 confidence cap”等复盘经验；不得提出买卖指令、风控放宽、工具权限升级、broker 接入或 core profile 修改。
 
-Agent 输出中的 `reasoning_layers.hypotheses_to_validate` 必须进入同一 follow-up 生命周期：Task DAG 将其转换为 `source=agent_reasoning_layer` 的研究缺口任务，保留 `source_agent_id`、`source_evidence_id`、`source_claim_id` 和 `validation_required`，并对同一 Agent / Evidence / Claim 去重。该任务关闭前，相关假设只能作为待验证研究问题存在；关闭后也只能通过 accepted EvidenceItem 触发上述候选生成与 EvolutionGate 评测，不能直接升级 Profile、Skill、Tool Policy 或交易权限。
+Agent 输出中的 `reasoning_layers.hypotheses_to_validate` 必须进入同一 follow-up 生命周期：Task DAG 将其转换为 `source=agent_reasoning_layer` 的研究缺口任务，保留 `source_agent_id`、`source_evidence_id`、`source_claim_id` 和 `validation_required`，并对同一 Agent / Evidence / Claim 去重。该任务关闭前，相关假设只能作为待验证研究问题存在；关闭时，`followups answer/close` 必须继续把这些 origin metadata 写入 Thread event payload 和 learning candidate metadata；关闭后也只能通过 accepted EvidenceItem 触发上述候选生成与 EvolutionGate 评测，不能直接升级 Profile、Skill、Tool Policy 或交易权限。
 
 ### 5.2 Capability Versioning / Approval Queue
 
