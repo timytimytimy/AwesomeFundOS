@@ -1,6 +1,22 @@
 version: 0.1.0
 type: object
-required: [context_pack_id, run_id, agent_id, role, task_stage, context_budget_tokens, included_evidence, output_schema]
+required:
+  - context_pack_id
+  - run_id
+  - agent_id
+  - role
+  - task_stage
+  - context_budget_tokens
+  - context_budget_manifest
+  - included_evidence
+  - contradiction_table
+  - missing_evidence
+  - excluded_evidence_summary
+  - context_loss_accounting
+  - thread_memory_summary
+  - output_schema
+  - real_trade_allowed
+  - broker_integration
 properties:
   context_pack_id: {type: string}
   run_id: {type: string}
@@ -8,18 +24,81 @@ properties:
   role: {type: string}
   task_stage: {type: string}
   context_budget_tokens: {type: integer}
+  context_budget_manifest:
+    type: object
+    required:
+      - agent_id
+      - policy_id
+      - token_budget
+      - max_context_items
+      - candidate_items
+      - included_items
+      - excluded_items
+      - estimated_tokens_before
+      - estimated_tokens_after
+      - compression_ratio
+      - preferred_context_tags
+      - required_focus
+      - compression_style
+      - controls
+    properties:
+      agent_id: {type: string}
+      policy_id: {type: string}
+      role_family: {type: string}
+      token_budget: {type: integer}
+      max_context_items: {type: integer}
+      candidate_items: {type: integer}
+      included_items: {type: integer}
+      excluded_items: {type: integer}
+      estimated_tokens_before: {type: integer}
+      estimated_tokens_after: {type: integer}
+      compression_ratio: {type: number}
+      preferred_context_tags:
+        type: array
+        items: {type: string}
+      required_focus:
+        type: array
+        items: {type: string}
+      compression_style:
+        type: array
+        items: {type: string}
+      controls:
+        type: array
+        items: {type: string}
+      thread_memory_summary:
+        type: object
+        properties:
+          included: {type: boolean}
+          event_count: {type: integer}
+          latest_event_type: {type: string}
+          open_research_gap_count: {type: integer}
+          accepted_memory_lesson_count: {type: integer}
+          quarantined_candidate_count: {type: integer}
+          rejected_candidate_count: {type: integer}
   included_evidence:
     type: array
     items:
       type: object
-      required: [evidence_id, reason, compressed_summary]
+      required:
+        - evidence_id
+        - reason
+        - compressed_summary
+        - allowed_claims
+        - estimated_tokens
       properties:
         evidence_id: {type: string}
+        source_id: {type: string}
+        source_tier: {type: string}
+        source_type: {type: string}
         reason: {type: string}
         compressed_summary: {type: string}
         allowed_claims:
           type: array
           items: {type: string}
+        policy_matched_tags:
+          type: array
+          items: {type: string}
+        estimated_tokens: {type: integer}
   contradiction_table:
     type: array
     items:
@@ -42,6 +121,87 @@ properties:
       properties:
         category: {type: string}
         reason: {type: string}
+        count: {type: integer}
+  context_loss_accounting:
+    type: object
+    required:
+      - retained_evidence_ids
+      - excluded_evidence
+      - retained_claim_ids
+      - dropped_claim_ids
+      - loss_controls
+    properties:
+      retained_evidence_ids:
+        type: array
+        items: {type: string}
+      excluded_evidence:
+        type: array
+        items:
+          type: object
+          required:
+            - evidence_id
+            - reason
+            - claim_ids
+          properties:
+            evidence_id: {type: string}
+            source_id: {type: string}
+            source_tier: {type: string}
+            source_type: {type: string}
+            claim_ids:
+              type: array
+              items: {type: string}
+            reason: {type: string}
+            estimated_tokens: {type: integer}
+      retained_claim_ids:
+        type: array
+        items: {type: string}
+      dropped_claim_ids:
+        type: array
+        items: {type: string}
+      loss_controls:
+        type: array
+        items: {type: string}
+  thread_memory_summary:
+    type: object
+    required:
+      - agent_id
+      - available
+      - event_count
+      - latest_event_type
+      - accepted_memory_lessons
+      - quarantined_candidates
+      - rejected_candidates
+      - open_research_gaps
+      - controls
+      - real_trade_allowed
+      - broker_integration
+    properties:
+      agent_id: {type: string}
+      available: {type: boolean}
+      event_count: {type: integer}
+      latest_event_type: {type: string}
+      accepted_memory_lessons:
+        type: array
+        items: {type: object}
+      quarantined_candidates:
+        type: array
+        items: {type: object}
+      rejected_candidates:
+        type: array
+        items: {type: object}
+      open_research_gaps:
+        type: array
+        items: {type: object}
+      recent_events:
+        type: array
+        items: {type: object}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
   required_focus:
     type: array
     items: {type: string}
@@ -49,3 +209,7 @@ properties:
     type: array
     items: {type: string}
   output_schema: {type: string}
+  real_trade_allowed:
+    enum: [false]
+  broker_integration:
+    enum: [disabled]

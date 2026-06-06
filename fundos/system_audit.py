@@ -133,6 +133,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     runtime_maturity_check = runtime_agent_maturity_contract_check(run_path, [row.get("agent_id", "") for row in selected])
     manifest_maturity_check = operating_system_manifest_agent_maturity_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
     runtime_policy_check = operating_system_manifest_runtime_policy_contract_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
+    context_pack_schema_check = runtime_context_pack_schema_check(repo_root, run_path, [row.get("agent_id", "") for row in selected])
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     return [
@@ -224,6 +225,14 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [run_path / "system" / "operating-system-manifest.yaml", run_path / "context", run_path / "agent_work"],
             runtime_policy_check["ok"],
             details=runtime_policy_check,
+        ),
+        requirement(
+            "runtime.context_packs_match_schema_and_budget_contract",
+            "context_management",
+            "Every selected agent ContextPack matches the structured schema and preserves budget manifest, loss accounting, thread summary, and paper-only safety boundaries.",
+            [repo_root / "specs/schemas/context-pack.schema.yaml", run_path / "context"],
+            context_pack_schema_check["ok"],
+            details=context_pack_schema_check,
         ),
         requirement(
             "runtime.model_records_have_concrete_policy_fields",
@@ -1354,6 +1363,68 @@ def runtime_agent_maturity_contract_check(run_path: Path, agent_ids: list[str]) 
         "edge_signature_count": len(edge_signatures),
         "unique_edge_signatures": len(set(edge_signatures)),
         "required_unique_edge_signatures": max(len([aid for aid in agent_ids if aid]) - 1, 0),
+        "missing_by_agent": missing_by_agent,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_context_pack_schema_check(repo_root: Path, run_path: Path, agent_ids: list[str]) -> dict[str, Any]:
+    clean_agent_ids = [aid for aid in agent_ids if aid]
+    schema_path = repo_root / "specs" / "schemas" / "context-pack.schema.yaml"
+    schema_errors_by_agent: dict[str, list[str]] = {}
+    missing_by_agent: dict[str, list[str]] = {}
+    for agent_id in clean_agent_ids:
+        issues: list[str] = []
+        path = run_path / "context" / f"{agent_id}.context-pack.yaml"
+        context = load_yaml(path, {})
+        if not path.exists() or not isinstance(context, dict):
+            missing_by_agent[agent_id] = ["missing_or_invalid_context_pack"]
+            continue
+        schema_result = validate_runtime_schema(schema_path, context)
+        if not schema_result["ok"]:
+            schema_errors_by_agent[agent_id] = schema_result["schema_errors"]
+        manifest = context.get("context_budget_manifest", {}) or {}
+        loss = context.get("context_loss_accounting", {}) or {}
+        thread = context.get("thread_memory_summary", {}) or {}
+        controls = set(manifest.get("controls", []) or [])
+        loss_controls = set(loss.get("loss_controls", []) or [])
+        thread_controls = set(thread.get("controls", []) or [])
+        if not manifest:
+            issues.append("context_budget_manifest_missing")
+        if manifest.get("agent_id") != agent_id:
+            issues.append("context_budget_manifest_agent_id_mismatch")
+        if int(manifest.get("estimated_tokens_after", 0) or 0) > int(manifest.get("token_budget", context.get("context_budget_tokens", 0)) or 0):
+            issues.append("token_budget_exceeded")
+        for required_control in ["role_specific_compression", "loss_accounting_required", "evidence_id_preservation", "claim_id_preservation", "token_budget_respected", "no_real_trade_action"]:
+            if required_control not in controls:
+                issues.append(f"missing_context_budget_control:{required_control}")
+        if not loss:
+            issues.append("context_loss_accounting_missing")
+        if "excluded_items_are_named" not in loss_controls or "dropped_claim_ids_are_auditable" not in loss_controls:
+            issues.append("loss_controls_incomplete")
+        if not isinstance(loss.get("retained_evidence_ids", []), list) or not isinstance(loss.get("retained_claim_ids", []), list):
+            issues.append("loss_traceability_lists_missing")
+        if thread.get("agent_id") != agent_id:
+            issues.append("thread_memory_summary_agent_id_mismatch")
+        if "thread_summary_is_retrieval_input_only" not in thread_controls:
+            issues.append("thread_summary_retrieval_only_control_missing")
+        if thread.get("real_trade_allowed") is not False:
+            issues.append("thread_summary_real_trade_not_disabled")
+        if thread.get("broker_integration") != "disabled":
+            issues.append("thread_summary_broker_not_disabled")
+        if context.get("real_trade_allowed") is not False:
+            issues.append("context_pack_real_trade_not_disabled")
+        if context.get("broker_integration") != "disabled":
+            issues.append("context_pack_broker_not_disabled")
+        if issues:
+            missing_by_agent[agent_id] = issues
+    return {
+        "ok": not schema_errors_by_agent and not missing_by_agent,
+        "checked_agents": len(clean_agent_ids),
+        "agent_ids": clean_agent_ids,
+        "schema_path": str(schema_path),
+        "schema_errors_by_agent": schema_errors_by_agent,
         "missing_by_agent": missing_by_agent,
         "real_trade_allowed": False,
         "broker_integration": "disabled",

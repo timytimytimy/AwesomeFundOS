@@ -41,6 +41,37 @@ class ContextManagementHarnessTests(unittest.TestCase):
         self.assertIn("retained_claim_ids", loss)
         self.assertIn("dropped_claim_ids", loss)
 
+    def test_context_pack_schema_requires_budget_loss_thread_and_safety_contract(self):
+        schema = read_yaml(REPO_ROOT / "specs" / "schemas" / "context-pack.schema.yaml")
+
+        for required in [
+            "context_budget_manifest",
+            "context_loss_accounting",
+            "thread_memory_summary",
+            "real_trade_allowed",
+            "broker_integration",
+        ]:
+            self.assertIn(required, schema["required"])
+        manifest_props = schema["properties"]["context_budget_manifest"]["properties"]
+        for field in [
+            "token_budget",
+            "included_items",
+            "excluded_items",
+            "estimated_tokens_before",
+            "estimated_tokens_after",
+            "compression_ratio",
+            "controls",
+        ]:
+            self.assertIn(field, manifest_props)
+        loss_props = schema["properties"]["context_loss_accounting"]["properties"]
+        for field in ["retained_evidence_ids", "excluded_evidence", "retained_claim_ids", "dropped_claim_ids", "loss_controls"]:
+            self.assertIn(field, loss_props)
+        thread_props = schema["properties"]["thread_memory_summary"]["properties"]
+        for field in ["available", "event_count", "controls", "real_trade_allowed", "broker_integration"]:
+            self.assertIn(field, thread_props)
+        self.assertEqual(schema["properties"]["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(schema["properties"]["broker_integration"]["enum"], ["disabled"])
+
     def test_context_pack_includes_agent_thread_memory_summary_when_runtime_root_provided(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

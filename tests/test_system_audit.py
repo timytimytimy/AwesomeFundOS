@@ -184,6 +184,13 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('runtime_policy_contracts_loaded', policy_details['controls'])
             self.assertFalse(policy_details['real_trade_allowed'])
             self.assertEqual(policy_details['broker_integration'], 'disabled')
+            self.assertEqual(by_id['runtime.context_packs_match_schema_and_budget_contract']['status'], 'pass')
+            context_schema_details = by_id['runtime.context_packs_match_schema_and_budget_contract']['details']
+            self.assertEqual(context_schema_details['schema_errors_by_agent'], {})
+            self.assertEqual(context_schema_details['missing_by_agent'], {})
+            self.assertEqual(context_schema_details['checked_agents'], len(context_schema_details['agent_ids']))
+            self.assertFalse(context_schema_details['real_trade_allowed'])
+            self.assertEqual(context_schema_details['broker_integration'], 'disabled')
             self.assertEqual(by_id['runtime.evolution_learning_loop_matches_manifest']['status'], 'pass')
             evolution_details = by_id['runtime.evolution_learning_loop_matches_manifest']['details']
             self.assertGreaterEqual(evolution_details['agent_learning_candidates'], 1)

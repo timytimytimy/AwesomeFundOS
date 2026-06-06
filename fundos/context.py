@@ -94,6 +94,8 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "thread_memory_summary": thread_memory_summary,
         "tool_quality_controls": tool_policy.get("harness_checks", []),
         "output_schema": f"{role}Output",
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
