@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -54,6 +55,9 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     evaluation = load_yaml(run_path / "evaluations" / "evaluation-report.yaml", {})
     tool_harness = load_yaml(run_path / "harness" / "tool-harness.yaml", {})
     agent_tool_use = load_yaml(run_path / "harness" / "agent-tool-use.yaml", {})
+    tool_runtime = load_yaml(run_path / "tools" / "tool-runtime-report.yaml", {})
+    tool_runtime_evidence = load_yaml(run_path / "evidence" / "tool-runtime-evidence.yaml", {})
+    tool_call_ledger = load_jsonl(run_path / "tools" / "tool-call-ledger.jsonl")
     claim_graph = load_yaml(run_path / "harness" / "claim-graph.yaml", {})
     agent_performance = load_yaml(run_path / "harness" / "agent-performance.yaml", {})
     agent_governance = load_yaml(run_path / "harness" / "agent-governance.yaml", {})
@@ -83,6 +87,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
     manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
+    manifest_tool_runtime_check = operating_system_manifest_tool_runtime_check(os_manifest, tool_runtime, tool_call_ledger, tool_runtime_evidence)
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     return [
@@ -220,6 +225,19 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_context_check["ok"],
             details=manifest_context_check,
+        ),
+        requirement(
+            "runtime.tool_runtime_ledger_matches_manifest",
+            "tooling",
+            "Tool Runtime report, tool-call ledger, and tool evidence match the OS manifest summary while preserving read-only no-broker boundaries.",
+            [
+                run_path / "system" / "operating-system-manifest.yaml",
+                run_path / "tools" / "tool-runtime-report.yaml",
+                run_path / "tools" / "tool-call-ledger.jsonl",
+                run_path / "evidence" / "tool-runtime-evidence.yaml",
+            ],
+            manifest_tool_runtime_check["ok"],
+            details=manifest_tool_runtime_check,
         ),
         requirement(
             "runtime.committee_debate_risk_decision_loop_complete",
@@ -429,6 +447,16 @@ def load_yaml(path: Path, default: Any) -> Any:
     if not path.exists():
         return default
     return read_yaml(path) or default
+
+
+def load_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            rows.append(json.loads(line))
+    return rows
 
 
 def exists(path: Path) -> bool:
@@ -975,6 +1003,7 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "evolution_summary": manifest.get("evolution_summary", {}),
         "source_provenance_summary": manifest.get("source_provenance_summary", {}),
         "context_management_summary": manifest.get("context_management_summary", {}),
+        "tool_runtime_summary": manifest.get("tool_runtime_summary", {}),
         "portfolio_outcome_summary": manifest.get("portfolio_outcome_summary", {}),
         "agent_performance_summary": manifest.get("agent_performance_summary", {}),
         "agent_governance_summary": manifest.get("agent_governance_summary", {}),
@@ -1016,6 +1045,83 @@ def operating_system_manifest_context_management_check(manifest: Any, agent_harn
     if summary.get("broker_integration") != "disabled":
         mismatches.append(f"context_management_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
     return {"ok": not mismatches, "mismatches": mismatches}
+
+
+def operating_system_manifest_tool_runtime_check(manifest: Any, runtime_report: Any, ledger_rows: list[dict[str, Any]], evidence_doc: Any) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not all(isinstance(item, dict) for item in [manifest, runtime_report, evidence_doc]):
+        return {"ok": False, "mismatches": ["manifest_or_tool_runtime_artifact_missing_or_invalid"]}
+    summary = manifest.get("tool_runtime_summary", {}) or {}
+    if not isinstance(summary, dict):
+        return {"ok": False, "mismatches": ["tool_runtime_summary_missing_or_invalid"]}
+
+    evidence_items = evidence_doc.get("evidence_items", []) if isinstance(evidence_doc.get("evidence_items", []), list) else []
+    succeeded_rows = [row for row in ledger_rows if isinstance(row, dict) and row.get("status") == "succeeded"]
+    blocked_rows = [row for row in ledger_rows if isinstance(row, dict) and row.get("status") == "blocked"]
+    adapters_called = sorted({str(row.get("adapter_id")) for row in succeeded_rows if row.get("adapter_id")})
+    source_tier_counts = count_by(evidence_items, "source_tier")
+
+    compare_value(mismatches, "tool_runtime_summary.runtime_id", summary.get("runtime_id"), str(runtime_report.get("runtime_id", "")))
+    compare_value(mismatches, "tool_runtime_summary.tool_runtime_quality_score", summary.get("tool_runtime_quality_score"), float(runtime_report.get("tool_runtime_quality_score", 0) or 0))
+    compare_value(mismatches, "tool_runtime_summary.tool_call_count", summary.get("tool_call_count"), int(runtime_report.get("tool_call_count", 0) or 0))
+    compare_value(mismatches, "tool_runtime_summary.succeeded_tool_calls", summary.get("succeeded_tool_calls"), int(runtime_report.get("succeeded_tool_calls", 0) or 0))
+    compare_value(mismatches, "tool_runtime_summary.blocked_tool_calls", summary.get("blocked_tool_calls"), int(runtime_report.get("blocked_tool_calls", 0) or 0))
+    compare_value(mismatches, "tool_runtime_summary.evidence_items_created", summary.get("evidence_items_created"), int(runtime_report.get("evidence_items_created", 0) or 0))
+    compare_value(mismatches, "tool_runtime_summary.adapters_called", summary.get("adapters_called"), runtime_report.get("adapters_called", []))
+    compare_value(mismatches, "tool_runtime_summary.source_tier_counts", summary.get("source_tier_counts"), runtime_report.get("source_tier_counts", {}))
+    compare_value(mismatches, "tool_runtime_summary.ledger_path", summary.get("ledger_path"), str(runtime_report.get("ledger_path", "")))
+    compare_value(mismatches, "tool_runtime_summary.evidence_path", summary.get("evidence_path"), str(runtime_report.get("evidence_path", "")))
+    compare_value(mismatches, "tool_runtime_summary.blocking_issue_count", summary.get("blocking_issue_count"), len(runtime_report.get("blocking_issues", []) or []))
+    compare_value(mismatches, "tool_runtime_summary.controls", summary.get("controls"), runtime_report.get("controls", []))
+    compare_value(mismatches, "tool_runtime.ledger_row_count", len(ledger_rows), int(runtime_report.get("tool_call_count", 0) or 0))
+    compare_value(mismatches, "tool_runtime.succeeded_ledger_rows", len(succeeded_rows), int(runtime_report.get("succeeded_tool_calls", 0) or 0))
+    compare_value(mismatches, "tool_runtime.blocked_ledger_rows", len(blocked_rows), int(runtime_report.get("blocked_tool_calls", 0) or 0))
+    compare_value(mismatches, "tool_runtime.evidence_item_count", len(evidence_items), int(runtime_report.get("evidence_items_created", 0) or 0))
+    compare_value(mismatches, "tool_runtime.adapters_called", adapters_called, runtime_report.get("adapters_called", []))
+    compare_value(mismatches, "tool_runtime.source_tier_counts", source_tier_counts, runtime_report.get("source_tier_counts", {}))
+
+    controls = set(runtime_report.get("controls", []) or [])
+    for required_control in ["all_fixture_tools_are_read_only", "tool_call_ledger_required", "every_tool_result_maps_to_evidence_item", "no_order_or_broker_adapter"]:
+        if required_control not in controls:
+            mismatches.append(f"tool_runtime_summary.controls: missing {required_control}")
+    linked_evidence_ids = {str(eid) for row in succeeded_rows for eid in (row.get("evidence_item_ids", []) if isinstance(row.get("evidence_item_ids", []), list) else [])}
+    evidence_ids = {str(item.get("id")) for item in evidence_items if isinstance(item, dict) and item.get("id")}
+    missing_evidence_links = sorted(linked_evidence_ids - evidence_ids)
+    if missing_evidence_links:
+        mismatches.append(f"tool_runtime.ledger_evidence_links_missing: {missing_evidence_links!r}")
+    for idx, row in enumerate(ledger_rows):
+        if not isinstance(row, dict):
+            mismatches.append(f"tool_call_ledger[{idx}]: expected object")
+            continue
+        if row.get("permission_level") != "read_only_analysis":
+            mismatches.append(f"tool_call_ledger[{idx}].permission_level: expected 'read_only_analysis', got {row.get('permission_level')!r}")
+        if row.get("real_trade_allowed") is not False:
+            mismatches.append(f"tool_call_ledger[{idx}].real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+        if row.get("broker_integration") != "disabled":
+            mismatches.append(f"tool_call_ledger[{idx}].broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"tool_runtime_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"tool_runtime_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+    if runtime_report.get("real_trade_allowed") is not False:
+        mismatches.append(f"tool_runtime_report.real_trade_allowed: expected False, got {runtime_report.get('real_trade_allowed')!r}")
+    if runtime_report.get("broker_integration") != "disabled":
+        mismatches.append(f"tool_runtime_report.broker_integration: expected 'disabled', got {runtime_report.get('broker_integration')!r}")
+
+    return {
+        "ok": not mismatches,
+        "mismatches": mismatches,
+        "tool_call_count": int(runtime_report.get("tool_call_count", 0) or 0),
+        "ledger_row_count": len(ledger_rows),
+        "succeeded_tool_calls": int(runtime_report.get("succeeded_tool_calls", 0) or 0),
+        "blocked_tool_calls": int(runtime_report.get("blocked_tool_calls", 0) or 0),
+        "evidence_items_created": int(runtime_report.get("evidence_items_created", 0) or 0),
+        "tool_runtime_evidence_items": len(evidence_items),
+        "adapters_called": runtime_report.get("adapters_called", []),
+        "source_tier_counts": runtime_report.get("source_tier_counts", {}),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def operating_system_manifest_source_provenance_check(manifest: Any, registry: Any, ingestion: Any, evidence: Any) -> dict[str, Any]:

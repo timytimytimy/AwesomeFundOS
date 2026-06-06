@@ -18,6 +18,7 @@ required:
   - evolution_summary
   - source_provenance_summary
   - context_management_summary
+  - tool_runtime_summary
   - portfolio_outcome_summary
   - agent_performance_summary
   - agent_governance_summary
@@ -300,6 +301,44 @@ properties:
       outcome_quality_score: {type: number}
       real_trade_violations: {type: integer}
       review_verdict: {type: string}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+  tool_runtime_summary:
+    type: object
+    required:
+      - runtime_id
+      - tool_runtime_quality_score
+      - tool_call_count
+      - succeeded_tool_calls
+      - blocked_tool_calls
+      - evidence_items_created
+      - adapters_called
+      - source_tier_counts
+      - ledger_path
+      - evidence_path
+      - blocking_issue_count
+      - controls
+      - real_trade_allowed
+      - broker_integration
+    properties:
+      runtime_id: {type: string}
+      tool_runtime_quality_score: {type: number}
+      tool_call_count: {type: integer}
+      succeeded_tool_calls: {type: integer}
+      blocked_tool_calls: {type: integer}
+      evidence_items_created: {type: integer}
+      adapters_called:
+        type: array
+        items: {type: string}
+      source_tier_counts: {type: object}
+      ledger_path: {type: string}
+      evidence_path: {type: string}
+      blocking_issue_count: {type: integer}
       controls:
         type: array
         items: {type: string}

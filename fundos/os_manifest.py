@@ -88,6 +88,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "evolution_summary": evolution_summary(run_path),
         "source_provenance_summary": source_provenance_summary(run_path),
         "context_management_summary": context_management_summary(run_path),
+        "tool_runtime_summary": tool_runtime_summary(run_path),
         "portfolio_outcome_summary": portfolio_outcome_summary(run_path),
         "agent_performance_summary": agent_performance_summary(run_path),
         "agent_governance_summary": agent_governance_summary(run_path),
@@ -133,6 +134,7 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     evaluation = manifest.get("evaluation_summary", {}) or {}
     provenance = manifest.get("source_provenance_summary", {}) or {}
     context_management = manifest.get("context_management_summary", {}) or {}
+    tool_runtime = manifest.get("tool_runtime_summary", {}) or {}
     portfolio_outcome = manifest.get("portfolio_outcome_summary", {}) or {}
     safety = manifest.get("safety_invariants", {}) or {}
     lines = [
@@ -185,6 +187,10 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- context_agents_evaluated: {context_management.get('agents_evaluated', 0)}",
         f"- context_token_budget_respected: {context_management.get('token_budget_respected', 0)}",
         f"- context_loss_accounting_present: {context_management.get('loss_accounting_present', 0)}",
+        f"- tool_runtime_calls: {tool_runtime.get('tool_call_count', 0)}",
+        f"- tool_runtime_succeeded_calls: {tool_runtime.get('succeeded_tool_calls', 0)}",
+        f"- tool_runtime_blocked_calls: {tool_runtime.get('blocked_tool_calls', 0)}",
+        f"- tool_runtime_evidence_items: {tool_runtime.get('evidence_items_created', 0)}",
         f"- portfolio_watchlist_items: {portfolio_outcome.get('watchlist_items', 0)}",
         f"- portfolio_paper_actions: {portfolio_outcome.get('paper_actions', 0)}",
         f"- portfolio_reviewed_actions: {portfolio_outcome.get('reviewed_actions', 0)}",
@@ -378,6 +384,29 @@ def portfolio_outcome_summary(run_path: Path) -> dict[str, Any]:
         "outcome_quality_score": float(outcome.get("outcome_quality_score", 0) or 0) if isinstance(outcome, dict) else 0,
         "real_trade_violations": int(review.get("real_trade_violations", 0) or 0) if isinstance(review, dict) else 0,
         "review_verdict": str(review.get("review_verdict", "missing_portfolio_review")) if isinstance(review, dict) else "missing_portfolio_review",
+        "controls": controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def tool_runtime_summary(run_path: Path) -> dict[str, Any]:
+    report = read_optional_yaml(run_path / "tools" / "tool-runtime-report.yaml", {})
+    controls = report.get("controls", []) if isinstance(report, dict) and isinstance(report.get("controls", []), list) else []
+    adapters = report.get("adapters_called", []) if isinstance(report, dict) and isinstance(report.get("adapters_called", []), list) else []
+    source_tier_counts = report.get("source_tier_counts", {}) if isinstance(report, dict) and isinstance(report.get("source_tier_counts", {}), dict) else {}
+    return {
+        "runtime_id": str(report.get("runtime_id", "")) if isinstance(report, dict) else "",
+        "tool_runtime_quality_score": float(report.get("tool_runtime_quality_score", 0) or 0) if isinstance(report, dict) else 0,
+        "tool_call_count": int(report.get("tool_call_count", 0) or 0) if isinstance(report, dict) else 0,
+        "succeeded_tool_calls": int(report.get("succeeded_tool_calls", 0) or 0) if isinstance(report, dict) else 0,
+        "blocked_tool_calls": int(report.get("blocked_tool_calls", 0) or 0) if isinstance(report, dict) else 0,
+        "evidence_items_created": int(report.get("evidence_items_created", 0) or 0) if isinstance(report, dict) else 0,
+        "adapters_called": adapters,
+        "source_tier_counts": source_tier_counts,
+        "ledger_path": str(report.get("ledger_path", "")) if isinstance(report, dict) else "",
+        "evidence_path": str(report.get("evidence_path", "")) if isinstance(report, dict) else "",
+        "blocking_issue_count": len(report.get("blocking_issues", []) or []) if isinstance(report, dict) and isinstance(report.get("blocking_issues", []), list) else 0,
         "controls": controls,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
