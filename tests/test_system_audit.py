@@ -226,6 +226,12 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(portfolio_details['real_trade_violations'], 0)
             self.assertFalse(portfolio_details['real_trade_allowed'])
             self.assertEqual(portfolio_details['broker_integration'], 'disabled')
+            self.assertEqual(by_id['runtime.portfolio_outcome_artifacts_match_schemas']['status'], 'pass')
+            portfolio_schema_details = by_id['runtime.portfolio_outcome_artifacts_match_schemas']['details']
+            self.assertEqual(portfolio_schema_details['schema_errors_by_artifact'], {})
+            self.assertEqual(portfolio_schema_details['missing_artifacts'], [])
+            self.assertFalse(portfolio_schema_details['real_trade_allowed'])
+            self.assertEqual(portfolio_schema_details['broker_integration'], 'disabled')
             committee_details = by_id['runtime.committee_debate_risk_decision_loop_complete']['details']
             self.assertGreaterEqual(committee_details['disagreement_count'], 1)
             self.assertGreaterEqual(committee_details['active_veto_count'], 1)
@@ -236,6 +242,37 @@ class SystemAuditTests(unittest.TestCase):
             manifest_evidence = '\n'.join(by_id['runtime.operating_system_manifest_links_agent_os_assets']['evidence'])
             self.assertIn('system/operating-system-manifest.yaml', manifest_evidence)
             self.assertIn('system/operating-system-manifest.md', manifest_evidence)
+
+    def test_system_audit_strict_mode_fails_portfolio_outcome_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            paper_yaml = cwd / run_rel / 'portfolio' / 'paper-portfolio.yaml'
+            paper = yaml.safe_load(paper_yaml.read_text(encoding='utf-8'))
+            paper['broker_integration'] = 'enabled'
+            paper['actions'][0].pop('broker_integration', None)
+            paper_yaml.write_text(yaml.safe_dump(paper, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.portfolio_outcome_artifacts_match_schemas']['status'], 'fail')
+            errors = '\n'.join(by_id['runtime.portfolio_outcome_artifacts_match_schemas']['details']['schema_errors_by_artifact']['paper-portfolio.yaml'])
+            self.assertIn('$.broker_integration', errors)
+            self.assertIn('$.actions[0].broker_integration', errors)
 
 
     def test_system_audit_strict_mode_fails_stale_runtime_policy_contract_manifest_summary(self):

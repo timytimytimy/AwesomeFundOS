@@ -136,6 +136,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     context_pack_schema_check = runtime_context_pack_schema_check(repo_root, run_path, [row.get("agent_id", "") for row in selected])
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
+    portfolio_outcome_schema_check = runtime_portfolio_outcome_schema_check(repo_root, run_path, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -380,6 +381,23 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             portfolio_outcome_check["ok"],
             details=portfolio_outcome_check,
+        ),
+        requirement(
+            "runtime.portfolio_outcome_artifacts_match_schemas",
+            "portfolio_outcome",
+            "Runtime watchlist, Paper Portfolio, portfolio review, and outcome tracking artifacts match source-controlled schemas and preserve paper-only no-broker controls.",
+            [
+                repo_root / "specs/schemas/watchlist.schema.yaml",
+                repo_root / "specs/schemas/paper-portfolio.schema.yaml",
+                repo_root / "specs/schemas/portfolio-review.schema.yaml",
+                repo_root / "specs/schemas/outcome-tracking.schema.yaml",
+                run_path / "portfolio" / "watchlist.yaml",
+                run_path / "portfolio" / "paper-portfolio.yaml",
+                run_path / "portfolio" / "portfolio-review.yaml",
+                run_path / "portfolio" / "outcome-tracking.yaml",
+            ],
+            portfolio_outcome_schema_check["ok"],
+            details=portfolio_outcome_schema_check,
         ),
     ]
 
@@ -1431,6 +1449,55 @@ def runtime_context_pack_schema_check(repo_root: Path, run_path: Path, agent_ids
     }
 
 
+def runtime_portfolio_outcome_schema_check(repo_root: Path, run_path: Path, watchlist: Any, paper: Any, review: Any, outcome: Any) -> dict[str, Any]:
+    artifacts = {
+        "watchlist.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "watchlist.schema.yaml",
+            "path": run_path / "portfolio" / "watchlist.yaml",
+            "value": watchlist,
+        },
+        "paper-portfolio.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "paper-portfolio.schema.yaml",
+            "path": run_path / "portfolio" / "paper-portfolio.yaml",
+            "value": paper,
+        },
+        "portfolio-review.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "portfolio-review.schema.yaml",
+            "path": run_path / "portfolio" / "portfolio-review.yaml",
+            "value": review,
+        },
+        "outcome-tracking.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "outcome-tracking.schema.yaml",
+            "path": run_path / "portfolio" / "outcome-tracking.yaml",
+            "value": outcome,
+        },
+    }
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    for name, config in artifacts.items():
+        schema_path = config["schema"]
+        artifact_path = config["path"]
+        value = config["value"]
+        if not schema_path.exists():
+            schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
+            continue
+        if not artifact_path.exists() or not isinstance(value, dict):
+            missing_artifacts.append(name)
+            continue
+        result = validate_runtime_schema(schema_path, value)
+        if not result["ok"]:
+            schema_errors_by_artifact[name] = result["schema_errors"]
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": missing_artifacts,
+        "schema_paths": {name: str(config["schema"]) for name, config in artifacts.items()},
+        "artifact_paths": {name: str(config["path"]) for name, config in artifacts.items()},
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
 def expected_agent_maturity_summary(run_path: Path, agent_ids: list[str]) -> dict[str, Any]:
     clean_agent_ids = [aid for aid in agent_ids if aid]
     missing_by_agent: dict[str, list[str]] = {}
@@ -2258,6 +2325,8 @@ def validate_schema_node(schema: Any, value: Any, path: str) -> list[str]:
 
 
 def schema_type_matches(expected_type: str, value: Any) -> bool:
+    if isinstance(expected_type, list):
+        return any(schema_type_matches(single_type, value) for single_type in expected_type)
     if expected_type == "object":
         return isinstance(value, dict)
     if expected_type == "array":
@@ -2270,6 +2339,8 @@ def schema_type_matches(expected_type: str, value: Any) -> bool:
         return isinstance(value, (int, float)) and not isinstance(value, bool)
     if expected_type == "boolean":
         return isinstance(value, bool)
+    if expected_type == "null":
+        return value is None
     return True
 
 

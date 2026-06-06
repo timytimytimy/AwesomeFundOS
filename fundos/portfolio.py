@@ -43,6 +43,8 @@ def build_portfolio_artifacts(memo: dict[str, Any], evidence_pack: dict[str, Any
             "Generated from simulated investment committee memo.",
             "Requires future outcome review; no real trade is allowed.",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "disclaimer": DISCLAIMER,
     }
     action = {
@@ -55,6 +57,7 @@ def build_portfolio_artifacts(memo: dict[str, Any], evidence_pack: dict[str, Any
         "target_weight": target_weight,
         "max_weight": max(target_weight, 0.0),
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "rationale": final.get("hypothetical_position_range", "Paper Portfolio only"),
         "required_before_upgrade": item["triggers"],
         "risk_controls": item["kill_criteria"] + item["exit_conditions"],
@@ -68,6 +71,8 @@ def build_portfolio_artifacts(memo: dict[str, Any], evidence_pack: dict[str, Any
             "artifact_type": "watchlist",
             "run_id": run_id,
             "items": [item],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
             "disclaimer": DISCLAIMER,
         },
         "paper_portfolio": {
@@ -75,6 +80,8 @@ def build_portfolio_artifacts(memo: dict[str, Any], evidence_pack: dict[str, Any
             "artifact_type": "paper_portfolio",
             "run_id": run_id,
             "actions": [action],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
             "constraints": {
                 "real_trade_allowed": False,
                 "broker_integration": "disabled",
@@ -155,6 +162,8 @@ def build_portfolio_review(run_path: Path) -> dict[str, Any]:
         "real_trade_violations": real_trade_violations,
         "review_verdict": "blocked_real_trade_violation" if real_trade_violations else "paper_review_recorded",
         "controls": ["paper_only", "no_broker_integration", "no_real_trade_action", "review_before_upgrade"],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "disclaimer": DISCLAIMER,
     }
 

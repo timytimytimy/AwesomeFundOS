@@ -1,0 +1,71 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - run_id
+  - actions
+  - constraints
+  - real_trade_allowed
+  - broker_integration
+  - disclaimer
+properties:
+  version: {type: string}
+  artifact_type: {enum: [paper_portfolio]}
+  run_id: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}
+  actions:
+    type: array
+    items:
+      type: object
+      required:
+        - action_id
+        - run_id
+        - watchlist_id
+        - subject
+        - market
+        - action_type
+        - target_weight
+        - real_trade_allowed
+        - broker_integration
+        - risk_controls
+        - review_date
+        - evidence_references
+        - disclaimer
+      properties:
+        action_id: {type: string}
+        run_id: {type: string}
+        watchlist_id: {type: string}
+        subject: {type: string}
+        market: {type: string}
+        action_type: {type: string}
+        target_weight: {type: number}
+        max_weight: {type: number}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+        rationale: {type: string}
+        required_before_upgrade:
+          type: array
+          items: {type: string}
+        risk_controls:
+          type: array
+          items: {type: string}
+        review_date: {type: string}
+        evidence_references:
+          type: array
+          items:
+            type: object
+            properties:
+              evidence_id: {type: string}
+              claim_id: {type: string}
+              usage: {type: string}
+        disclaimer: {type: string}
+  constraints:
+    type: object
+    required: [real_trade_allowed, broker_integration, max_real_capital]
+    properties:
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+      max_real_capital: {type: integer}
+  disclaimer: {type: string}

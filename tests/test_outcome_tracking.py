@@ -10,6 +10,10 @@ from fundos.evidence import make_evidence_pack
 from fundos.harness import make_evaluation_for_run
 from fundos.outcomes import load_outcome_tracking, run_outcome_tracking, write_market_replay_fixture
 from fundos.portfolio import write_portfolio_artifacts, write_portfolio_review
+from fundos.system_audit import validate_runtime_schema
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class OutcomeTrackingTests(unittest.TestCase):
@@ -37,6 +41,8 @@ class OutcomeTrackingTests(unittest.TestCase):
             outcome = run_outcome_tracking(run_path, fixture_path)
 
             self.assertEqual(outcome["artifact_type"], "portfolio_outcome_tracking")
+            self.assertFalse(outcome["real_trade_allowed"])
+            self.assertEqual(outcome["broker_integration"], "disabled")
             self.assertEqual(outcome["actions_evaluated"], 1)
             self.assertEqual(outcome["market_replay_items"], 1)
             self.assertEqual(outcome["results"][0]["outcome_status"], "evaluated_with_market_replay")
@@ -44,9 +50,12 @@ class OutcomeTrackingTests(unittest.TestCase):
             self.assertLessEqual(outcome["results"][0]["max_drawdown_pct"], 0)
             self.assertGreater(outcome["outcome_quality_score"], 60)
             self.assertFalse(outcome["results"][0]["real_trade_allowed"])
+            self.assertEqual(outcome["results"][0]["broker_integration"], "disabled")
             self.assertIn("market_replay_is_not_trade_signal", outcome["controls"])
             self.assertTrue((run_path / "portfolio" / "outcome-tracking.yaml").exists())
             self.assertTrue((run_path / "portfolio" / "outcome-attribution.jsonl").exists())
+            schema_result = validate_runtime_schema(ROOT / "specs/schemas/outcome-tracking.schema.yaml", outcome)
+            self.assertEqual(schema_result["schema_errors"], [])
 
     def test_outcome_tracking_records_missing_market_replay_without_accepting_output(self):
         pack = make_evidence_pack("run-outcome", "topic", "机器人产业链投资机会")
@@ -59,6 +68,8 @@ class OutcomeTrackingTests(unittest.TestCase):
             evaluation = make_evaluation_for_run("run-outcome", [], pack, run_path)
 
             self.assertEqual(outcome["outcome_status"], "missing_market_replay")
+            self.assertFalse(outcome["real_trade_allowed"])
+            self.assertEqual(outcome["broker_integration"], "disabled")
             self.assertEqual(outcome["outcome_quality_score"], 0)
             self.assertIn("outcome_tracking_quality", evaluation)
             self.assertEqual(evaluation["outcome_tracking_quality"]["outcome_quality_score"], 0)

@@ -53,6 +53,8 @@ def run_outcome_tracking(run_path: Path, market_replay_path: Path | None = None)
             "no_broker_integration",
             "outcome_tracking_requires_fixture_or_adapter",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "disclaimer": DISCLAIMER,
     }
     write_yaml(run_path / "portfolio" / "outcome-tracking.yaml", report)
@@ -172,6 +174,9 @@ def default_outcome_tracking() -> dict[str, Any]:
         "outcome_quality_score": 0,
         "results": [],
         "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+        "disclaimer": DISCLAIMER,
     }
 
 
