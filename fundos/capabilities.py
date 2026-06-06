@@ -133,6 +133,7 @@ def capability_kind_for(result: dict[str, Any]) -> str:
 
 
 def make_queue_row(result: dict[str, Any]) -> dict[str, Any]:
+    requires_human_apply = is_capability_candidate(result)
     return {
         "version": CAPABILITY_VERSION,
         "candidate_id": result.get("candidate_id"),
@@ -152,11 +153,12 @@ def make_queue_row(result: dict[str, Any]) -> dict[str, Any]:
         "approval_mode": APPROVAL_MODE,
         "adoption_route": result.get("adoption_route"),
         "memory_write_policy": result.get("memory_write_policy"),
-        "human_approval_required": bool(result.get("human_approval_required", True)),
+        "human_approval_required": True if requires_human_apply else bool(result.get("human_approval_required", True)),
         "protected_mutation_allowed": bool(result.get("protected_mutation_allowed", False)),
         "application_status": "pending_review",
         "mutated_agent_card": False,
         "mutated_runtime_skill": False,
+        "mutated_core_profile": False,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
@@ -183,11 +185,12 @@ def make_version_row(result: dict[str, Any], target_agent: str, capability_kind:
         "approval_mode": APPROVAL_MODE,
         "adoption_route": result.get("adoption_route"),
         "memory_write_policy": result.get("memory_write_policy"),
-        "human_approval_required": bool(result.get("human_approval_required", True)),
+        "human_approval_required": True,
         "protected_mutation_allowed": bool(result.get("protected_mutation_allowed", False)),
         "reversible": True,
         "mutated_agent_card": False,
         "mutated_runtime_skill": False,
+        "mutated_core_profile": False,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

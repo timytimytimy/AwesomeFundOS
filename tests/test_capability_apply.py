@@ -320,10 +320,13 @@ class CapabilityApprovalWorkflowTests(unittest.TestCase):
                 "target_scope",
                 "source_basis",
                 "scores",
+                "approval_mode",
+                "controls",
                 "capability_kind",
                 "reversible",
                 "mutated_agent_card",
                 "mutated_runtime_skill",
+                "mutated_core_profile",
                 "real_trade_allowed",
                 "broker_integration",
             ]:

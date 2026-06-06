@@ -65,6 +65,8 @@ class CapabilityVersioningTests(unittest.TestCase):
             self.assertEqual(registry_rows[0]["candidate_id"], "cand_skill_accept")
             self.assertEqual(registry_rows[0]["status"], "approved_candidate")
             self.assertEqual(registry_rows[0]["application_status"], "pending_human_apply")
+            self.assertTrue(registry_rows[0]["human_approval_required"])
+            self.assertFalse(registry_rows[0]["protected_mutation_allowed"])
             self.assertFalse(registry_rows[0]["mutated_runtime_skill"])
             self.assertFalse(registry_rows[0]["real_trade_allowed"])
 

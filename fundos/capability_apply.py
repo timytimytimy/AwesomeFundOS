@@ -128,6 +128,7 @@ def apply_approved_capability(root: Path, candidate_id: str, approver: str) -> d
         "applied_at": approval_snapshot["approved_at"],
         "approver": approver,
         "approval_snapshot": approval_snapshot,
+        "approval_mode": candidate.get("approval_mode"),
         "adoption_route": candidate.get("adoption_route"),
         "memory_write_policy": candidate.get("memory_write_policy"),
         "human_approval_required": bool(candidate.get("human_approval_required", True)),

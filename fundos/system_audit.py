@@ -9,6 +9,19 @@ from fundos.io import DISCLAIMER, read_yaml, write_yaml
 AUDIT_VERSION = "0.1.0"
 
 
+def infer_runtime_root(run_path: Path) -> Path:
+    """Infer the runtime root that owns a run directory.
+
+    Runtime commands create runs under ``<runtime_root>/runs/<run_id>`` and
+    organization-level ledgers under ``<runtime_root>/memory/organization``.
+    System audit may also be called with an arbitrary run-like path in tests, so
+    fall back to the run parent when the conventional ``runs`` segment is absent.
+    """
+    if run_path.parent.name == "runs":
+        return run_path.parent.parent
+    return run_path.parent
+
+
 def run_system_audit(repo_root: Path, out_dir: Path | None = None, run_path: Path | None = None) -> dict[str, Any]:
     root = repo_root.resolve()
     runtime_run_path = run_path.resolve() if run_path else None
@@ -84,6 +97,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     capability_candidates = load_jsonl(run_path / "evolution" / "capability-candidates.jsonl")
     capability_summary = load_yaml(run_path / "evolution" / "capability-version-summary.yaml", {})
     agent_capability_ledger = load_yaml(run_path / "evolution" / "agent-capability-ledger.yaml", {})
+    capability_apply_ledger = load_jsonl(infer_runtime_root(run_path) / "memory" / "organization" / "capability-apply-ledger.jsonl")
     capability_regression = load_yaml(run_path / "harness" / "capability-regression.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
@@ -115,7 +129,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     )
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
     manifest_tool_runtime_check = operating_system_manifest_tool_runtime_check(os_manifest, tool_runtime, tool_call_ledger, tool_runtime_evidence)
-    manifest_agent_capability_ledger_check = operating_system_manifest_agent_capability_ledger_check(os_manifest, agent_capability_ledger)
+    manifest_agent_capability_ledger_check = operating_system_manifest_agent_capability_ledger_check(os_manifest, agent_capability_ledger, capability_apply_ledger)
     runtime_maturity_check = runtime_agent_maturity_contract_check(run_path, [row.get("agent_id", "") for row in selected])
     manifest_maturity_check = operating_system_manifest_agent_maturity_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
     runtime_policy_check = operating_system_manifest_runtime_policy_contract_check(os_manifest, run_path, [row.get("agent_id", "") for row in selected])
@@ -300,6 +314,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
                 run_path / "evolution" / "agent-capability-ledger.yaml",
                 run_path / "evolution" / "capability-candidates.jsonl",
                 run_path / "harness" / "capability-regression.yaml",
+                infer_runtime_root(run_path) / "memory" / "organization" / "capability-apply-ledger.jsonl",
             ],
             manifest_agent_capability_ledger_check["ok"],
             details=manifest_agent_capability_ledger_check,
@@ -1798,7 +1813,7 @@ def operating_system_manifest_evolution_learning_check(
     }
 
 
-def operating_system_manifest_agent_capability_ledger_check(manifest: Any, ledger: Any) -> dict[str, Any]:
+def operating_system_manifest_agent_capability_ledger_check(manifest: Any, ledger: Any, apply_ledger: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     mismatches: list[str] = []
     if not isinstance(manifest, dict) or not isinstance(ledger, dict):
         return {"ok": False, "mismatches": ["manifest_or_agent_capability_ledger_missing_or_invalid"]}
@@ -1841,8 +1856,73 @@ def operating_system_manifest_agent_capability_ledger_check(manifest: Any, ledge
         mismatches.append(f"agent_capability_ledger_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
     if summary.get("broker_integration") != "disabled":
         mismatches.append(f"agent_capability_ledger_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
-    return {"ok": not mismatches, "mismatches": mismatches, **expected}
+    mismatches.extend(capability_apply_ledger_mismatches(apply_ledger or []))
+    return {"ok": not mismatches, "mismatches": mismatches, **expected, "apply_ledger_entries": len(apply_ledger or [])}
 
+
+
+def capability_apply_ledger_mismatches(rows: list[dict[str, Any]]) -> list[str]:
+    mismatches: list[str] = []
+    required_fields = [
+        "candidate_id",
+        "run_id",
+        "source_agent",
+        "target_agent",
+        "capability_kind",
+        "candidate_type",
+        "target_scope",
+        "proposal",
+        "source_basis",
+        "required_tests",
+        "scores",
+        "approval_snapshot",
+        "approval_mode",
+        "controls",
+        "adoption_route",
+        "memory_write_policy",
+        "human_approval_required",
+        "protected_mutation_allowed",
+        "reversible",
+        "mutated_agent_card",
+        "mutated_runtime_skill",
+        "mutated_core_profile",
+        "real_trade_allowed",
+        "broker_integration",
+    ]
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            mismatches.append(f"capability_apply_ledger[{index}]: expected object")
+            continue
+        for field in required_fields:
+            if field not in row:
+                mismatches.append(f"capability_apply_ledger[{index}].{field}: missing")
+        if row.get("source_basis") is not None and not isinstance(row.get("source_basis"), list):
+            mismatches.append(f"capability_apply_ledger[{index}].source_basis: expected list, got {type(row.get('source_basis')).__name__}")
+        if row.get("required_tests") is not None and not isinstance(row.get("required_tests"), list):
+            mismatches.append(f"capability_apply_ledger[{index}].required_tests: expected list, got {type(row.get('required_tests')).__name__}")
+        if row.get("scores") is not None and not isinstance(row.get("scores"), dict):
+            mismatches.append(f"capability_apply_ledger[{index}].scores: expected object, got {type(row.get('scores')).__name__}")
+        if row.get("approval_snapshot") is not None and not isinstance(row.get("approval_snapshot"), dict):
+            mismatches.append(f"capability_apply_ledger[{index}].approval_snapshot: expected object, got {type(row.get('approval_snapshot')).__name__}")
+        if row.get("controls") is not None and not isinstance(row.get("controls"), list):
+            mismatches.append(f"capability_apply_ledger[{index}].controls: expected list, got {type(row.get('controls')).__name__}")
+        controls = set(row.get("controls", [])) if isinstance(row.get("controls", []), list) else set()
+        for control in ["human_approved_apply", "no_direct_profile_mutation", "no_real_trade_action"]:
+            if control not in controls:
+                mismatches.append(f"capability_apply_ledger[{index}].controls: missing {control}")
+        if row.get("real_trade_allowed") is not False:
+            mismatches.append(f"capability_apply_ledger[{index}].real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+        if row.get("broker_integration") != "disabled":
+            mismatches.append(f"capability_apply_ledger[{index}].broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+        if row.get("mutated_agent_card") is not False:
+            mismatches.append(f"capability_apply_ledger[{index}].mutated_agent_card: expected False, got {row.get('mutated_agent_card')!r}")
+        if row.get("mutated_core_profile") is not False:
+            mismatches.append(f"capability_apply_ledger[{index}].mutated_core_profile: expected False, got {row.get('mutated_core_profile')!r}")
+        if row.get("human_approval_required") is not True:
+            mismatches.append(f"capability_apply_ledger[{index}].human_approval_required: expected True, got {row.get('human_approval_required')!r}")
+        if row.get("protected_mutation_allowed") is not False:
+            mismatches.append(f"capability_apply_ledger[{index}].protected_mutation_allowed: expected False, got {row.get('protected_mutation_allowed')!r}")
+    return mismatches
 
 def expected_agent_capability_ledger_summary(ledger: dict[str, Any]) -> dict[str, Any]:
     agents = ledger.get("agents", {}) if isinstance(ledger.get("agents", {}), dict) else {}

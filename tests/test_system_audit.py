@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import tempfile
@@ -361,6 +362,57 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('agent_capability_ledger_summary.candidate_count', mismatches)
             self.assertIn('agent_capability_ledger_summary.pending_human_apply', mismatches)
             self.assertIn('agent_capability_ledger_summary.broker_integration', mismatches)
+
+
+    def test_system_audit_strict_mode_fails_incomplete_capability_apply_ledger(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会'], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            evolve_result = run_cli(['evolve', '--run', str(cwd / run_rel)], cwd)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+            apply_result = run_cli(['capabilities', 'apply', 'cand_' + Path(run_rel).name + '_002', '--approver', 'human-test'], cwd)
+            self.assertEqual(apply_result.returncode, 0, apply_result.stderr)
+            ledger_path = cwd / 'memory' / 'organization' / 'capability-apply-ledger.jsonl'
+            rows = [json.loads(line) for line in ledger_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            self.assertTrue(rows)
+            rows[0].pop('candidate_type', None)
+            rows[0].pop('source_basis', None)
+            rows[0].pop('scores', None)
+            rows[0]['broker_integration'] = 'enabled'
+            ledger_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(cwd / run_rel), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.agent_capability_ledger_matches_manifest']['status'], 'fail')
+            mismatches = '\n'.join(by_id['runtime.agent_capability_ledger_matches_manifest']['details']['mismatches'])
+            self.assertIn('capability_apply_ledger[0].candidate_type: missing', mismatches)
+            self.assertIn('capability_apply_ledger[0].source_basis: missing', mismatches)
+            self.assertIn('capability_apply_ledger[0].scores: missing', mismatches)
+            self.assertIn('capability_apply_ledger[0].broker_integration', mismatches)
+
+    def test_system_audit_strict_mode_accepts_complete_capability_apply_ledger(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会'], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            evolve_result = run_cli(['evolve', '--run', str(cwd / run_rel)], cwd)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+            apply_result = run_cli(['capabilities', 'apply', 'cand_' + Path(run_rel).name + '_002', '--approver', 'human-test'], cwd)
+            self.assertEqual(apply_result.returncode, 0, apply_result.stderr)
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(cwd / run_rel), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.agent_capability_ledger_matches_manifest']['status'], 'pass')
+            self.assertEqual(by_id['runtime.agent_capability_ledger_matches_manifest']['details']['apply_ledger_entries'], 1)
 
     def test_system_audit_strict_mode_fails_stale_tool_runtime_manifest_summary(self):
         with tempfile.TemporaryDirectory() as d:
