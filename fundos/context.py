@@ -331,6 +331,7 @@ def load_agent_card(agent_id: str) -> dict[str, Any]:
         "harness_and_evaluation": bullet_lines(section_body(text, "Harness and Evaluation")),
         "context_management_policy": bullet_lines(section_body(text, "Context Management Policy")),
         "evolution_path": bullet_lines(section_body(text, "Evolution Path")),
+        "maturity_contract": load_agent_maturity_contract(text),
         "output_contract": compact_section(text, "Output Contract", max_lines=10),
     }
 
@@ -364,8 +365,37 @@ def load_skill_contract(agent_id: str) -> dict[str, Any]:
         "guardrails": bullet_lines(section_body(text, "Guardrails")),
         "forbidden_outputs": bullet_lines(section_body(text, "Forbidden Outputs")),
         "boundaries": bullet_lines(section_body(text, "Boundaries")),
+        "role_specific_benchmark": key_value_section(text, "Role-Specific Benchmark"),
+        "context_compression_recipe": key_value_section(text, "Context Compression Recipe"),
+        "evolution_candidate_rules": key_value_section(text, "Evolution Candidate Rules"),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "required_closing": compact_section(text, "Required Closing", max_lines=4),
     }
+
+
+def load_agent_maturity_contract(text: str) -> dict[str, Any]:
+    benchmark = key_value_section(text, "Capability Benchmarks")
+    return {
+        "differentiated_edge": key_value_section(text, "Differentiated Edge"),
+        "market_regimes": key_value_section(text, "Preferred Market Regimes"),
+        "anti_patterns": key_value_section(text, "Anti-Patterns and Failure Modes"),
+        "capability_benchmarks": benchmark,
+        "growth_roadmap": key_value_section(text, "Growth Roadmap"),
+        "context_compression": key_value_section(text, "Role-Specific Context Compression"),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def key_value_section(text: str, heading: str) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for line in bullet_lines(section_body(text, heading)):
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        values[key.strip()] = value.strip()
+    return values
 
 
 def parse_frontmatter(text: str) -> dict[str, str]:

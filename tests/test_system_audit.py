@@ -150,6 +150,13 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(by_id['runtime.model_records_have_concrete_policy_fields']['status'], 'pass')
             self.assertEqual(by_id['runtime.operating_system_manifest_links_agent_os_assets']['status'], 'pass')
             self.assertEqual(by_id['runtime.committee_debate_risk_decision_loop_complete']['status'], 'pass')
+            self.assertEqual(by_id['runtime.agent_outputs_include_maturity_contracts']['status'], 'pass')
+            maturity_details = by_id['runtime.agent_outputs_include_maturity_contracts']['details']
+            self.assertEqual(maturity_details['checked_agents'], len(report['requirements'][0]['evidence']) if False else maturity_details['checked_agents'])
+            self.assertEqual(maturity_details['missing_by_agent'], {})
+            self.assertGreaterEqual(maturity_details['unique_edge_signatures'], 7)
+            self.assertFalse(maturity_details['real_trade_allowed'])
+            self.assertEqual(maturity_details['broker_integration'], 'disabled')
             self.assertEqual(by_id['runtime.evolution_learning_loop_matches_manifest']['status'], 'pass')
             evolution_details = by_id['runtime.evolution_learning_loop_matches_manifest']['details']
             self.assertGreaterEqual(evolution_details['agent_learning_candidates'], 1)

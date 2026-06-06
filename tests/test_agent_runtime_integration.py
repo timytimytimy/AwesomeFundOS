@@ -87,6 +87,54 @@ class AgentRuntimeIntegrationTests(unittest.TestCase):
         self.assertTrue(any("趋势" in item or "止损" in item or "仓位" in item for item in output["role_checklist_applied"]))
         self.assertTrue(any("lihai_a_share_market_state" in item for item in output["agent_declared_learning_patterns"]))
 
+
+    def test_context_pack_embeds_agent_maturity_contract_and_skill_evolution_rules(self):
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        agent = next(item for item in roster["agents"] if item["id"] == "tech_growth_analyst")
+        pack = make_evidence_pack("run-agent-maturity", "topic", "机器人产业链投资机会")
+
+        context = make_context_pack("run-agent-maturity", agent, pack)
+
+        maturity = context["agent_card"]["maturity_contract"]
+        self.assertEqual(maturity["differentiated_edge"]["edge_signature"], "tech_growth_analyst_technology_chokepoint_research_gap_mapping")
+        self.assertIn("6-24 month technology cycles", maturity["market_regimes"]["preferred_regimes"])
+        self.assertIn("mistaking TAM for moat", maturity["anti_patterns"]["recurring_failure_modes"])
+        self.assertEqual(maturity["capability_benchmarks"]["benchmark_id"], "tech_growth_analyst_capability_benchmark_v1")
+        self.assertEqual(maturity["capability_benchmarks"]["minimum_pass_score"], "80")
+        self.assertIn("technology bottleneck", maturity["context_compression"]["context_priority_order"])
+        self.assertIn("risk blockers", maturity["context_compression"]["compression_loss_budget"])
+        self.assertIn("historical cases", maturity["growth_roadmap"]["learning_inputs"])
+        self.assertFalse(maturity["real_trade_allowed"])
+        self.assertEqual(maturity["broker_integration"], "disabled")
+
+        skill = context["skill_contract"]
+        self.assertEqual(skill["role_specific_benchmark"]["benchmark_id"], "tech_growth_analyst_skill_benchmark_v1")
+        self.assertEqual(skill["role_specific_benchmark"]["minimum_pass_score"], "80")
+        self.assertIn("technology bottleneck", skill["context_compression_recipe"]["context_priority_order"])
+        self.assertIn("direct profile mutation", skill["evolution_candidate_rules"]["forbidden_candidate_types"])
+        self.assertIn("human approval", skill["evolution_candidate_rules"]["approval_route"])
+        self.assertFalse(skill["real_trade_allowed"])
+        self.assertEqual(skill["broker_integration"], "disabled")
+
+    def test_agent_output_exposes_maturity_contract_for_harness_audit(self):
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        agent = next(item for item in roster["agents"] if item["id"] == "position_trend_trader")
+        pack = make_evidence_pack("run-agent-output-maturity", "topic", "机器人产业链投资机会")
+        context = make_context_pack("run-agent-output-maturity", agent, pack)
+
+        output = make_structured_agent_output(agent, context, pack, "机器人产业链投资机会")
+
+        maturity = output["maturity_contract"]
+        self.assertEqual(maturity["edge_signature"], "position_trend_trader_intermediate_trend_template_position_management")
+        self.assertEqual(maturity["capability_benchmark_id"], "position_trend_trader_capability_benchmark_v1")
+        self.assertEqual(maturity["skill_benchmark_id"], "position_trend_trader_skill_benchmark_v1")
+        self.assertEqual(maturity["minimum_pass_score"], "80")
+        self.assertIn("market state", maturity["context_priority_order"])
+        self.assertIn("trigger", maturity["must_preserve_context"])
+        self.assertIn("quarantine -> Evaluation -> EvolutionGate", maturity["evolution_approval_route"])
+        self.assertFalse(maturity["real_trade_allowed"])
+        self.assertEqual(maturity["broker_integration"], "disabled")
+
     def test_agent_output_cites_accepted_thread_memory_lessons_as_auditable_influence(self):
         roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
         agent = next(item for item in roster["agents"] if item["id"] == "position_trend_trader")

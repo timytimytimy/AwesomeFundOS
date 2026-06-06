@@ -114,6 +114,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     )
     manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
     manifest_tool_runtime_check = operating_system_manifest_tool_runtime_check(os_manifest, tool_runtime, tool_call_ledger, tool_runtime_evidence)
+    runtime_maturity_check = runtime_agent_maturity_contract_check(run_path, [row.get("agent_id", "") for row in selected])
     committee_check = committee_debate_risk_decision_loop_check(decision_readiness, disagreement_register, veto_table, collaboration_harness, decision_memo)
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     return [
@@ -181,6 +182,14 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [run_path / "selected-agents.yaml", run_path / "context", run_path / "agent_work"],
             all(selected_agent_artifacts_exist(run_path, row.get("agent_id", "")) for row in selected),
             details={"missing": missing_selected_agent_artifacts(run_path, [row.get("agent_id", "") for row in selected])},
+        ),
+        requirement(
+            "runtime.agent_outputs_include_maturity_contracts",
+            "runtime_agent_outputs",
+            "Every selected agent ContextPack and structured output include differentiated maturity, benchmark, compression, evolution, and paper-only safety contract fields.",
+            [run_path / "context", run_path / "agent_work"],
+            runtime_maturity_check["ok"],
+            details=runtime_maturity_check,
         ),
         requirement(
             "runtime.model_records_have_concrete_policy_fields",
@@ -1054,6 +1063,63 @@ def missing_selected_agent_artifacts(run_path: Path, agent_ids: list[str]) -> li
             if not path.exists():
                 missing.append(str(path))
     return missing
+
+
+def runtime_agent_maturity_contract_check(run_path: Path, agent_ids: list[str]) -> dict[str, Any]:
+    missing_by_agent: dict[str, list[str]] = {}
+    edge_signatures: list[str] = []
+    required_output_fields = [
+        "edge_signature",
+        "capability_benchmark_id",
+        "skill_benchmark_id",
+        "minimum_pass_score",
+        "context_priority_order",
+        "must_preserve_context",
+        "compression_loss_budget",
+        "evolution_approval_route",
+    ]
+    for agent_id in agent_ids:
+        if not agent_id:
+            continue
+        issues: list[str] = []
+        context = load_yaml(run_path / "context" / f"{agent_id}.context-pack.yaml", {})
+        output = load_yaml(run_path / "agent_work" / f"{agent_id}.structured.yaml", {})
+        card_contract = (((context.get("agent_card") or {}).get("maturity_contract") or {}) if isinstance(context, dict) else {})
+        skill_contract = ((context.get("skill_contract") or {}) if isinstance(context, dict) else {})
+        output_contract = ((output.get("maturity_contract") or {}) if isinstance(output, dict) else {})
+        if not card_contract.get("differentiated_edge", {}).get("edge_signature"):
+            issues.append("context_agent_card_missing_edge_signature")
+        if not card_contract.get("capability_benchmarks", {}).get("benchmark_id"):
+            issues.append("context_agent_card_missing_capability_benchmark")
+        if not card_contract.get("context_compression", {}).get("context_priority_order"):
+            issues.append("context_agent_card_missing_context_priority_order")
+        if not skill_contract.get("role_specific_benchmark", {}).get("benchmark_id"):
+            issues.append("context_skill_missing_role_specific_benchmark")
+        if not skill_contract.get("context_compression_recipe", {}).get("must_preserve_context"):
+            issues.append("context_skill_missing_compression_recipe")
+        if not skill_contract.get("evolution_candidate_rules", {}).get("approval_route"):
+            issues.append("context_skill_missing_evolution_rules")
+        for field in required_output_fields:
+            if not output_contract.get(field):
+                issues.append(f"structured_output_missing:{field}")
+        if output_contract.get("real_trade_allowed") is not False:
+            issues.append("structured_output_real_trade_not_disabled")
+        if output_contract.get("broker_integration") != "disabled":
+            issues.append("structured_output_broker_not_disabled")
+        if output_contract.get("edge_signature"):
+            edge_signatures.append(str(output_contract["edge_signature"]))
+        if issues:
+            missing_by_agent[agent_id] = issues
+    return {
+        "ok": not missing_by_agent and len(set(edge_signatures)) >= max(len([aid for aid in agent_ids if aid]) - 1, 0),
+        "checked_agents": len([aid for aid in agent_ids if aid]),
+        "edge_signature_count": len(edge_signatures),
+        "unique_edge_signatures": len(set(edge_signatures)),
+        "required_unique_edge_signatures": max(len([aid for aid in agent_ids if aid]) - 1, 0),
+        "missing_by_agent": missing_by_agent,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def runtime_model_records_check(run_doc: Any) -> dict[str, Any]:

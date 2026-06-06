@@ -75,6 +75,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     learning_patterns = [compact_pattern(pattern) for pattern in patterns_for_agent(agent["id"], context_focus_tags(context))]
     agent_card = context.get("agent_card", {})
     skill_contract = context.get("skill_contract", {})
+    maturity_contract = compact_maturity_contract(agent_card, skill_contract)
     memory_policy = context.get("memory_policy", {})
     thread_memory_summary = context.get("thread_memory_summary", {})
     tool_policy = context.get("tool_policy", {})
@@ -131,6 +132,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "tool_permission_checks": tool_permission_checks,
         "forbidden_tool_actions": forbidden_tool_actions,
         "agent_declared_learning_patterns": agent_card.get("learning_patterns", []),
+        "maturity_contract": maturity_contract,
         "evidence_coverage": summary["coverage"],
         "source_type_coverage": summary["source_types"],
         "key_claims": summary["key_claims"][:8],
@@ -142,6 +144,31 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "forbidden_actions_checked": context.get("forbidden_focus", []),
         "disclaimer": DISCLAIMER,
 }
+
+
+def compact_maturity_contract(agent_card: dict[str, Any], skill_contract: dict[str, Any]) -> dict[str, Any]:
+    card_maturity = agent_card.get("maturity_contract", {}) or {}
+    edge = card_maturity.get("differentiated_edge", {}) or {}
+    capability = card_maturity.get("capability_benchmarks", {}) or {}
+    compression = card_maturity.get("context_compression", {}) or {}
+    skill_benchmark = skill_contract.get("role_specific_benchmark", {}) or {}
+    skill_compression = skill_contract.get("context_compression_recipe", {}) or {}
+    evolution_rules = skill_contract.get("evolution_candidate_rules", {}) or {}
+    return {
+        "edge_signature": edge.get("edge_signature"),
+        "edge_scope": edge.get("edge_scope"),
+        "capability_benchmark_id": capability.get("benchmark_id"),
+        "skill_benchmark_id": skill_benchmark.get("benchmark_id"),
+        "minimum_pass_score": capability.get("minimum_pass_score") or skill_benchmark.get("minimum_pass_score"),
+        "context_priority_order": compression.get("context_priority_order") or skill_compression.get("context_priority_order"),
+        "must_preserve_context": compression.get("must_preserve_context") or skill_compression.get("must_preserve_context"),
+        "compression_loss_budget": compression.get("compression_loss_budget") or skill_compression.get("compression_loss_budget"),
+        "evolution_allowed_candidate_types": evolution_rules.get("allowed_candidate_types"),
+        "evolution_forbidden_candidate_types": evolution_rules.get("forbidden_candidate_types"),
+        "evolution_approval_route": evolution_rules.get("approval_route"),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def quality_gate_checks_for(agent: dict[str, Any], context: dict[str, Any], summary: dict[str, Any], agent_card: dict[str, Any], skill_contract: dict[str, Any], guardrail_checks: dict[str, Any]) -> dict[str, Any]:
