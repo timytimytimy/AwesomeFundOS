@@ -65,6 +65,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     selected = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) else []
     model_record_check = runtime_model_records_check(run_doc)
     manifest_schema_check = validate_operating_system_manifest_schema(repo_root, os_manifest)
+    evaluation_schema_check = validate_evaluation_report_schema(repo_root, evaluation)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -154,6 +155,14 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [repo_root / "specs/schemas/operating-system-manifest.schema.yaml", run_path / "system" / "operating-system-manifest.yaml"],
             manifest_schema_check["ok"],
             details=manifest_schema_check,
+        ),
+        requirement(
+            "runtime.evaluation_report_matches_schema",
+            "runtime_harness",
+            "Run evaluation report satisfies the source-controlled schema for scoring dimensions, harness quality blocks, and safety boundaries.",
+            [repo_root / "specs/schemas/evaluation-report.schema.yaml", run_path / "evaluations" / "evaluation-report.yaml"],
+            evaluation_schema_check["ok"],
+            details=evaluation_schema_check,
         ),
     ]
 
@@ -669,8 +678,17 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
 
 def validate_operating_system_manifest_schema(repo_root: Path, manifest: Any) -> dict[str, Any]:
     schema_path = repo_root / "specs" / "schemas" / "operating-system-manifest.schema.yaml"
+    return validate_runtime_schema(schema_path, manifest)
+
+
+def validate_evaluation_report_schema(repo_root: Path, evaluation: Any) -> dict[str, Any]:
+    schema_path = repo_root / "specs" / "schemas" / "evaluation-report.schema.yaml"
+    return validate_runtime_schema(schema_path, evaluation)
+
+
+def validate_runtime_schema(schema_path: Path, value: Any) -> dict[str, Any]:
     schema = load_yaml(schema_path, {})
-    errors = validate_schema_node(schema, manifest, path="$")
+    errors = validate_schema_node(schema, value, path="$")
     return {
         "ok": not errors,
         "schema_path": str(schema_path),
@@ -721,6 +739,8 @@ def schema_type_matches(expected_type: str, value: Any) -> bool:
         return isinstance(value, str)
     if expected_type == "integer":
         return isinstance(value, int) and not isinstance(value, bool)
+    if expected_type == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
     if expected_type == "boolean":
         return isinstance(value, bool)
     return True
