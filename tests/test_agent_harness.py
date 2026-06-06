@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 import yaml
+import json
 
 from fundos.agent_harness import evaluate_agent_harness, write_agent_harness
 from fundos.agent_outputs import write_agent_output
@@ -67,6 +68,41 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertIn("agent_harness_quality", evaluation)
             self.assertEqual(evaluation["agent_harness_quality"]["agent_count"], 1)
             self.assertIn("agent_harness", evaluation["accepted_outputs"])
+
+    def test_agent_harness_scores_output_memory_lesson_traceability(self):
+        pack = make_evidence_pack("run-agent-memory-trace", "topic", "机器人产业链投资机会")
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            thread_dir = run_path / "memory" / "agents" / "tech_growth_analyst"
+            thread_dir.mkdir(parents=True, exist_ok=True)
+            (thread_dir / "thread-events.jsonl").write_text(json.dumps({
+                "timestamp": "2026-06-06T00:00:00+00:00",
+                "event_type": "memory_writeback_applied",
+                "agent_id": "tech_growth_analyst",
+                "run_id": "run-agent-memory-trace",
+                "payload": {"candidate_id": "cand_supply_chain_lesson", "approval_mode": "evolution_gate_v1_auto_controlled"},
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            }, ensure_ascii=False) + "\n", encoding="utf-8")
+            context = make_context_pack("run-agent-memory-trace", AGENT, pack, runtime_root=run_path)
+            write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
+            write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+
+            report = write_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
+            evaluation = make_evaluation_for_run("run-agent-memory-trace", [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], pack, run_path)
+
+            self.assertIn("memory_lesson_traceability", report["aggregate_scores"])
+            self.assertGreaterEqual(report["aggregate_scores"]["memory_lesson_traceability"], 90)
+            row = report["agent_results"][0]
+            quality = row["memory_lesson_traceability_quality"]
+            self.assertTrue(quality["accepted_lessons_declared"])
+            self.assertTrue(quality["candidate_ids_match_context"])
+            self.assertTrue(quality["retrieval_only_usage"])
+            self.assertTrue(quality["safety_boundaries_respected"])
+            self.assertEqual(quality["accepted_lesson_count"], 1)
+            self.assertIn("memory_lesson_traceability_quality", evaluation["agent_harness_quality"])
+            self.assertGreaterEqual(evaluation["agent_harness_quality"]["memory_lesson_traceability_quality"], 90)
+            self.assertIn("memory_lesson_traceability", evaluation["accepted_outputs"])
 
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
             "context_budget_manifest_required",
             "context_loss_accounting_required",
             "thread_summary_quality_required",
+            "memory_lesson_traceability_required",
             "skill_contract_required",
             "agent_card_required",
             "evidence_traceability_required",
@@ -65,6 +66,7 @@ def default_report() -> dict[str, Any]:
             "context_policy": 0,
             "context_management_quality": 0,
             "thread_memory_summary": 0,
+            "memory_lesson_traceability": 0,
             "memory_policy": 0,
             "tool_policy": 0,
             "skill_invocation": 0,
@@ -81,11 +83,12 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
     context_policy_quality = evaluate_context_policy(context)
     context_management_quality = evaluate_context_management(context)
     thread_memory_summary_quality = evaluate_thread_memory_summary(context)
+    memory_lesson_traceability_quality = evaluate_memory_lesson_traceability(context, output)
     memory_policy_quality = evaluate_memory_policy(context, output)
     tool_policy_quality = evaluate_tool_policy(context, output)
     skill_quality = evaluate_skill_invocation(context, output)
     role_quality = evaluate_role_consistency(agent_id, context, output)
-    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + thread_memory_summary_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 8, 1)
+    overall = round((context_quality["score"] + context_policy_quality["score"] + context_management_quality["score"] + thread_memory_summary_quality["score"] + memory_lesson_traceability_quality["score"] + memory_policy_quality["score"] + tool_policy_quality["score"] + skill_quality["score"] + role_quality["score"]) / 9, 1)
     return {
         "agent_id": agent_id,
         "role": context.get("role") or output.get("role"),
@@ -94,11 +97,12 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
         "context_policy_quality": context_policy_quality,
         "context_management_quality": context_management_quality,
         "thread_memory_summary_quality": thread_memory_summary_quality,
+        "memory_lesson_traceability_quality": memory_lesson_traceability_quality,
         "memory_policy_quality": memory_policy_quality,
         "tool_policy_quality": tool_policy_quality,
         "skill_invocation_quality": skill_quality,
         "role_consistency_quality": role_quality,
-        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
+        "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_lesson_traceability_quality, memory_policy_quality, tool_policy_quality, skill_quality, role_quality),
     }
 
 
@@ -199,6 +203,44 @@ def evaluate_thread_memory_summary(context: dict[str, Any]) -> dict[str, Any]:
         "rejected_candidate_count": len(rejected),
         "open_research_gap_count": len(gaps),
         "recent_event_count": len(recent),
+    }
+
+
+def evaluate_memory_lesson_traceability(context: dict[str, Any], output: dict[str, Any]) -> dict[str, Any]:
+    summary = context.get("thread_memory_summary", {}) or {}
+    influence = output.get("thread_memory_influence", {}) or {}
+    context_lessons = summary.get("accepted_memory_lessons", []) or []
+    output_lessons = influence.get("accepted_lessons_used", []) or []
+    context_ids = {row.get("candidate_id") for row in context_lessons if row.get("candidate_id")}
+    output_ids = {row.get("candidate_id") for row in output_lessons if row.get("candidate_id")}
+    no_accepted_lessons = not context_ids
+    accepted_lessons_declared = no_accepted_lessons or bool(output_ids)
+    candidate_ids_match_context = output_ids <= context_ids and (no_accepted_lessons or context_ids <= output_ids)
+    retrieval_only_usage = all(row.get("usage") == "retrieval_context_only" for row in output_lessons) and bool(influence.get("controls") or no_accepted_lessons)
+    safety_boundaries_respected = influence.get("real_trade_allowed") is False and influence.get("broker_integration") == "disabled"
+    summary_availability_matches = bool(influence.get("summary_available")) == bool(summary.get("available"))
+    score = 20
+    if accepted_lessons_declared:
+        score += 20
+    if candidate_ids_match_context:
+        score += 20
+    if retrieval_only_usage:
+        score += 15
+    if safety_boundaries_respected:
+        score += 15
+    if summary_availability_matches:
+        score += 10
+    return {
+        "score": min(100, score),
+        "accepted_lesson_count": len(context_ids),
+        "output_lesson_count": len(output_ids),
+        "accepted_lessons_declared": accepted_lessons_declared,
+        "candidate_ids_match_context": candidate_ids_match_context,
+        "retrieval_only_usage": retrieval_only_usage,
+        "safety_boundaries_respected": safety_boundaries_respected,
+        "summary_availability_matches": summary_availability_matches,
+        "context_candidate_ids": sorted(context_ids),
+        "output_candidate_ids": sorted(output_ids),
     }
 
 
@@ -442,11 +484,12 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
     context_management_score = avg(row["context_management_quality"]["score"] for row in agent_results)
     thread_summary_score = avg(row["thread_memory_summary_quality"]["score"] for row in agent_results)
+    memory_lesson_score = avg(row["memory_lesson_traceability_quality"]["score"] for row in agent_results)
     memory_score = avg(row["memory_policy_quality"]["score"] for row in agent_results)
     tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
@@ -456,11 +499,12 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
         "context_policy": policy_score,
         "context_management_quality": context_management_score,
         "thread_memory_summary": thread_summary_score,
+        "memory_lesson_traceability": memory_lesson_score,
         "memory_policy": memory_score,
         "tool_policy": tool_score,
         "skill_invocation": skill_score,
         "role_consistency": role_score,
-        "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_score + tool_score + skill_score + role_score) / 8, 1),
+        "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_lesson_score + memory_score + tool_score + skill_score + role_score) / 9, 1),
     }
 
 

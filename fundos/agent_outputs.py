@@ -76,6 +76,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     agent_card = context.get("agent_card", {})
     skill_contract = context.get("skill_contract", {})
     memory_policy = context.get("memory_policy", {})
+    thread_memory_summary = context.get("thread_memory_summary", {})
     tool_policy = context.get("tool_policy", {})
     missing_tool_calls = missing_required_tool_calls(tool_policy)
     forbidden_tool_actions = forbidden_tool_actions_for(tool_policy)
@@ -111,6 +112,7 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "memory_writeback_rules": memory_policy.get("writeback_rules", {}),
         "memory_permission_checks": memory_permission_checks,
         "forbidden_memory_writes": memory_policy.get("forbidden_memory_writes", []),
+        "thread_memory_influence": thread_memory_influence(thread_memory_summary),
         "tool_policy": compact_tool_policy(tool_policy),
         "allowed_tools": tool_policy.get("allowed_tools", []),
         "required_tools": tool_policy.get("required_tools", []),
@@ -128,6 +130,32 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "forbidden_actions_checked": context.get("forbidden_focus", []),
         "disclaimer": DISCLAIMER,
 }
+
+
+def thread_memory_influence(summary: dict[str, Any]) -> dict[str, Any]:
+    accepted = summary.get("accepted_memory_lessons", []) or []
+    return {
+        "summary_available": bool(summary.get("available")),
+        "event_count": int(summary.get("event_count", 0) or 0),
+        "latest_event_type": summary.get("latest_event_type", "none"),
+        "accepted_lesson_count": len(accepted),
+        "accepted_lessons_used": [
+            {
+                "candidate_id": lesson.get("candidate_id"),
+                "semantic_memory_path": lesson.get("semantic_memory_path"),
+                "approval_mode": lesson.get("approval_mode"),
+                "usage": "retrieval_context_only",
+            }
+            for lesson in accepted
+            if lesson.get("candidate_id")
+        ],
+        "open_research_gap_count": len(summary.get("open_research_gaps", []) or []),
+        "quarantined_candidate_count": len(summary.get("quarantined_candidates", []) or []),
+        "rejected_candidate_count": len(summary.get("rejected_candidates", []) or []),
+        "controls": summary.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def compact_memory_policy(policy: dict[str, Any]) -> dict[str, Any]:

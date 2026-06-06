@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 import yaml
+import json
 
 from fundos.agent_outputs import make_structured_agent_output, write_agent_output
 from fundos.context import make_context_pack
@@ -50,6 +51,41 @@ class AgentRuntimeIntegrationTests(unittest.TestCase):
         self.assertTrue(output["role_checklist_applied"])
         self.assertTrue(any("趋势" in item or "止损" in item or "仓位" in item for item in output["role_checklist_applied"]))
         self.assertTrue(any("lihai_a_share_market_state" in item for item in output["agent_declared_learning_patterns"]))
+
+    def test_agent_output_cites_accepted_thread_memory_lessons_as_auditable_influence(self):
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        agent = next(item for item in roster["agents"] if item["id"] == "position_trend_trader")
+        pack = make_evidence_pack("run-agent-thread-lessons", "topic", "机器人产业链投资机会")
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            thread_dir = root / "memory" / "agents" / "position_trend_trader"
+            thread_dir.mkdir(parents=True, exist_ok=True)
+            (thread_dir / "thread-events.jsonl").write_text(json.dumps({
+                "timestamp": "2026-06-06T00:00:00+00:00",
+                "event_type": "memory_writeback_applied",
+                "agent_id": "position_trend_trader",
+                "run_id": "run-agent-thread-lessons",
+                "payload": {
+                    "candidate_id": "cand_stop_loss_lesson",
+                    "approval_mode": "evolution_gate_v1_auto_controlled",
+                    "semantic_memory_path": "memory/agents/position_trend_trader/semantic-memory.yaml",
+                },
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            }, ensure_ascii=False) + "\n", encoding="utf-8")
+            context = make_context_pack("run-agent-thread-lessons", agent, pack, runtime_root=root)
+
+            output = make_structured_agent_output(agent, context, pack, "机器人产业链投资机会")
+
+        self.assertIn("thread_memory_influence", output)
+        self.assertEqual(output["thread_memory_influence"]["summary_available"], True)
+        self.assertEqual(output["thread_memory_influence"]["accepted_lesson_count"], 1)
+        lesson = output["thread_memory_influence"]["accepted_lessons_used"][0]
+        self.assertEqual(lesson["candidate_id"], "cand_stop_loss_lesson")
+        self.assertEqual(lesson["semantic_memory_path"], "memory/agents/position_trend_trader/semantic-memory.yaml")
+        self.assertEqual(lesson["usage"], "retrieval_context_only")
+        self.assertFalse(output["thread_memory_influence"]["real_trade_allowed"])
+        self.assertEqual(output["thread_memory_influence"]["broker_integration"], "disabled")
 
     def test_written_markdown_shows_agent_card_and_skill_used(self):
         roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
