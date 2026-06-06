@@ -192,7 +192,7 @@ agents/{agent_id}/performance/promotion_history.jsonl
 
 ## 11. `fundos followups list / show`
 
-`fundos followups list --run <run>` 读取 `workflow/research-gap-tasks.yaml`，列出由 Evaluation / Research Task DAG 生成的后续研究缺口任务，包括 task_id、category、owner_agent_id、priority 和 brief_path。
+`fundos followups list --run <run>` 先 reconcile 已存在的 `follow_up/results/*.yaml`，再读取 `workflow/research-gap-tasks.yaml`，列出由 Evaluation / Research Task DAG 生成的后续研究缺口任务，包括 task_id、category、owner_agent_id、priority、status、brief_path 和 result_path。
 
 `fundos followups show --run <run> --task-id <task_id>` 展示单个 follow-up task 的元数据和 `follow_up/research_gap_<category>.md` brief 正文，方便调度器或人类 operator 把任务交给对应 Agent 继续研究。
 
@@ -204,6 +204,16 @@ follow_up/results/{task_id}.md
 ```
 
 V1 的 answer 不伪造缺失数据，只输出 `status=needs_evidence`、evidence_requests、source_quality_rules、context_update_request 和下一步需要 rerun 的 Harness。它用于把缺口研究变成可执行的 Agent work item，而不是直接补全事实或形成买卖结论。
+
+`answer` 成功后会自动把结果回写到：
+
+```text
+workflow/research-gap-tasks.yaml
+workflow/task-dag.yaml
+harness/task-dag-harness.yaml
+```
+
+缺口任务会从 `planned` 进入 `answered_needs_evidence`，并记录 `answer_status`、`result_path`、answered/pending 计数和安全状态。若 follow-up result 违反 no-real-trade 或 broker-disabled 约束，任务进入 `answered_unsafe_blocked`，但不会获得任何真实交易能力。
 
 约束：
 

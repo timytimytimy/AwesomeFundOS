@@ -76,9 +76,132 @@ def write_research_gap_followup_result(run_path: Path, task_id: str) -> dict[str
     out_dir = run_path / "follow_up" / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = safe_filename(task_id.replace(":", "_"))
-    write_yaml(out_dir / f"{stem}.yaml", result)
+    result_rel = f"follow_up/results/{stem}.yaml"
+    result["result_path"] = result_rel
+    write_yaml(run_path / result_rel, result)
     write_research_gap_result_markdown(out_dir / f"{stem}.md", result)
     return result
+
+
+def reconcile_research_gap_followups(run_path: Path) -> dict[str, Any]:
+    manifest_path = run_path / "workflow" / "research-gap-tasks.yaml"
+    dag_path = run_path / "workflow" / "task-dag.yaml"
+    harness_path = run_path / "harness" / "task-dag-harness.yaml"
+
+    manifest = load_research_gap_task_manifest(run_path)
+    results = load_research_gap_followup_results(run_path)
+    results_by_task_id = {row.get("task_id"): row for row in results if row.get("task_id")}
+    answered_count = 0
+    unsafe_blocked_count = 0
+    pending_count = 0
+    reconciled_tasks = []
+    for task in manifest.get("tasks", []):
+        reconciled = dict(task)
+        result = results_by_task_id.get(task.get("task_id"))
+        if result:
+            answered_count += 1
+            status = reconciled_status_for_result(result)
+            if status == "answered_unsafe_blocked":
+                unsafe_blocked_count += 1
+            reconciled.update(
+                {
+                    "status": status,
+                    "answer_status": result.get("status"),
+                    "result_path": result.get("result_path") or result_path_for_task_id(str(task.get("task_id"))),
+                    "result_category": result.get("category"),
+                    "result_owner_agent_id": result.get("owner_agent_id"),
+                    "real_trade_allowed": False if status != "answered_unsafe_blocked" else bool(result.get("real_trade_allowed")),
+                    "broker_integration": "disabled" if status != "answered_unsafe_blocked" else result.get("broker_integration", "violation"),
+                }
+            )
+        else:
+            pending_count += 1
+        reconciled_tasks.append(reconciled)
+
+    manifest["tasks"] = reconciled_tasks
+    manifest["research_gap_count"] = len(reconciled_tasks)
+    manifest["answered_count"] = answered_count
+    manifest["pending_count"] = pending_count
+    manifest["unsafe_blocked_count"] = unsafe_blocked_count
+    manifest["real_trade_allowed"] = False
+    manifest["broker_integration"] = "disabled"
+    if manifest_path.exists():
+        write_yaml(manifest_path, manifest)
+
+    if dag_path.exists():
+        dag = read_yaml(dag_path) or {}
+        task_by_id = {task.get("task_id"): task for task in reconciled_tasks}
+        updated_nodes = []
+        for node in dag.get("nodes", []):
+            updated = dict(node)
+            if str(updated.get("node_id", "")).startswith("research_gap:"):
+                task = task_by_id.get(updated.get("task_id"))
+                if task:
+                    updated["status"] = task.get("status", updated.get("status"))
+                    for key in ["answer_status", "result_path", "result_category", "result_owner_agent_id"]:
+                        if key in task:
+                            updated[key] = task[key]
+                    updated["real_trade_allowed"] = False
+                    updated["broker_integration"] = "disabled"
+            updated_nodes.append(updated)
+        dag["nodes"] = updated_nodes
+        dag["research_gap_answered_count"] = answered_count
+        dag["research_gap_pending_count"] = pending_count
+        dag["research_gap_unsafe_blocked_count"] = unsafe_blocked_count
+        dag["real_trade_allowed"] = False
+        dag["broker_integration"] = "disabled"
+        write_yaml(dag_path, dag)
+
+    if harness_path.exists():
+        harness = read_yaml(harness_path) or {}
+        harness["research_gap_answered_count"] = answered_count
+        harness["research_gap_pending_count"] = pending_count
+        harness["research_gap_unsafe_blocked_count"] = unsafe_blocked_count
+        harness["research_gap_result_paths"] = [task.get("result_path") for task in reconciled_tasks if task.get("result_path")]
+        harness["real_trade_allowed"] = False
+        harness["broker_integration"] = "disabled"
+        if unsafe_blocked_count:
+            issues = list(harness.get("blocking_issues", []))
+            issues.append("research_gap_followup_unsafe_blocked")
+            harness["blocking_issues"] = sorted(set(issues))
+        write_yaml(harness_path, harness)
+
+    return {
+        "artifact_type": "research_gap_followup_reconciliation",
+        "run_id": manifest.get("run_id") or read_run_id(run_path),
+        "research_gap_count": len(reconciled_tasks),
+        "answered_count": answered_count,
+        "pending_count": pending_count,
+        "unsafe_blocked_count": unsafe_blocked_count,
+        "result_count": len(results),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def load_research_gap_followup_results(run_path: Path) -> list[dict[str, Any]]:
+    result_dir = run_path / "follow_up" / "results"
+    if not result_dir.exists():
+        return []
+    results = []
+    for path in sorted(result_dir.glob("*.yaml")):
+        loaded = read_yaml(path) or {}
+        if loaded.get("artifact_type") == "research_gap_followup_result":
+            loaded.setdefault("result_path", str(path.relative_to(run_path)))
+            results.append(loaded)
+    return results
+
+
+def result_path_for_task_id(task_id: str) -> str:
+    return f"follow_up/results/{safe_filename(task_id.replace(':', '_'))}.yaml"
+
+
+def reconciled_status_for_result(result: dict[str, Any]) -> str:
+    if result.get("real_trade_allowed") or result.get("broker_integration") != "disabled":
+        return "answered_unsafe_blocked"
+    if result.get("status") == "needs_evidence":
+        return "answered_needs_evidence"
+    return "answered"
 
 
 def load_research_gap_followup_quality(run_path: Path | None) -> dict[str, Any]:

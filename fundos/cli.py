@@ -44,7 +44,12 @@ from fundos.source_ingestion import ingest_source_candidates
 from fundos.system_audit import run_system_audit
 from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
-from fundos.task_dag import load_research_gap_task_manifest, write_research_gap_followup_result, write_task_dag
+from fundos.task_dag import (
+    load_research_gap_task_manifest,
+    reconcile_research_gap_followups,
+    write_research_gap_followup_result,
+    write_task_dag,
+)
 from fundos.tool_runtime import run_fixture_tool_runtime
 from fundos.tool_policies import load_tool_policy
 
@@ -720,6 +725,7 @@ def command_cases_list(args: argparse.Namespace) -> int:
 
 def command_followups_list(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
+    reconcile_research_gap_followups(run_path)
     manifest = load_research_gap_task_manifest(run_path)
     print(f"run_id={manifest.get('run_id')}")
     print(f"research_gap_count={manifest.get('research_gap_count', 0)}")
@@ -731,7 +737,9 @@ def command_followups_list(args: argparse.Namespace) -> int:
                     f"category={task.get('category')}",
                     f"owner_agent_id={task.get('owner_agent_id') or task.get('owner_agent')}",
                     f"priority={task.get('priority')}",
+                    f"status={task.get('status')}",
                     f"brief_path={task.get('brief_path')}",
+                    f"result_path={task.get('result_path', '')}",
                 ]
             )
         )
@@ -741,6 +749,7 @@ def command_followups_list(args: argparse.Namespace) -> int:
 
 def command_followups_show(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
+    reconcile_research_gap_followups(run_path)
     manifest = load_research_gap_task_manifest(run_path)
     task = next((row for row in manifest.get("tasks", []) if row.get("task_id") == args.task_id), None)
     if not task:
@@ -751,7 +760,10 @@ def command_followups_show(args: argparse.Namespace) -> int:
     print(f"category={task.get('category')}")
     print(f"owner_agent_id={task.get('owner_agent_id') or task.get('owner_agent')}")
     print(f"priority={task.get('priority')}")
+    print(f"status={task.get('status')}")
+    print(f"answer_status={task.get('answer_status', '')}")
     print(f"brief_path={task.get('brief_path')}")
+    print(f"result_path={task.get('result_path', '')}")
     print(f"real_trade_allowed={task.get('real_trade_allowed', False)}")
     print(f"broker_integration={task.get('broker_integration', 'disabled')}")
     if brief_path.exists():
@@ -766,11 +778,14 @@ def command_followups_answer(args: argparse.Namespace) -> int:
     except KeyError:
         print(f"followup_task_not_found: {args.task_id}", file=sys.stderr)
         return 1
+    reconciliation = reconcile_research_gap_followups(run_path)
     stem = args.task_id.replace(":", "_")
     print(f"followup_result={run_path / 'follow_up' / 'results' / (stem + '.yaml')}")
     print(f"task_id={result.get('task_id')}")
     print(f"owner_agent_id={result.get('owner_agent_id')}")
     print(f"status={result.get('status')}")
+    print(f"reconciled_answered_count={reconciliation.get('answered_count')}")
+    print(f"reconciled_pending_count={reconciliation.get('pending_count')}")
     print(f"real_trade_allowed={result.get('real_trade_allowed', False)}")
     print(f"broker_integration={result.get('broker_integration', 'disabled')}")
     return 0

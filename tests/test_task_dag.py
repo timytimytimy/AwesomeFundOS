@@ -5,7 +5,13 @@ from pathlib import Path
 from fundos.evidence import make_evidence_pack
 from fundos.harness import make_evaluation_for_run
 from fundos.io import REPO_ROOT, read_yaml, write_yaml
-from fundos.task_dag import load_task_dag_harness, load_task_dag_spec, write_research_gap_followup_result, write_task_dag
+from fundos.task_dag import (
+    load_task_dag_harness,
+    load_task_dag_spec,
+    reconcile_research_gap_followups,
+    write_research_gap_followup_result,
+    write_task_dag,
+)
 
 
 class ResearchTaskDagTests(unittest.TestCase):
@@ -186,6 +192,53 @@ class ResearchTaskDagTests(unittest.TestCase):
         self.assertTrue(evaluation["research_gap_followup_quality"]["all_safe"])
         self.assertFalse(evaluation["research_gap_followup_quality"]["real_trade_allowed"])
         self.assertEqual(evaluation["dimension_scores"]["research_gap_followup"], 75)
+
+    def test_reconcile_research_gap_followups_updates_manifest_dag_and_harness(self):
+        pack = make_evidence_pack("dag-followup-reconcile", "topic", "机器人产业链投资机会")
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 5,
+            "missing_categories": ["market_data"],
+            "category_counts": {"announcement": 1, "policy": 1, "news": 1, "social_signal": 1, "case_library": 1},
+            "plan_step_count": 6,
+        }
+        selected = [{"agent_id": "position_trend_trader", "role": "Trader"}]
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-followup-reconcile", "input": {"value": "机器人产业链投资机会"}})
+            write_task_dag(run_path, selected, pack)
+            task = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")["tasks"][0]
+            result = write_research_gap_followup_result(run_path, task["task_id"])
+
+            report = reconcile_research_gap_followups(run_path)
+
+            self.assertEqual(report["artifact_type"], "research_gap_followup_reconciliation")
+            self.assertEqual(report["answered_count"], 1)
+            self.assertEqual(report["pending_count"], 0)
+            self.assertEqual(report["unsafe_blocked_count"], 0)
+            self.assertFalse(report["real_trade_allowed"])
+            self.assertEqual(report["broker_integration"], "disabled")
+
+            manifest = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
+            reconciled_task = manifest["tasks"][0]
+            self.assertEqual(reconciled_task["status"], "answered_needs_evidence")
+            self.assertEqual(reconciled_task["answer_status"], "needs_evidence")
+            self.assertEqual(reconciled_task["result_path"], f"follow_up/results/{task['task_id'].replace(':', '_')}.yaml")
+            self.assertEqual(reconciled_task["result_category"], "market_data")
+            self.assertFalse(reconciled_task["real_trade_allowed"])
+
+            dag = read_yaml(run_path / "workflow" / "task-dag.yaml")
+            node = {row["node_id"]: row for row in dag["nodes"]}["research_gap:market_data"]
+            self.assertEqual(node["status"], "answered_needs_evidence")
+            self.assertEqual(node["answer_status"], "needs_evidence")
+            self.assertEqual(node["result_path"], result["result_path"])
+            self.assertFalse(node["real_trade_allowed"])
+
+            harness = load_task_dag_harness(run_path)
+            self.assertEqual(harness["research_gap_answered_count"], 1)
+            self.assertEqual(harness["research_gap_pending_count"], 0)
+            self.assertEqual(harness["research_gap_unsafe_blocked_count"], 0)
+            self.assertFalse(harness["real_trade_allowed"])
 
 
 if __name__ == "__main__":

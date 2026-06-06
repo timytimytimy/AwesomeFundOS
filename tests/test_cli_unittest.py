@@ -512,6 +512,32 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(doc["broker_integration"], "disabled")
             self.assertTrue((tmp_path / run_rel / "follow_up" / "results" / f"{task['task_id'].replace(':', '_')}.md").exists())
 
+            manifest = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())
+            reconciled_task = next(row for row in manifest["tasks"] if row["task_id"] == task["task_id"])
+            self.assertEqual(reconciled_task["status"], "answered_needs_evidence")
+            self.assertEqual(reconciled_task["answer_status"], "needs_evidence")
+            self.assertIn("result_path", reconciled_task)
+
+            list_result = run_cli(["followups", "list", "--run", run_rel], tmp_path)
+            self.assertEqual(list_result.returncode, 0, list_result.stderr)
+            self.assertIn("status=answered_needs_evidence", list_result.stdout)
+            self.assertIn("result_path=", list_result.stdout)
+
+            show_result = run_cli(["followups", "show", "--run", run_rel, "--task-id", task["task_id"]], tmp_path)
+            self.assertEqual(show_result.returncode, 0, show_result.stderr)
+            self.assertIn("status=answered_needs_evidence", show_result.stdout)
+            self.assertIn("answer_status=needs_evidence", show_result.stdout)
+            self.assertIn("result_path=", show_result.stdout)
+
+            dag = yaml.safe_load((tmp_path / run_rel / "workflow" / "task-dag.yaml").read_text())
+            dag_node = {row["node_id"]: row for row in dag["nodes"]}[f"research_gap:{task['category']}"]
+            self.assertEqual(dag_node["status"], "answered_needs_evidence")
+            self.assertEqual(dag_node["answer_status"], "needs_evidence")
+
+            harness = yaml.safe_load((tmp_path / run_rel / "harness" / "task-dag-harness.yaml").read_text())
+            self.assertGreaterEqual(harness["research_gap_answered_count"], 1)
+            self.assertFalse(harness["real_trade_allowed"])
+
             eval_result = run_cli(["eval", "--run", run_rel], tmp_path)
             self.assertEqual(eval_result.returncode, 0, eval_result.stderr)
             evaluation = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
