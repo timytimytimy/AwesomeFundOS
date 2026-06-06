@@ -47,6 +47,26 @@ def load_task_dag_harness(run_path: Path | None) -> dict[str, Any]:
     return base
 
 
+def load_research_gap_task_manifest(run_path: Path) -> dict[str, Any]:
+    path = run_path / "workflow" / "research-gap-tasks.yaml"
+    if not path.exists():
+        return {
+            "artifact_type": "research_gap_task_manifest",
+            "run_id": read_run_id(run_path),
+            "research_gap_count": 0,
+            "tasks": [],
+            "controls": ["no_real_trade_action", "broker_integration_disabled"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    loaded = read_yaml(path) or {}
+    loaded.setdefault("tasks", [])
+    loaded.setdefault("research_gap_count", len(loaded.get("tasks", [])))
+    loaded.setdefault("real_trade_allowed", False)
+    loaded.setdefault("broker_integration", "disabled")
+    return loaded
+
+
 def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
     spec = load_task_dag_spec()
     selected_ids = [row["agent_id"] for row in selected_agents]

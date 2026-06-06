@@ -44,7 +44,7 @@ from fundos.source_ingestion import ingest_source_candidates
 from fundos.system_audit import run_system_audit
 from fundos.tool_adapters import write_tool_adapter_manifest
 from fundos.tool_harness import write_tool_harness
-from fundos.task_dag import write_task_dag
+from fundos.task_dag import load_research_gap_task_manifest, write_task_dag
 from fundos.tool_runtime import run_fixture_tool_runtime
 from fundos.tool_policies import load_tool_policy
 
@@ -718,6 +718,53 @@ def command_cases_list(args: argparse.Namespace) -> int:
     print("broker_integration=disabled")
     return 0
 
+def command_followups_list(args: argparse.Namespace) -> int:
+    run_path = resolve_run_path(args.run)
+    manifest = load_research_gap_task_manifest(run_path)
+    print(f"run_id={manifest.get('run_id')}")
+    print(f"research_gap_count={manifest.get('research_gap_count', 0)}")
+    for task in manifest.get("tasks", []):
+        print(
+            " ".join(
+                [
+                    f"task_id={task.get('task_id')}",
+                    f"category={task.get('category')}",
+                    f"owner_agent_id={task.get('owner_agent_id') or task.get('owner_agent')}",
+                    f"priority={task.get('priority')}",
+                    f"brief_path={task.get('brief_path')}",
+                ]
+            )
+        )
+    print(f"real_trade_allowed={manifest.get('real_trade_allowed', False)}")
+    print(f"broker_integration={manifest.get('broker_integration', 'disabled')}")
+    return 0
+
+def command_followups_show(args: argparse.Namespace) -> int:
+    run_path = resolve_run_path(args.run)
+    manifest = load_research_gap_task_manifest(run_path)
+    task = next((row for row in manifest.get("tasks", []) if row.get("task_id") == args.task_id), None)
+    if not task:
+        print(f"followup_task_not_found: {args.task_id}", file=sys.stderr)
+        return 1
+    brief_path = run_path / task.get("brief_path", "")
+    print(f"task_id={task.get('task_id')}")
+    print(f"category={task.get('category')}")
+    print(f"owner_agent_id={task.get('owner_agent_id') or task.get('owner_agent')}")
+    print(f"priority={task.get('priority')}")
+    print(f"brief_path={task.get('brief_path')}")
+    print(f"real_trade_allowed={task.get('real_trade_allowed', False)}")
+    print(f"broker_integration={task.get('broker_integration', 'disabled')}")
+    if brief_path.exists():
+        print("--- brief ---")
+        print(brief_path.read_text(encoding="utf-8"))
+    return 0
+
+def resolve_run_path(value: str) -> Path:
+    run_path = Path(value)
+    if not run_path.is_absolute():
+        run_path = Path.cwd() / run_path
+    return run_path
+
 def inline_counts(counts: dict[str, Any]) -> str:
     if not counts:
         return "none"
@@ -798,6 +845,16 @@ def build_parser() -> argparse.ArgumentParser:
     cases_sub = p_cases.add_subparsers(dest="cases_command", required=True)
     p_cases_list = cases_sub.add_parser("list")
     p_cases_list.set_defaults(func=command_cases_list)
+
+    p_followups = sub.add_parser("followups")
+    followups_sub = p_followups.add_subparsers(dest="followups_command", required=True)
+    p_followups_list = followups_sub.add_parser("list")
+    p_followups_list.add_argument("--run", required=True)
+    p_followups_list.set_defaults(func=command_followups_list)
+    p_followups_show = followups_sub.add_parser("show")
+    p_followups_show.add_argument("--run", required=True)
+    p_followups_show.add_argument("--task-id", required=True)
+    p_followups_show.set_defaults(func=command_followups_show)
 
     p_threads = sub.add_parser("threads")
     threads_sub = p_threads.add_subparsers(dest="threads_command", required=True)

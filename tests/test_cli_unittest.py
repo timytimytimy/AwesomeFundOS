@@ -455,6 +455,33 @@ class FundosCliTests(unittest.TestCase):
             self.assertTrue(first_brief.exists())
             self.assertIn("No real trade instruction", first_brief.read_text(encoding="utf-8"))
 
+    def test_followups_list_and_show_cli_read_research_gap_tasks(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人产业。"}
+            ], ensure_ascii=False))
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+
+            list_result = run_cli(["followups", "list", "--run", run_rel], tmp_path)
+
+            self.assertEqual(list_result.returncode, 0, list_result.stderr)
+            self.assertIn("research_gap_count=", list_result.stdout)
+            self.assertIn("owner_agent_id=", list_result.stdout)
+            self.assertIn("real_trade_allowed=False", list_result.stdout)
+
+            first_task_id = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"][0]["task_id"]
+            show_result = run_cli(["followups", "show", "--run", run_rel, "--task-id", first_task_id], tmp_path)
+
+            self.assertEqual(show_result.returncode, 0, show_result.stderr)
+            self.assertIn(f"task_id={first_task_id}", show_result.stdout)
+            self.assertIn("brief_path=", show_result.stdout)
+            self.assertIn("No real trade instruction", show_result.stdout)
+
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

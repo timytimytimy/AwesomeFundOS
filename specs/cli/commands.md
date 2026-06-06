@@ -22,6 +22,8 @@ fundos performance show --agent tech_growth_analyst
 fundos failures summary
 fundos sources ingest --run runs/2026-06-05-robotics --fixture examples/fixtures/source-candidates.yaml
 fundos cases list
+fundos followups list --run runs/2026-06-05-robotics
+fundos followups show --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001
 fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
 ```
@@ -187,7 +189,20 @@ agents/{agent_id}/performance/promotion_history.jsonl
 
 输出 runs_evaluated、average_score、latest_score、latest_action、promote_watch_count、downgrade_watch_count。Performance 只影响组织观察、复训、降权或晋升建议，不改变真实资金权限、风险限额或交易权限。
 
-## 11. `fundos failures summary`
+## 11. `fundos followups list / show`
+
+`fundos followups list --run <run>` 读取 `workflow/research-gap-tasks.yaml`，列出由 Evaluation / Research Task DAG 生成的后续研究缺口任务，包括 task_id、category、owner_agent_id、priority 和 brief_path。
+
+`fundos followups show --run <run> --task-id <task_id>` 展示单个 follow-up task 的元数据和 `follow_up/research_gap_<category>.md` brief 正文，方便调度器或人类 operator 把任务交给对应 Agent 继续研究。
+
+约束：
+
+- follow-up task 只能产生研究 brief、证据请求和 source-quality notes；
+- 不允许真实交易指令；
+- 不允许 broker action / order placement；
+- 没有补齐证据前不得升级为高置信结论。
+
+## 12. `fundos failures summary`
 
 展示组织级 Failure Pattern Library 摘要，读取：
 
@@ -199,7 +214,7 @@ memory/organization/failure-pattern-library.jsonl
 
 Failure Pattern Library 只用于复盘、复训、能力升级候选评估和 Harness 负反馈，不得解释为交易信号，也不得触发真实交易动作。
 
-## 12. `fundos sources ingest --run --fixture`
+## 13. `fundos sources ingest --run --fixture`
 
 把外部学习源候选摄取到指定 run workspace，用于从知名交易员、研究员、公开大V、课程、书籍和历史案例中提炼能力，但所有材料必须先进入隔离与评测流程。
 
