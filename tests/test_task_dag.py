@@ -5,7 +5,7 @@ from pathlib import Path
 from fundos.evidence import make_evidence_pack
 from fundos.harness import make_evaluation_for_run
 from fundos.io import REPO_ROOT, read_yaml, write_yaml
-from fundos.task_dag import load_task_dag_harness, load_task_dag_spec, write_task_dag
+from fundos.task_dag import load_task_dag_harness, load_task_dag_spec, write_research_gap_followup_result, write_task_dag
 
 
 class ResearchTaskDagTests(unittest.TestCase):
@@ -159,6 +159,33 @@ class ResearchTaskDagTests(unittest.TestCase):
         self.assertEqual(evaluation["task_dag_quality"]["task_dag_quality_score"], 91)
         self.assertIn("task_dag", evaluation["accepted_outputs"])
         self.assertEqual(evaluation["dimension_scores"]["workflow_orchestration"], 91)
+
+    def test_evaluation_reads_research_gap_followup_results(self):
+        pack = make_evidence_pack("dag-followup-eval", "topic", "机器人产业链投资机会")
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 5,
+            "missing_categories": ["market_data"],
+            "category_counts": {"announcement": 1, "policy": 1, "news": 1, "social_signal": 1, "case_library": 1},
+            "plan_step_count": 6,
+        }
+        selected = [{"agent_id": "position_trend_trader", "role": "Trader"}]
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-followup-eval", "input": {"value": "机器人产业链投资机会"}})
+            write_task_dag(run_path, selected, pack)
+            task = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")["tasks"][0]
+            write_research_gap_followup_result(run_path, task["task_id"])
+
+            evaluation = make_evaluation_for_run("dag-followup-eval", selected, pack, run_path)
+
+        self.assertIn("research_gap_followups", evaluation["accepted_outputs"])
+        self.assertIn("research_gap_followup_quality", evaluation)
+        self.assertEqual(evaluation["research_gap_followup_quality"]["result_count"], 1)
+        self.assertEqual(evaluation["research_gap_followup_quality"]["owner_agent_count"], 1)
+        self.assertTrue(evaluation["research_gap_followup_quality"]["all_safe"])
+        self.assertFalse(evaluation["research_gap_followup_quality"]["real_trade_allowed"])
+        self.assertEqual(evaluation["dimension_scores"]["research_gap_followup"], 75)
 
 
 if __name__ == "__main__":

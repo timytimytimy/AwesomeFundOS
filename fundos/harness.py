@@ -18,7 +18,7 @@ from fundos.portfolio import load_portfolio_state
 from fundos.skill_benchmark import load_skill_benchmark_report
 from fundos.source_ingestion import load_ingestion_report
 from fundos.tool_harness import load_tool_harness
-from fundos.task_dag import load_task_dag_harness
+from fundos.task_dag import load_research_gap_followup_quality, load_task_dag_harness
 from fundos.tool_runtime import load_tool_runtime_report
 from fundos.claim_graph import load_claim_graph_report
 from fundos.research_tasks import build_next_research_tasks
@@ -63,6 +63,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     capability_regression = load_capability_regression(run_path)
     skill_benchmark = load_skill_benchmark_report(run_path)
     task_dag = load_task_dag_harness(run_path)
+    research_gap_followups = load_research_gap_followup_quality(run_path)
     tool_runtime = load_tool_runtime_report(run_path)
     claim_graph = load_claim_graph_report(run_path)
     agent_tool_use = load_agent_tool_use_report(run_path)
@@ -112,6 +113,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("agent_governance")
     if task_dag.get("task_dag_quality_score", 0) > 0:
         accepted_outputs.append("task_dag")
+    if research_gap_followups.get("result_count", 0) > 0:
+        accepted_outputs.append("research_gap_followups")
     if tool_runtime.get("tool_runtime_quality_score", 0) > 0:
         accepted_outputs.append("tool_runtime")
     if claim_graph.get("traceability_score", 0) > 0:
@@ -151,6 +154,11 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             blocking.append(issue)
     if task_dag.get("real_trade_allowed"):
         blocking.append("Task DAG 出现 real_trade_allowed=true，违反组织编排边界。")
+    for issue in research_gap_followups.get("blocking_issues", []):
+        if issue and issue not in blocking:
+            blocking.append(issue)
+    if research_gap_followups.get("real_trade_allowed"):
+        blocking.append("Research Gap Follow-up 出现 real_trade_allowed=true，违反后续研究边界。")
     for issue in tool_runtime.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_tool_runtime_report":
             blocking.append(issue)
@@ -204,6 +212,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "tool_runtime_quality": tool_runtime.get("tool_runtime_quality_score", 0),
             "claim_traceability": claim_graph.get("traceability_score", 0),
             "agent_tool_use": agent_tool_use.get("overall_score", 0),
+            "research_gap_followup": research_gap_followups.get("research_gap_followup_score", 0),
         },
         "context_quality_scores": {
             "relevance": 82,
@@ -236,6 +245,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "real_trade_allowed": task_dag.get("real_trade_allowed", False),
             "broker_integration": task_dag.get("broker_integration", "disabled"),
         },
+        "research_gap_followup_quality": research_gap_followups,
         "agent_governance_quality": {
             "agent_count": agent_governance.get("agent_count", 0),
             "governance_action_counts": agent_governance.get("governance_action_counts", {}),

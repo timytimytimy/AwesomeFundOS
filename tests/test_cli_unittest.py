@@ -512,6 +512,13 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(doc["broker_integration"], "disabled")
             self.assertTrue((tmp_path / run_rel / "follow_up" / "results" / f"{task['task_id'].replace(':', '_')}.md").exists())
 
+            eval_result = run_cli(["eval", "--run", run_rel], tmp_path)
+            self.assertEqual(eval_result.returncode, 0, eval_result.stderr)
+            evaluation = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
+            self.assertIn("research_gap_followups", evaluation["accepted_outputs"])
+            self.assertEqual(evaluation["research_gap_followup_quality"]["result_count"], 1)
+            self.assertEqual(evaluation["dimension_scores"]["research_gap_followup"], 75)
+
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

@@ -81,6 +81,53 @@ def write_research_gap_followup_result(run_path: Path, task_id: str) -> dict[str
     return result
 
 
+def load_research_gap_followup_quality(run_path: Path | None) -> dict[str, Any]:
+    if not run_path:
+        return default_research_gap_followup_quality()
+    result_dir = run_path / "follow_up" / "results"
+    if not result_dir.exists():
+        return default_research_gap_followup_quality()
+    results = []
+    for path in sorted(result_dir.glob("*.yaml")):
+        loaded = read_yaml(path) or {}
+        if loaded.get("artifact_type") == "research_gap_followup_result":
+            results.append(loaded)
+    if not results:
+        return default_research_gap_followup_quality()
+    unsafe = [row for row in results if row.get("real_trade_allowed") or row.get("broker_integration") != "disabled"]
+    with_requests = [row for row in results if row.get("evidence_requests")]
+    score = 65 + min(20, len(with_requests) * 10)
+    if unsafe:
+        score = 0
+    return {
+        "artifact_type": "research_gap_followup_quality",
+        "result_count": len(results),
+        "owner_agent_count": len({row.get("owner_agent_id") for row in results if row.get("owner_agent_id")}),
+        "categories": sorted({str(row.get("category")) for row in results if row.get("category")}),
+        "results_with_evidence_requests": len(with_requests),
+        "all_safe": not unsafe,
+        "blocking_issues": [f"unsafe_research_gap_followup:{row.get('task_id')}" for row in unsafe],
+        "research_gap_followup_score": score,
+        "real_trade_allowed": False if not unsafe else True,
+        "broker_integration": "disabled" if not unsafe else "violation",
+    }
+
+
+def default_research_gap_followup_quality() -> dict[str, Any]:
+    return {
+        "artifact_type": "research_gap_followup_quality",
+        "result_count": 0,
+        "owner_agent_count": 0,
+        "categories": [],
+        "results_with_evidence_requests": 0,
+        "all_safe": True,
+        "blocking_issues": [],
+        "research_gap_followup_score": 0,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
 def build_research_gap_followup_result(run_path: Path, manifest: dict[str, Any], task: dict[str, Any]) -> dict[str, Any]:
     brief_rel = task.get("brief_path", "")
     brief_path = run_path / brief_rel
