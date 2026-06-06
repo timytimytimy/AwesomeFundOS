@@ -320,6 +320,42 @@ class ResearchTaskDagTests(unittest.TestCase):
             manifest_after_regen = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
             self.assertEqual(manifest_after_regen["tasks"][0]["status"], "closed_by_accepted_evidence")
 
+    def test_close_research_gap_followup_rejects_weak_or_mismatched_evidence(self):
+        pack = make_evidence_pack("dag-gap-reject", "topic", "机器人产业链投资机会")
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 5,
+            "missing_categories": ["market_data"],
+            "category_counts": {"announcement": 1, "policy": 1, "news": 1, "social_signal": 1, "case_library": 1},
+            "plan_step_count": 6,
+        }
+        selected = [{"agent_id": "position_trend_trader", "role": "Trader"}]
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-gap-reject", "input": {"value": "机器人产业链投资机会"}})
+            write_yaml(run_path / "evidence" / "evidence-pack.yaml", pack)
+            write_task_dag(run_path, selected, pack)
+            task = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")["tasks"][0]
+            weak_evidence = {
+                "id": "WEAK001",
+                "source_type": "social_signal",
+                "source_tier": "tier_5_social_signal",
+                "source_id": "accepted_followup_evidence",
+                "title": "论坛讨论",
+                "summary": "有人说机器人很强。",
+                "confidence": "low",
+                "claims": [],
+            }
+
+            with self.assertRaises(ValueError) as ctx:
+                close_research_gap_followup_with_evidence(run_path, task["task_id"], [weak_evidence])
+
+            self.assertIn("evidence_validation_failed", str(ctx.exception))
+            manifest = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
+            self.assertEqual(manifest["tasks"][0]["status"], "planned")
+            updated_pack = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
+            self.assertFalse(any(item.get("id") == "WEAK001" for item in updated_pack["evidence_items"]))
+
 
 if __name__ == "__main__":
     unittest.main()

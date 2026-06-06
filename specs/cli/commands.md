@@ -222,7 +222,7 @@ harness/task-dag-harness.yaml
 closed_by_accepted_evidence
 ```
 
-`--evidence` 文件可以是 `evidence_items: [...]` 映射或 EvidenceItem 数组。close 只接受结构化 EvidenceItem，不接受自由文本观点；写回后仍保持 `real_trade_allowed=false`、`broker_integration=disabled`。
+`--evidence` 文件可以是 `evidence_items: [...]` 映射或 EvidenceItem 数组。close 只接受结构化 EvidenceItem，不接受自由文本观点；写回后仍保持 `real_trade_allowed=false`、`broker_integration=disabled`。被接受的 EvidenceItem 必须有 id、source_type、source_tier、summary、confidence 和非空 claims；source_tier 只能是 tier_1_primary_fact、tier_2_canonical_framework 或 tier_3_verified_public_practitioner；source_type 必须匹配该 research gap category 的可接受来源类型。低质量社媒、空 claims、错 category 或任何真实交易/broker 泄漏都会被 `evidence_validation_failed` 拒绝，不能关闭缺口。
 
 后续再次运行 `fundos eval --run <run>` 或重新生成 Research Task DAG 时，已关闭的缺口必须继续保留在 manifest / DAG / Harness 中，不能因为 `research_plan_coverage.missing_categories` 已移除该 category 而丢失审计历史。
 

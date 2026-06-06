@@ -614,6 +614,29 @@ class FundosCliTests(unittest.TestCase):
             evaluation = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
             self.assertNotIn(task["category"], evaluation["research_plan_coverage"].get("missing_categories", []))
 
+    def test_followups_close_cli_rejects_invalid_evidence_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人产业。"}
+            ], ensure_ascii=False))
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            task = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())["tasks"][0]
+            evidence_file = tmp_path / "bad-evidence.yaml"
+            evidence_file.write_text(yaml.safe_dump({"evidence_items": [{"id": "BAD001", "source_type": "social_signal", "source_tier": "tier_5_social_signal", "summary": "论坛热度", "claims": []}]}, allow_unicode=True), encoding="utf-8")
+
+            close_result = run_cli(["followups", "close", "--run", run_rel, "--task-id", task["task_id"], "--evidence", str(evidence_file)], tmp_path)
+
+            self.assertNotEqual(close_result.returncode, 0)
+            self.assertIn("evidence_validation_failed", close_result.stderr)
+            manifest = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())
+            unchanged_task = next(row for row in manifest["tasks"] if row["task_id"] == task["task_id"])
+            self.assertEqual(unchanged_task["status"], "planned")
+
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

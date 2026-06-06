@@ -206,6 +206,9 @@ def close_research_gap_followup_with_evidence(run_path: Path, task_id: str, acce
         raise ValueError("accepted_evidence is required to close a research gap")
     category = str(task.get("category") or "")
     safe_items = [normalize_followup_evidence_item(item, category) for item in accepted_evidence]
+    validation_errors = validate_followup_evidence_items(safe_items, category)
+    if validation_errors:
+        raise ValueError("evidence_validation_failed:" + ";".join(validation_errors))
     pack = load_or_empty_evidence_pack(run_path)
     existing = pack.get("evidence_items", [])
     existing_ids = {item.get("id") for item in existing}
@@ -276,6 +279,47 @@ def normalize_followup_evidence_item(item: dict[str, Any], category: str) -> dic
     normalized["real_trade_allowed"] = False
     normalized["broker_integration"] = "disabled"
     return normalized
+
+
+def validate_followup_evidence_items(items: list[dict[str, Any]], category: str) -> list[str]:
+    errors: list[str] = []
+    allowed_tiers = {"tier_1_primary_fact", "tier_2_canonical_framework", "tier_3_verified_public_practitioner"}
+    category_allowed_source_types = {
+        "market_data": {"market_data", "chart_summary"},
+        "case_library": {"case", "historical_case"},
+        "announcement": {"announcement", "financial_report"},
+        "policy": {"policy"},
+        "news": {"news", "web"},
+        "social_signal": {"social_signal", "web"},
+    }
+    allowed_source_types = set(category_allowed_source_types.get(category, set())) | {category}
+    for index, item in enumerate(items):
+        prefix = f"evidence_items[{index}]"
+        for field in ["id", "source_type", "source_tier", "summary", "confidence", "claims"]:
+            if not item.get(field):
+                errors.append(f"{prefix}.{field}_missing")
+        source_tier = item.get("source_tier")
+        if source_tier not in allowed_tiers:
+            errors.append(f"{prefix}.source_tier_not_accepted:{source_tier}")
+        source_type = item.get("source_type")
+        if source_type not in allowed_source_types:
+            errors.append(f"{prefix}.source_type_mismatch:{source_type}!={category}")
+        claims = item.get("claims") or []
+        if not isinstance(claims, list) or not claims:
+            errors.append(f"{prefix}.claims_empty")
+            claims = []
+        for claim_index, claim in enumerate(claims):
+            claim_prefix = f"{prefix}.claims[{claim_index}]"
+            for field in ["claim_id", "claim_text", "claim_type", "confidence", "relevant_to", "supports", "contradicts"]:
+                if field not in claim or claim.get(field) in (None, ""):
+                    errors.append(f"{claim_prefix}.{field}_missing")
+            if source_tier == "tier_1_primary_fact" and claim.get("claim_type") not in {"fact", "inference"}:
+                errors.append(f"{claim_prefix}.claim_type_not_fact_or_inference")
+        if item.get("real_trade_allowed") is not False:
+            errors.append(f"{prefix}.real_trade_allowed_must_be_false")
+        if item.get("broker_integration") != "disabled":
+            errors.append(f"{prefix}.broker_integration_must_be_disabled")
+    return errors
 
 
 def update_research_plan_coverage_for_closure(pack: dict[str, Any], category: str, accepted_count: int) -> None:
