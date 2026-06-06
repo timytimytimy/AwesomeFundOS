@@ -351,6 +351,7 @@ def load_skill_contract(agent_id: str) -> dict[str, Any]:
         "learning_patterns": code_or_bullet_values(section_body(text, "Learning Patterns")),
         "role_checklist": bullet_lines(section_body(text, "Role-Specific Checklist")),
         "harness_hooks": bullet_lines(section_body(text, "Harness Hooks")),
+        "guardrails": bullet_lines(section_body(text, "Guardrails")),
         "forbidden_outputs": bullet_lines(section_body(text, "Forbidden Outputs")),
         "boundaries": bullet_lines(section_body(text, "Boundaries")),
         "required_closing": compact_section(text, "Required Closing", max_lines=4),

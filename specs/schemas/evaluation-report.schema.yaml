@@ -47,6 +47,7 @@ properties:
       memory_lesson_traceability_quality: {type: number}
       reasoning_layer_separation_quality: {type: number}
       skill_invocation: {type: number}
+      skill_guardrails: {type: number}
       role_consistency: {type: number}
       overall: {type: number}
   context_management_quality:

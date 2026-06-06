@@ -76,11 +76,12 @@ Agent-level harness 对每个 selected agent 输出：
 - memory_lesson_traceability_quality：检查 Agent 输出是否显式声明哪些 accepted memory lessons 影响了本轮推理，candidate_id 是否与 ContextPack 的 Thread Summary 一致，usage 是否限定为 `retrieval_context_only`，以及是否保持安全边界；
 - reasoning_layer_separation_quality：检查 Agent 输出是否分离 current evidence conclusions、thread memory influences 和 hypotheses to validate；事实结论必须有 Evidence ID / Claim ID，假设必须有 validation_required，记忆影响必须是 retrieval-only；
 - agent_reasoning_hypothesis_followup_quality：检查 `reasoning_layers.hypotheses_to_validate` 是否被路由为 Research Gap Follow-up task，是否保留 source_agent_id / Evidence ID / Claim ID / validation_required，是否去重，且只允许 follow-up research brief，不允许真实交易或 broker 动作；
-- skill_invocation_quality：检查 `SKILL.md` 是否加载、关键 section 是否存在、runtime skill path 是否与 ContextPack 一致、role checklist 和 evidence rules 是否进入输出；
+- skill_invocation_quality：检查 `SKILL.md` 是否加载、关键 section 是否存在、runtime skill path 是否与 ContextPack 一致、role checklist、evidence rules 和 Guardrails 是否进入输出；
+- skill_guardrails：检查每个 Agent 的 runtime 输出是否实际声明并遵守 Skill Guardrails，包括 `real_trade_allowed=false`、`broker_integration=disabled`、Profile/Skill/Tool/Memory/Thread/Harness/Evolution 边界、KOL/书籍/课程/案例只作为 hypothesis/checklist/failure pattern、以及 durable learning 必须经过 Harness 和 EvolutionGate；
 - role_consistency_quality：检查 agent_id / role 是否一致、agent card 是否加载、declared skills 是否对齐、边界和免责声明是否存在；
 - blocking_issues：低于阈值或越界时产生阻断项。
 
-Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，把 thread summary 聚合分数写入 `context_management_quality.thread_memory_summary_quality`，把假设路由质量写入 `task_dag_quality.agent_reasoning_hypothesis_quality`，并在有有效产物时把 `agent_harness`、`context_management`、`thread_memory_summary`、`memory_lesson_traceability`、`reasoning_layer_separation`、`agent_reasoning_hypothesis_followups` 放入 accepted_outputs。
+Harness Evaluation 需要把该摘要写入 `agent_harness_quality`，把 thread summary 聚合分数写入 `context_management_quality.thread_memory_summary_quality`，把 Guardrails 聚合分数写入 `agent_harness_quality.skill_guardrails`，把假设路由质量写入 `task_dag_quality.agent_reasoning_hypothesis_quality`，并在有有效产物时把 `agent_harness`、`context_management`、`thread_memory_summary`、`memory_lesson_traceability`、`reasoning_layer_separation`、`skill_guardrails`、`agent_reasoning_hypothesis_followups` 放入 accepted_outputs。
 
 ### Agent Performance / Promotion Harness
 

@@ -99,6 +99,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("memory_lesson_traceability")
     if agent_harness.get("aggregate_scores", {}).get("reasoning_layer_separation", 0) > 0:
         accepted_outputs.append("reasoning_layer_separation")
+    if agent_harness.get("aggregate_scores", {}).get("skill_guardrails", 0) > 0:
+        accepted_outputs.append("skill_guardrails")
     if collaboration_harness.get("overall_score", 0) > 0:
         accepted_outputs.append("collaboration_harness")
     if pm_competition_harness.get("overall_score", 0) > 0:
@@ -242,6 +244,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "memory_lesson_traceability_quality": agent_harness_scores.get("memory_lesson_traceability", 0),
             "reasoning_layer_separation_quality": agent_harness_scores.get("reasoning_layer_separation", 0),
             "skill_invocation": agent_harness_scores.get("skill_invocation", 0),
+            "skill_guardrails": agent_harness_scores.get("skill_guardrails", 0),
             "role_consistency": agent_harness_scores.get("role_consistency", 0),
             "overall": agent_harness_scores.get("overall", 0),
         },

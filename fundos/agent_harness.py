@@ -6,7 +6,7 @@ from typing import Any
 from fundos.io import read_yaml, write_yaml
 
 AGENT_HARNESS_VERSION = "0.1.0"
-REQUIRED_SKILL_SECTIONS = {"Evidence Rules", "Context Management", "Role-Specific Checklist", "Forbidden Outputs"}
+REQUIRED_SKILL_SECTIONS = {"Evidence Rules", "Context Management", "Role-Specific Checklist", "Guardrails", "Forbidden Outputs"}
 
 
 def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> dict[str, Any]:
@@ -33,6 +33,7 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
             "memory_lesson_traceability_required",
             "reasoning_layer_separation_required",
             "skill_contract_required",
+            "skill_guardrails_required",
             "agent_card_required",
             "evidence_traceability_required",
             "no_real_trade_action",
@@ -72,6 +73,7 @@ def default_report() -> dict[str, Any]:
             "memory_policy": 0,
             "tool_policy": 0,
             "skill_invocation": 0,
+            "skill_guardrails": 0,
             "role_consistency": 0,
             "overall": 0,
         },
@@ -373,26 +375,49 @@ def evaluate_skill_invocation(context: dict[str, Any], output: dict[str, Any]) -
     runtime = output.get("agent_runtime", {})
     sections = set(skill.get("sections", []))
     runtime_sections = set(runtime.get("skill_sections", []))
+    guardrails = skill.get("guardrails", []) or []
+    output_guardrails = output.get("skill_guardrails_applied", []) or []
+    guardrail_checks = output.get("guardrail_checks", {}) or {}
     required_present = REQUIRED_SKILL_SECTIONS <= sections
     runtime_matches = bool(runtime.get("skill_path")) and runtime.get("skill_path") == skill.get("source_path")
     checklist_count = len(output.get("role_checklist_applied", []))
     evidence_rule_count = len(output.get("skill_evidence_rules", []))
+    guardrails_present = "Guardrails" in sections and bool(guardrails)
+    guardrails_applied = bool(output_guardrails) and set(output_guardrails) <= set(guardrails)
+    guardrail_safety_respected = (
+        guardrail_checks.get("real_trade_disabled") is True
+        and guardrail_checks.get("broker_integration_disabled") is True
+        and guardrail_checks.get("evolution_gate_required") is True
+        and guardrail_checks.get("boundaries_preserved") is True
+        and guardrail_checks.get("real_trade_allowed") is False
+        and guardrail_checks.get("broker_integration") == "disabled"
+    )
     score = 30
     if skill.get("available"):
         score += 15
     if required_present:
-        score += 20
+        score += 15
     if runtime_matches and runtime_sections == sections:
         score += 15
     if checklist_count:
         score += 10
     if evidence_rule_count:
         score += 10
+    if guardrails_present:
+        score += 5
+    if guardrails_applied:
+        score += 5
+    if guardrail_safety_respected:
+        score += 10
     return {
         "score": min(100, score),
         "skill_available": bool(skill.get("available")),
         "required_sections_present": required_present,
         "runtime_matches_context": runtime_matches,
+        "guardrails_present": guardrails_present,
+        "guardrails_applied": guardrails_applied,
+        "guardrail_safety_respected": guardrail_safety_respected,
+        "runtime_sections": sorted(runtime_sections),
         "role_checklist_items": checklist_count,
         "evidence_rule_items": evidence_rule_count,
         "missing_required_sections": sorted(REQUIRED_SKILL_SECTIONS - sections),
@@ -531,7 +556,7 @@ def evaluate_role_consistency(agent_id: str, context: dict[str, Any], output: di
 
 def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     if not agent_results:
-        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "reasoning_layer_separation": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "role_consistency": 0, "overall": 0}
+        return {"context_compression": 0, "context_policy": 0, "context_management_quality": 0, "thread_memory_summary": 0, "memory_lesson_traceability": 0, "reasoning_layer_separation": 0, "memory_policy": 0, "tool_policy": 0, "skill_invocation": 0, "skill_guardrails": 0, "role_consistency": 0, "overall": 0}
     context_score = avg(row["context_compression_quality"]["score"] for row in agent_results)
     policy_score = avg(row["context_policy_quality"]["score"] for row in agent_results)
     context_management_score = avg(row["context_management_quality"]["score"] for row in agent_results)
@@ -541,6 +566,7 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
     memory_score = avg(row["memory_policy_quality"]["score"] for row in agent_results)
     tool_score = avg(row["tool_policy_quality"]["score"] for row in agent_results)
     skill_score = avg(row["skill_invocation_quality"]["score"] for row in agent_results)
+    guardrail_score = avg(100 if row["skill_invocation_quality"].get("guardrails_present") and row["skill_invocation_quality"].get("guardrails_applied") and row["skill_invocation_quality"].get("guardrail_safety_respected") else 0 for row in agent_results)
     role_score = avg(row["role_consistency_quality"]["score"] for row in agent_results)
     return {
         "context_compression": context_score,
@@ -552,6 +578,7 @@ def aggregate_scores(agent_results: list[dict[str, Any]]) -> dict[str, float]:
         "memory_policy": memory_score,
         "tool_policy": tool_score,
         "skill_invocation": skill_score,
+        "skill_guardrails": guardrail_score,
         "role_consistency": role_score,
         "overall": round((context_score + policy_score + context_management_score + thread_summary_score + memory_lesson_score + reasoning_layer_score + memory_score + tool_score + skill_score + role_score) / 10, 1),
     }
@@ -570,6 +597,8 @@ def blocking_issues(*quality_docs: dict[str, Any]) -> list[str]:
         if doc.get("score", 0) < 60:
             issues.append("agent_harness_score_below_60")
             break
+        if doc.get("guardrails_present") is True and (not doc.get("guardrails_applied") or not doc.get("guardrail_safety_respected")):
+            issues.append("skill_guardrails_not_applied")
     return issues
 
 

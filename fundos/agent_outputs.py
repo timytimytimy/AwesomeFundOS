@@ -83,6 +83,8 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
     tool_permission_checks = tool_permission_checks_for(agent_card, tool_policy, missing_tool_calls, forbidden_tool_actions)
     memory_permission_checks = memory_permission_checks_for(memory_policy)
     thread_influence = thread_memory_influence(thread_memory_summary)
+    skill_guardrails = skill_contract.get("guardrails", [])
+    guardrail_checks = guardrail_checks_for(skill_guardrails)
     return {
         "run_id": context["run_id"],
         "agent_id": agent["id"],
@@ -102,6 +104,8 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "decision_principles_applied": agent_card.get("decision_principles", [])[:8],
         "role_checklist_applied": skill_contract.get("role_checklist", [])[:8],
         "skill_evidence_rules": skill_contract.get("evidence_rules", [])[:8],
+        "skill_guardrails_applied": skill_guardrails[:8],
+        "guardrail_checks": guardrail_checks,
         "agent_declared_skills": agent_card.get("declared_skills", []),
         "agent_declared_tools": agent_card.get("declared_tools", []),
         "memory_policy": compact_memory_policy(memory_policy),
@@ -132,6 +136,21 @@ def make_structured_agent_output(agent: dict[str, Any], context: dict[str, Any],
         "forbidden_actions_checked": context.get("forbidden_focus", []),
         "disclaimer": DISCLAIMER,
 }
+
+
+def guardrail_checks_for(guardrails: list[str]) -> dict[str, Any]:
+    text = "\n".join(guardrails)
+    return {
+        "guardrails_present": bool(guardrails),
+        "real_trade_disabled": "real_trade_allowed=false" in text and "real-money instructions" in text,
+        "broker_integration_disabled": "broker_integration=disabled" in text,
+        "evolution_gate_required": "EvolutionGate" in text,
+        "boundaries_preserved": "Profile, Skill, Tool, Memory, Thread, Harness, and Evolution boundaries" in text,
+        "kol_not_direct_signal": "hypotheses" in text and "direct conclusions require primary or cross-validated evidence" in text,
+        "context_gap_confidence_cap": "cap confidence" in text and "follow-up research task" in text,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def thread_memory_influence(summary: dict[str, Any]) -> dict[str, Any]:
