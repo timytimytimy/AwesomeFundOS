@@ -433,6 +433,28 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(manifest["research_plan_coverage"]["category_counts"]["announcement"], 1)
             self.assertEqual(manifest["research_plan_coverage"]["category_counts"]["policy"], 1)
 
+    def test_run_writes_research_gap_followup_artifacts_for_missing_plan_categories(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            fixture = tmp_path / "research.json"
+            fixture.write_text(json.dumps([
+                {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},
+                {"title": "机器人政策", "url": "https://www.gov.cn/zhengce/content/test.htm", "snippet": "政策支持机器人产业。"}
+            ], ensure_ascii=False))
+
+            result = run_cli(["run", "--topic", "机器人产业链投资机会", "--research-fixture", str(fixture)], tmp_path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            manifest = yaml.safe_load((tmp_path / run_rel / "workflow" / "research-gap-tasks.yaml").read_text())
+            self.assertEqual(manifest["artifact_type"], "research_gap_task_manifest")
+            self.assertGreaterEqual(manifest["research_gap_count"], 1)
+            self.assertTrue(all(task["brief_path"].startswith("follow_up/research_gap_") for task in manifest["tasks"]))
+            self.assertFalse(manifest["real_trade_allowed"])
+            first_brief = tmp_path / run_rel / manifest["tasks"][0]["brief_path"]
+            self.assertTrue(first_brief.exists())
+            self.assertIn("No real trade instruction", first_brief.read_text(encoding="utf-8"))
+
     def test_agent_outputs_are_evidence_aware_structured_yaml(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

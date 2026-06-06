@@ -120,6 +120,21 @@ class ResearchTaskDagTests(unittest.TestCase):
             self.assertEqual([task["owner_agent_id"] for task in harness["next_research_tasks"]], ["position_trend_trader", "review_archivist"])
             self.assertFalse(harness["real_trade_allowed"])
 
+            task_manifest = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
+            self.assertEqual(task_manifest["artifact_type"], "research_gap_task_manifest")
+            self.assertEqual(task_manifest["research_gap_count"], 2)
+            self.assertEqual(task_manifest["tasks"][0]["brief_path"], "follow_up/research_gap_market_data.md")
+            self.assertFalse(task_manifest["real_trade_allowed"])
+            market_brief = run_path / "follow_up" / "research_gap_market_data.md"
+            case_brief = run_path / "follow_up" / "research_gap_case_library.md"
+            self.assertTrue(market_brief.exists())
+            self.assertTrue(case_brief.exists())
+            market_text = market_brief.read_text(encoding="utf-8")
+            self.assertIn("owner_agent_id: position_trend_trader", market_text)
+            self.assertIn("category: market_data", market_text)
+            self.assertIn("Allowed output", market_text)
+            self.assertIn("no real trade", market_text.lower())
+
     def test_evaluation_reads_task_dag_quality_and_accepts_output(self):
         pack = make_evidence_pack("dag-eval", "topic", "机器人产业链投资机会")
         selected = [{"agent_id": "fund_manager", "role": "FundManager"}]

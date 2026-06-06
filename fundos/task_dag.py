@@ -118,7 +118,86 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
     }
     write_yaml(run_path / "workflow" / "task-dag.yaml", dag)
     write_yaml(run_path / "harness" / "task-dag-harness.yaml", harness)
+    write_research_gap_task_artifacts(run_path, dag["run_id"], next_research_tasks)
     return dag
+
+
+def write_research_gap_task_artifacts(run_path: Path, run_id: str | None, next_research_tasks: list[dict[str, Any]]) -> dict[str, Any]:
+    tasks = []
+    for task in next_research_tasks:
+        category = task["category"]
+        brief_rel = f"follow_up/research_gap_{safe_filename(category)}.md"
+        enriched = dict(task)
+        enriched["brief_path"] = brief_rel
+        enriched["status"] = "planned"
+        enriched["allowed_output"] = "research_follow_up_brief_only"
+        enriched["real_trade_allowed"] = False
+        enriched["broker_integration"] = "disabled"
+        tasks.append(enriched)
+        write_research_gap_brief(run_path / brief_rel, run_id, enriched)
+    manifest = {
+        "artifact_type": "research_gap_task_manifest",
+        "run_id": run_id,
+        "research_gap_count": len(tasks),
+        "tasks": tasks,
+        "controls": [
+            "planned_follow_up_research_only",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+            "evidence_hierarchy_required",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+    write_yaml(run_path / "workflow" / "research-gap-tasks.yaml", manifest)
+    return manifest
+
+
+def write_research_gap_brief(path: Path, run_id: str | None, task: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = "\n".join(
+        [
+            f"# Research Gap Follow-up: {task['category']}",
+            "",
+            f"run_id: {run_id}",
+            f"task_id: {task.get('task_id')}",
+            f"owner_agent_id: {task.get('owner_agent_id') or task.get('owner_agent')}",
+            f"category: {task['category']}",
+            f"priority: {task.get('priority', 'medium')}",
+            "status: planned",
+            "",
+            "## Reason",
+            "",
+            str(task.get("reason", "Research plan category had no accepted evidence.")),
+            "",
+            "## Required work",
+            "",
+            "- Retrieve or request evidence for this missing research-plan category.",
+            "- Separate primary facts, practitioner views, social signals, and inference.",
+            "- Cite Evidence IDs / Claim IDs when the follow-up is converted into run evidence.",
+            "- Preserve contradictions and unresolved gaps for context compression.",
+            "",
+            "## Allowed output",
+            "",
+            "- Follow-up research brief.",
+            "- Evidence requests and source-quality notes.",
+            "- Updated next_research_tasks if the gap remains unresolved.",
+            "",
+            "## Forbidden output",
+            "",
+            "- No real trade instruction.",
+            "- No broker action or order placement.",
+            "- No high-confidence conclusion without accepted evidence.",
+            "",
+            DISCLAIMER,
+            "",
+        ]
+    )
+    path.write_text(text, encoding="utf-8")
+
+
+def safe_filename(value: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in value)
 
 
 def build_research_gap_nodes(next_research_tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
