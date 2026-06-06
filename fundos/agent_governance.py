@@ -139,6 +139,7 @@ def summarize_seat(seat: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         "seat_competition_status": "competitive" if len(rows) > 1 else "single_agent_observation",
         "requires_human_approval_for_role_change": True,
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 

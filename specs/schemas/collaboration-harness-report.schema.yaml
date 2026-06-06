@@ -1,0 +1,38 @@
+version: 0.1.0
+type: object
+required:
+  - artifact_type
+  - protocol_id
+  - overall_score
+  - selected_roles
+  - handoff_count
+  - disagreement_count
+  - veto_count
+  - checks
+  - blocking_issues
+  - accepted_outputs
+  - controls
+  - real_trade_allowed
+  - broker_integration
+properties:
+  artifact_type: {enum: [collaboration_harness_report]}
+  protocol_id: {type: string}
+  overall_score: {type: number}
+  selected_roles:
+    type: array
+    items: {type: string}
+  handoff_count: {type: integer}
+  disagreement_count: {type: integer}
+  veto_count: {type: integer}
+  checks: {type: object}
+  blocking_issues:
+    type: array
+    items: {type: string}
+  accepted_outputs:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

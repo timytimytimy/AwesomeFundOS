@@ -1,0 +1,59 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - run_id
+  - agent_count
+  - aggregate_scores
+  - agent_results
+  - controls
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [agent_harness_report]}
+  run_id: {type: string}
+  agent_count: {type: integer}
+  aggregate_scores: {type: object}
+  agent_results:
+    type: array
+    items:
+      type: object
+      required:
+        - agent_id
+        - overall_score
+        - context_management_quality
+        - skill_invocation_quality
+        - role_consistency_quality
+        - blocking_issues
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        agent_id: {type: string}
+        role: {type: string}
+        overall_score: {type: number}
+        context_compression_quality: {type: object}
+        context_policy_quality: {type: object}
+        context_management_quality: {type: object}
+        thread_memory_summary_quality: {type: object}
+        memory_lesson_traceability_quality: {type: object}
+        reasoning_layer_separation_quality: {type: object}
+        memory_policy_quality: {type: object}
+        tool_policy_quality: {type: object}
+        skill_invocation_quality: {type: object}
+        skill_guardrails_quality: {type: object}
+        skill_execution_quality: {type: object}
+        agent_os_contract_quality: {type: object}
+        policy_contract_quality: {type: object}
+        role_consistency_quality: {type: object}
+        blocking_issues:
+          type: array
+          items: {type: string}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  controls:
+    type: array
+    items: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

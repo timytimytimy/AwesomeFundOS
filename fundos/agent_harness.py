@@ -43,7 +43,10 @@ def evaluate_agent_harness(run_path: Path, selected: list[dict[str, str]]) -> di
             "agent_card_required",
             "evidence_traceability_required",
             "no_real_trade_action",
+            "broker_integration_disabled",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -88,6 +91,8 @@ def default_report() -> dict[str, Any]:
         },
         "agent_results": [],
         "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -122,6 +127,8 @@ def evaluate_agent(agent_id: str, context: dict[str, Any], output: dict[str, Any
         "policy_contract_quality": policy_contract_quality,
         "role_consistency_quality": role_quality,
         "blocking_issues": blocking_issues(context_quality, context_policy_quality, context_management_quality, thread_memory_summary_quality, memory_lesson_traceability_quality, reasoning_layer_separation_quality, memory_policy_quality, tool_policy_quality, skill_quality, agent_os_contract_quality, policy_contract_quality, role_quality),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 

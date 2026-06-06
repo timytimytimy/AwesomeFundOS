@@ -26,6 +26,7 @@ def default_pm_competition() -> dict[str, Any]:
         "winner": {"style_id": "none", "authority": "simulation_only"},
         "checks": {},
         "blocking_issues": ["missing_pm_competition"],
+        "controls": [],
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
@@ -41,6 +42,7 @@ def default_pm_harness() -> dict[str, Any]:
         "no_real_trade_action": True,
         "checks": {},
         "blocking_issues": ["missing_pm_competition_harness"],
+        "controls": [],
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
@@ -119,6 +121,7 @@ def write_pm_competition(
         "no_real_trade_action": True,
         "checks": checks,
         "blocking_issues": blocking,
+        "controls": spec.get("decision_controls", []) + spec.get("safety_controls", []),
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
@@ -179,6 +182,7 @@ def build_style_view(
         "risk_boundary": risk_boundary,
         "required_followups": followups_for(style_id, stance),
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "authority": "simulation_only",
     }
 
@@ -216,6 +220,7 @@ def risk_boundary_for(stance: str, style_id: str, evidence: dict[str, Any]) -> d
         ],
         "requires_review_before_any_change": True,
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "style_id": style_id,
         "evidence_primary_count": evidence["primary_count"],
     }
@@ -260,6 +265,8 @@ def build_style_disagreements(style_views: list[dict[str, Any]]) -> list[dict[st
                     "right_stance": right["stance"],
                     "status": "preserved",
                     "required_resolution": "FundManager must synthesize without averaging away style-specific risk boundaries.",
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
                 })
     return disagreements
 
@@ -276,6 +283,7 @@ def choose_winner(style_views: list[dict[str, Any]]) -> dict[str, Any]:
         "authority": "simulation_only",
         "capital_authority_changed": False,
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 

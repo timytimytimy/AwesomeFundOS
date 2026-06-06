@@ -58,7 +58,10 @@ def evaluate_agent_performance(run_path: Path) -> dict[str, Any]:
             "promotion_does_not_change_risk_limits",
             "downgrade_does_not_delete_memory",
             "no_real_trade_action",
+            "broker_integration_disabled",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -100,6 +103,7 @@ def evaluate_single_agent(run_id: str, selected: dict[str, Any], harness_row: di
         "recommended_action": action,
         "blocking_issues": sorted(set(blocking)),
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
         "risk_limit_changed": False,
         "profile_mutated": False,
         "memory_deleted": False,
@@ -143,6 +147,7 @@ def write_agent_performance_rows(root: Path, row: dict[str, Any]) -> None:
         "risk_limit_changed": False,
         "profile_mutated": False,
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }])
 
 
@@ -194,6 +199,8 @@ def default_report() -> dict[str, Any]:
         "recommended_action_counts": {},
         "agent_results": [],
         "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 

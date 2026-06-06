@@ -39,6 +39,9 @@ def default_collaboration_harness() -> dict[str, Any]:
         "disagreement_count": 0,
         "handoff_count": 0,
         "veto_count": 0,
+        "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -67,9 +70,9 @@ def write_committee_artifacts(
     report = evaluate_collaboration(protocol, selected_ids, handoffs, disagreements, vetoes, readiness)
 
     write_yaml(committee_dir / "committee-protocol.yaml", compact_protocol(protocol))
-    write_yaml(committee_dir / "handoffs.yaml", {"artifact_type": "committee_handoffs", "run_id": run_id, "handoff_count": len(handoffs), "items": handoffs, "real_trade_allowed": False})
-    write_yaml(committee_dir / "disagreement-register.yaml", {"artifact_type": "disagreement_register", "run_id": run_id, "disagreement_count": len(disagreements), "items": disagreements, "real_trade_allowed": False})
-    write_yaml(committee_dir / "veto-table.yaml", {"artifact_type": "risk_veto_table", "run_id": run_id, "veto_count": len(vetoes), "items": vetoes, "real_trade_allowed": False})
+    write_yaml(committee_dir / "handoffs.yaml", {"artifact_type": "committee_handoffs", "run_id": run_id, "handoff_count": len(handoffs), "items": handoffs, "real_trade_allowed": False, "broker_integration": "disabled"})
+    write_yaml(committee_dir / "disagreement-register.yaml", {"artifact_type": "disagreement_register", "run_id": run_id, "disagreement_count": len(disagreements), "items": disagreements, "real_trade_allowed": False, "broker_integration": "disabled"})
+    write_yaml(committee_dir / "veto-table.yaml", {"artifact_type": "risk_veto_table", "run_id": run_id, "veto_count": len(vetoes), "items": vetoes, "real_trade_allowed": False, "broker_integration": "disabled"})
     write_yaml(committee_dir / "decision-readiness.yaml", readiness)
     write_yaml(debate_dir / "issue-table.yaml", issue_table)
     (debate_dir / "bear-case.md").write_text(bear_case_text, encoding="utf-8")
@@ -100,6 +103,8 @@ def build_handoffs(selected_ids: list[str], outputs: dict[str, dict[str, Any]]) 
             "artifact": "committee/disagreement-register.yaml",
             "required_response": "逐条处理未解决争议或降低 conviction。",
             "blocking_if_missing": True,
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
         })
     if "risk_manager" in selected_ids and "fund_manager" in selected_ids:
         handoffs.append({
@@ -110,6 +115,8 @@ def build_handoffs(selected_ids: list[str], outputs: dict[str, dict[str, Any]]) 
             "artifact": "committee/veto-table.yaml",
             "required_response": "接受 position cap / veto 或保留阻断项。",
             "blocking_if_missing": True,
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
         })
     trader_ids = [aid for aid in selected_ids if "trader" in aid]
     analyst_ids = [aid for aid in selected_ids if "analyst" in aid]
@@ -123,6 +130,8 @@ def build_handoffs(selected_ids: list[str], outputs: dict[str, dict[str, Any]]) 
                 "artifact": f"agent_work/{analyst_id}.structured.yaml",
                 "required_response": "输出等待/观察/触发/失效条件，不输出真实交易指令。",
                 "blocking_if_missing": False,
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
             })
     if "evaluation_harness" in selected_ids and "review_archivist" in selected_ids:
         handoffs.append({
@@ -133,6 +142,8 @@ def build_handoffs(selected_ids: list[str], outputs: dict[str, dict[str, Any]]) 
             "artifact": "harness/collaboration-harness.yaml",
             "required_response": "生成 review task 和 evolution candidate。",
             "blocking_if_missing": False,
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
         })
     return handoffs
 
@@ -149,6 +160,8 @@ def build_disagreements(outputs: dict[str, dict[str, Any]], evidence_pack: dict[
             "evidence_refs": refs_from_output(bear),
             "status": "unresolved",
             "required_resolution": "补充一手公告/财报/行情或保持观察队列。",
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
         })
     risk = outputs.get("risk_manager")
     if risk:
@@ -160,6 +173,8 @@ def build_disagreements(outputs: dict[str, dict[str, Any]], evidence_pack: dict[
             "evidence_refs": refs_from_output(risk),
             "status": "unresolved",
             "required_resolution": "明确 position cap、kill criteria 和 review date。",
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
         })
     low_count = sum(1 for item in evidence_pack.get("evidence_items", []) if item.get("source_tier") in {"tier_5_social_signal", "tier_6_unverified"})
     if low_count:
@@ -171,6 +186,8 @@ def build_disagreements(outputs: dict[str, dict[str, Any]], evidence_pack: dict[
             "evidence_refs": [],
             "status": "unresolved",
             "required_resolution": "Source boundary gate must stay closed until primary evidence appears.",
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
         })
     return items
 
@@ -185,6 +202,7 @@ def build_vetoes(outputs: dict[str, dict[str, Any]], evidence_pack: dict[str, An
         "effect": "hypothetical_position_range_capped_at_0_to_1_percent_paper_only" if primary_count else "hypothetical_position_range_capped_at_0_percent",
         "status": "active",
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }]
     items.append({
         "veto_id": "V002",
@@ -194,6 +212,7 @@ def build_vetoes(outputs: dict[str, dict[str, Any]], evidence_pack: dict[str, An
         "effect": "final_memo_must_preserve_disagreement_and_cap_confidence",
         "status": "active",
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     })
     return items
 
@@ -216,6 +235,7 @@ def build_decision_readiness(protocol: dict[str, Any], selected_ids: list[str], 
         "ready_for_final_memo": not blocking,
         "blocking_issues": blocking,
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -228,6 +248,7 @@ def build_issue_table(disagreements: list[dict[str, Any]], vetoes: list[dict[str
         ],
         "vetoes": vetoes,
         "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -262,7 +283,8 @@ def evaluate_collaboration(protocol: dict[str, Any], selected_ids: list[str], ha
         "blocking_issues": blocking,
         "accepted_outputs": ["committee-protocol", "handoffs", "disagreement-register", "veto-table", "decision-readiness"],
         "real_trade_allowed": False,
-        "broker_integration": False,
+        "broker_integration": "disabled",
+        "controls": protocol.get("safety_controls", []) + ["handoff_contract_required", "disagreement_preservation_required", "risk_veto_required", "no_real_trade_action", "broker_integration_disabled"],
     }
 
 

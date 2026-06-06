@@ -1,0 +1,63 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - run_id
+  - agent_count
+  - governance_quality_score
+  - governance_action_counts
+  - seat_groups
+  - seat_competitions
+  - agent_reviews
+  - controls
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [agent_governance_report]}
+  run_id: {type: string}
+  agent_count: {type: integer}
+  governance_quality_score: {type: number}
+  governance_action_counts: {type: object}
+  seat_groups: {type: object}
+  seat_competitions: {type: object}
+  agent_reviews:
+    type: array
+    items:
+      type: object
+      required:
+        - agent_id
+        - role
+        - seat_group
+        - final_score
+        - performance_action
+        - governance_action
+        - requires_human_approval_for_role_change
+        - risk_limit_changed
+        - profile_mutated
+        - memory_deleted
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        agent_id: {type: string}
+        role: {type: string}
+        seat_group: {type: string}
+        final_score: {type: number}
+        performance_action: {type: string}
+        governance_action: {type: string}
+        rationale: {type: string}
+        blocking_issues:
+          type: array
+          items: {type: string}
+        requires_human_approval_for_role_change: {enum: [true]}
+        risk_limit_changed: {enum: [false]}
+        profile_mutated: {enum: [false]}
+        memory_deleted: {enum: [false]}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  controls:
+    type: array
+    items: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

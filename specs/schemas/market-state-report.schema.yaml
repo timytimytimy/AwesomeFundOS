@@ -1,0 +1,62 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - taxonomy_id
+  - source_path
+  - run_id
+  - market
+  - market_state_quality_score
+  - subjects_evaluated
+  - subjects_missing_data
+  - subject_states
+  - blocking_issues
+  - controls
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [market_state_report]}
+  taxonomy_id: {type: string}
+  source_path: {type: string}
+  run_id: {type: string}
+  market: {type: string}
+  market_state_quality_score: {type: number}
+  subjects_evaluated: {type: integer}
+  subjects_missing_data: {type: integer}
+  subject_states:
+    type: array
+    items:
+      type: object
+      required:
+        - subject
+        - bars
+        - state_id
+        - trend_direction
+        - confidence
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        subject: {type: string}
+        bars: {type: integer}
+        state_id: {type: string}
+        trend_direction: {type: string}
+        return_pct: {type: [number, 'null']}
+        max_drawdown_pct: {type: [number, 'null']}
+        volume_expansion: {type: boolean}
+        confidence: {type: string}
+        interpretation: {type: string}
+        start_date: {type: string}
+        end_date: {type: string}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  blocking_issues:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  disclaimer: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

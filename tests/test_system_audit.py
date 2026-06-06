@@ -242,6 +242,24 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('tool_result_trace_required_for_tool_evidence', tool_schema_details['controls'])
             self.assertFalse(tool_schema_details['real_trade_allowed'])
             self.assertEqual(tool_schema_details['broker_integration'], 'disabled')
+            self.assertEqual(by_id['runtime.agent_organization_harness_artifacts_match_schemas']['status'], 'pass')
+            org_schema_details = by_id['runtime.agent_organization_harness_artifacts_match_schemas']['details']
+            self.assertEqual(org_schema_details['schema_errors_by_artifact'], {})
+            self.assertEqual(org_schema_details['missing_artifacts'], [])
+            self.assertEqual(org_schema_details['agent_harness_agent_count'], org_schema_details['selected_agent_count'])
+            self.assertEqual(org_schema_details['skill_benchmark_agents_evaluated'], org_schema_details['selected_agent_count'])
+            self.assertEqual(org_schema_details['agent_performance_agent_count'], org_schema_details['selected_agent_count'])
+            self.assertEqual(org_schema_details['agent_governance_agent_count'], org_schema_details['selected_agent_count'])
+            self.assertGreaterEqual(org_schema_details['pm_competition_style_count'], 4)
+            self.assertEqual(org_schema_details['pm_harness_style_count'], org_schema_details['pm_competition_style_count'])
+            self.assertGreaterEqual(org_schema_details['collaboration_handoff_count'], 1)
+            self.assertGreaterEqual(org_schema_details['collaboration_disagreement_count'], 1)
+            self.assertGreaterEqual(org_schema_details['collaboration_veto_count'], 1)
+            self.assertIn('skill_guardrails_required', org_schema_details['controls'])
+            self.assertIn('performance_review_is_not_capital_authority', org_schema_details['controls'])
+            self.assertIn('human_approval_required_for_role_change', org_schema_details['controls'])
+            self.assertFalse(org_schema_details['real_trade_allowed'])
+            self.assertEqual(org_schema_details['broker_integration'], 'disabled')
             self.assertEqual(by_id['runtime.portfolio_outcome_loop_matches_manifest']['status'], 'pass')
             portfolio_details = by_id['runtime.portfolio_outcome_loop_matches_manifest']['details']
             self.assertEqual(portfolio_details['watchlist_items'], 1)
@@ -349,6 +367,56 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('$.broker_integration', ledger_errors)
             mismatches = '\n'.join(details['mismatches'])
             self.assertIn('claim_graph.tool_evidence_without_trace', mismatches)
+
+    def test_system_audit_strict_mode_fails_agent_organization_harness_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+
+            agent_harness_yaml = run_path / 'harness' / 'agent-harness.yaml'
+            agent_harness = yaml.safe_load(agent_harness_yaml.read_text(encoding='utf-8'))
+            agent_harness['broker_integration'] = 'enabled'
+            agent_harness['agent_results'][0].pop('broker_integration', None)
+            agent_harness_yaml.write_text(yaml.safe_dump(agent_harness, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            performance_yaml = run_path / 'harness' / 'agent-performance.yaml'
+            performance = yaml.safe_load(performance_yaml.read_text(encoding='utf-8'))
+            performance['agent_results'][0]['risk_limit_changed'] = True
+            performance_yaml.write_text(yaml.safe_dump(performance, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            pm_yaml = run_path / 'committee' / 'pm-competition.yaml'
+            pm_competition = yaml.safe_load(pm_yaml.read_text(encoding='utf-8'))
+            pm_competition['style_count'] += 1
+            pm_competition['real_trade_allowed'] = True
+            pm_yaml.write_text(yaml.safe_dump(pm_competition, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.agent_organization_harness_artifacts_match_schemas']['status'], 'fail')
+            details = by_id['runtime.agent_organization_harness_artifacts_match_schemas']['details']
+            agent_errors = '\n'.join(details['schema_errors_by_artifact']['agent-harness.yaml'])
+            self.assertIn('$.broker_integration', agent_errors)
+            self.assertIn('$.agent_results[0].broker_integration', agent_errors)
+            pm_errors = '\n'.join(details['schema_errors_by_artifact']['pm-competition.yaml'])
+            self.assertIn('$.real_trade_allowed', pm_errors)
+            mismatches = '\n'.join(details['mismatches'])
+            self.assertIn('pm_competition.style_count', mismatches)
+            self.assertIn('agent_performance.agent_results[0].risk_limit_changed', mismatches)
 
     def test_system_audit_strict_mode_fails_portfolio_outcome_schema_violation(self):
         with tempfile.TemporaryDirectory() as d:

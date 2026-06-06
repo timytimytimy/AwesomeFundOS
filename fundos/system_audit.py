@@ -75,6 +75,10 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     agent_performance = load_yaml(run_path / "harness" / "agent-performance.yaml", {})
     agent_governance = load_yaml(run_path / "harness" / "agent-governance.yaml", {})
     agent_harness_full = load_yaml(run_path / "harness" / "agent-harness.yaml", {})
+    skill_benchmark = load_yaml(run_path / "harness" / "skill-benchmark.yaml", {})
+    market_state = load_yaml(run_path / "harness" / "market-state.yaml", {})
+    pm_competition = load_yaml(run_path / "committee" / "pm-competition.yaml", {})
+    pm_competition_harness = load_yaml(run_path / "harness" / "pm-competition-harness.yaml", {})
     collaboration_harness = load_yaml(run_path / "harness" / "collaboration-harness.yaml", {})
     decision_readiness = load_yaml(run_path / "committee" / "decision-readiness.yaml", {})
     disagreement_register = load_yaml(run_path / "committee" / "disagreement-register.yaml", {})
@@ -160,6 +164,21 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
         tool_harness,
         agent_tool_use,
         claim_graph,
+    )
+    agent_organization_harness_schema_check = runtime_agent_organization_harness_schema_check(
+        repo_root,
+        run_path,
+        run_doc,
+        agent_harness_full,
+        skill_benchmark,
+        market_state,
+        pm_competition,
+        pm_competition_harness,
+        agent_performance,
+        agent_governance,
+        collaboration_harness,
+        disagreement_register,
+        veto_table,
     )
     return [
         requirement(
@@ -413,6 +432,31 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             tool_runtime_harness_schema_check["ok"],
             details=tool_runtime_harness_schema_check,
+        ),
+        requirement(
+            "runtime.agent_organization_harness_artifacts_match_schemas",
+            "runtime_harness",
+            "Agent Harness, Skill Benchmark, Market State, PM competition, Agent Performance, Agent Governance, and Collaboration Harness artifacts match source-controlled schemas and preserve organization-level paper-only controls.",
+            [
+                repo_root / "specs/schemas/agent-harness-report.schema.yaml",
+                repo_root / "specs/schemas/skill-benchmark-report.schema.yaml",
+                repo_root / "specs/schemas/market-state-report.schema.yaml",
+                repo_root / "specs/schemas/pm-style-competition-report.schema.yaml",
+                repo_root / "specs/schemas/pm-style-competition-harness.schema.yaml",
+                repo_root / "specs/schemas/agent-performance-report.schema.yaml",
+                repo_root / "specs/schemas/agent-governance-report.schema.yaml",
+                repo_root / "specs/schemas/collaboration-harness-report.schema.yaml",
+                run_path / "harness" / "agent-harness.yaml",
+                run_path / "harness" / "skill-benchmark.yaml",
+                run_path / "harness" / "market-state.yaml",
+                run_path / "committee" / "pm-competition.yaml",
+                run_path / "harness" / "pm-competition-harness.yaml",
+                run_path / "harness" / "agent-performance.yaml",
+                run_path / "harness" / "agent-governance.yaml",
+                run_path / "harness" / "collaboration-harness.yaml",
+            ],
+            agent_organization_harness_schema_check["ok"],
+            details=agent_organization_harness_schema_check,
         ),
         requirement(
             "runtime.committee_debate_risk_decision_loop_complete",
@@ -2312,6 +2356,201 @@ def runtime_tool_runtime_harness_claim_graph_schema_check(
         "tool_evidence_items": len(evidence_items),
         "unlinked_tool_result_ids": unlinked_ids,
         "tool_evidence_without_trace": claim_graph.get("tool_evidence_without_trace", []) if isinstance(claim_graph, dict) else [],
+        "controls": sorted(controls),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_agent_organization_harness_schema_check(
+    repo_root: Path,
+    run_path: Path,
+    run_doc: Any,
+    agent_harness: Any,
+    skill_benchmark: Any,
+    market_state: Any,
+    pm_competition: Any,
+    pm_harness: Any,
+    agent_performance: Any,
+    agent_governance: Any,
+    collaboration_harness: Any,
+    disagreement_register: Any,
+    veto_table: Any,
+) -> dict[str, Any]:
+    schemas = {
+        "agent-harness.yaml": repo_root / "specs" / "schemas" / "agent-harness-report.schema.yaml",
+        "skill-benchmark.yaml": repo_root / "specs" / "schemas" / "skill-benchmark-report.schema.yaml",
+        "market-state.yaml": repo_root / "specs" / "schemas" / "market-state-report.schema.yaml",
+        "pm-competition.yaml": repo_root / "specs" / "schemas" / "pm-style-competition-report.schema.yaml",
+        "pm-competition-harness.yaml": repo_root / "specs" / "schemas" / "pm-style-competition-harness.schema.yaml",
+        "agent-performance.yaml": repo_root / "specs" / "schemas" / "agent-performance-report.schema.yaml",
+        "agent-governance.yaml": repo_root / "specs" / "schemas" / "agent-governance-report.schema.yaml",
+        "collaboration-harness.yaml": repo_root / "specs" / "schemas" / "collaboration-harness-report.schema.yaml",
+    }
+    artifacts = {
+        "agent-harness.yaml": run_path / "harness" / "agent-harness.yaml",
+        "skill-benchmark.yaml": run_path / "harness" / "skill-benchmark.yaml",
+        "market-state.yaml": run_path / "harness" / "market-state.yaml",
+        "pm-competition.yaml": run_path / "committee" / "pm-competition.yaml",
+        "pm-competition-harness.yaml": run_path / "harness" / "pm-competition-harness.yaml",
+        "agent-performance.yaml": run_path / "harness" / "agent-performance.yaml",
+        "agent-governance.yaml": run_path / "harness" / "agent-governance.yaml",
+        "collaboration-harness.yaml": run_path / "harness" / "collaboration-harness.yaml",
+    }
+    docs = {
+        "agent-harness.yaml": agent_harness,
+        "skill-benchmark.yaml": skill_benchmark,
+        "market-state.yaml": market_state,
+        "pm-competition.yaml": pm_competition,
+        "pm-competition-harness.yaml": pm_harness,
+        "agent-performance.yaml": agent_performance,
+        "agent-governance.yaml": agent_governance,
+        "collaboration-harness.yaml": collaboration_harness,
+    }
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+
+    for name, schema_path in schemas.items():
+        if not schema_path.exists():
+            schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
+    for name, path in artifacts.items():
+        if not path.exists():
+            missing_artifacts.append(name)
+    for name, doc in docs.items():
+        if name in missing_artifacts or not isinstance(doc, dict):
+            if name not in missing_artifacts:
+                missing_artifacts.append(name)
+            continue
+        schema_path = schemas[name]
+        if schema_path.exists():
+            result = validate_runtime_schema(schema_path, doc)
+            if not result["ok"]:
+                schema_errors_by_artifact[name] = result["schema_errors"]
+
+    selected = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) and isinstance(run_doc.get("selected_agents", []), list) else []
+    selected_count = len(selected)
+    agent_results = agent_harness.get("agent_results", []) if isinstance(agent_harness, dict) and isinstance(agent_harness.get("agent_results", []), list) else []
+    skill_results = skill_benchmark.get("agent_skill_results", []) if isinstance(skill_benchmark, dict) and isinstance(skill_benchmark.get("agent_skill_results", []), list) else []
+    performance_results = agent_performance.get("agent_results", []) if isinstance(agent_performance, dict) and isinstance(agent_performance.get("agent_results", []), list) else []
+    governance_reviews = agent_governance.get("agent_reviews", []) if isinstance(agent_governance, dict) and isinstance(agent_governance.get("agent_reviews", []), list) else []
+    style_views = pm_competition.get("style_views", []) if isinstance(pm_competition, dict) and isinstance(pm_competition.get("style_views", []), list) else []
+    pm_disagreements = pm_competition.get("disagreement_register", []) if isinstance(pm_competition, dict) and isinstance(pm_competition.get("disagreement_register", []), list) else []
+    subject_states = market_state.get("subject_states", []) if isinstance(market_state, dict) and isinstance(market_state.get("subject_states", []), list) else []
+    committee_disagreements = disagreement_register.get("items", []) if isinstance(disagreement_register, dict) and isinstance(disagreement_register.get("items", []), list) else []
+    committee_vetoes = veto_table.get("items", []) if isinstance(veto_table, dict) and isinstance(veto_table.get("items", []), list) else []
+
+    compare_value(mismatches, "agent_harness.agent_count", agent_harness.get("agent_count") if isinstance(agent_harness, dict) else None, len(agent_results))
+    compare_value(mismatches, "agent_harness.agent_count_vs_selected", agent_harness.get("agent_count") if isinstance(agent_harness, dict) else None, selected_count)
+    compare_value(mismatches, "skill_benchmark.agents_evaluated", skill_benchmark.get("agents_evaluated") if isinstance(skill_benchmark, dict) else None, len(skill_results))
+    compare_value(mismatches, "skill_benchmark.agents_evaluated_vs_selected", skill_benchmark.get("agents_evaluated") if isinstance(skill_benchmark, dict) else None, selected_count)
+    compare_value(mismatches, "agent_performance.agent_count", agent_performance.get("agent_count") if isinstance(agent_performance, dict) else None, len(performance_results))
+    compare_value(mismatches, "agent_performance.agent_count_vs_selected", agent_performance.get("agent_count") if isinstance(agent_performance, dict) else None, selected_count)
+    compare_value(mismatches, "agent_governance.agent_count", agent_governance.get("agent_count") if isinstance(agent_governance, dict) else None, len(governance_reviews))
+    compare_value(mismatches, "agent_governance.agent_count_vs_selected", agent_governance.get("agent_count") if isinstance(agent_governance, dict) else None, selected_count)
+    compare_value(mismatches, "pm_competition.style_count", pm_competition.get("style_count") if isinstance(pm_competition, dict) else None, len(style_views))
+    compare_value(mismatches, "pm_competition.disagreement_count", pm_competition.get("disagreement_count") if isinstance(pm_competition, dict) else None, len(pm_disagreements))
+    compare_value(mismatches, "pm_harness.style_count", pm_harness.get("style_count") if isinstance(pm_harness, dict) else None, pm_competition.get("style_count") if isinstance(pm_competition, dict) else None)
+    compare_value(mismatches, "pm_harness.disagreement_count", pm_harness.get("disagreement_count") if isinstance(pm_harness, dict) else None, pm_competition.get("disagreement_count") if isinstance(pm_competition, dict) else None)
+    market_evaluated = [row for row in subject_states if isinstance(row, dict) and row.get("state_id") != "insufficient_data"]
+    market_missing = [row for row in subject_states if isinstance(row, dict) and row.get("state_id") == "insufficient_data"]
+    compare_value(mismatches, "market_state.subject_count", int(market_state.get("subjects_evaluated", 0) or 0) + int(market_state.get("subjects_missing_data", 0) or 0) if isinstance(market_state, dict) else None, len(subject_states))
+    compare_value(mismatches, "market_state.subjects_evaluated", market_state.get("subjects_evaluated") if isinstance(market_state, dict) else None, len(market_evaluated))
+    compare_value(mismatches, "market_state.subjects_missing_data", market_state.get("subjects_missing_data") if isinstance(market_state, dict) else None, len(market_missing))
+    compare_value(mismatches, "collaboration_harness.disagreement_count", collaboration_harness.get("disagreement_count") if isinstance(collaboration_harness, dict) else None, len(committee_disagreements))
+    compare_value(mismatches, "collaboration_harness.veto_count", collaboration_harness.get("veto_count") if isinstance(collaboration_harness, dict) else None, len(committee_vetoes))
+
+    controls: set[str] = set()
+    for name, doc in docs.items():
+        if not isinstance(doc, dict):
+            continue
+        controls.update(str(control) for control in doc.get("controls", []) if control)
+        if doc.get("real_trade_allowed") is not False:
+            mismatches.append(f"{name}.real_trade_allowed: expected False, got {doc.get('real_trade_allowed')!r}")
+        if doc.get("broker_integration") != "disabled":
+            mismatches.append(f"{name}.broker_integration: expected 'disabled', got {doc.get('broker_integration')!r}")
+
+    nested_rows = [
+        ("agent_harness.agent_results", agent_results),
+        ("skill_benchmark.agent_skill_results", skill_results),
+        ("skill_benchmark.capability_candidate_results", skill_benchmark.get("capability_candidate_results", []) if isinstance(skill_benchmark, dict) else []),
+        ("market_state.subject_states", subject_states),
+        ("pm_competition.style_views", style_views),
+        ("pm_competition.disagreement_register", pm_disagreements),
+        ("agent_performance.agent_results", performance_results),
+        ("agent_governance.agent_reviews", governance_reviews),
+    ]
+    for label, rows in nested_rows:
+        if not isinstance(rows, list):
+            mismatches.append(f"{label}: expected list")
+            continue
+        for idx, row in enumerate(rows):
+            if not isinstance(row, dict):
+                mismatches.append(f"{label}[{idx}]: expected object")
+                continue
+            if row.get("real_trade_allowed") is not False:
+                mismatches.append(f"{label}[{idx}].real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+            if row.get("broker_integration") != "disabled":
+                mismatches.append(f"{label}[{idx}].broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+            if label == "agent_performance.agent_results":
+                for field in ["risk_limit_changed", "profile_mutated", "memory_deleted"]:
+                    if row.get(field) is not False:
+                        mismatches.append(f"agent_performance.agent_results[{idx}].{field}: expected False, got {row.get(field)!r}")
+            if label == "agent_governance.agent_reviews":
+                if row.get("requires_human_approval_for_role_change") is not True:
+                    mismatches.append(f"agent_governance.agent_reviews[{idx}].requires_human_approval_for_role_change: expected True, got {row.get('requires_human_approval_for_role_change')!r}")
+                for field in ["risk_limit_changed", "profile_mutated", "memory_deleted"]:
+                    if row.get(field) is not False:
+                        mismatches.append(f"agent_governance.agent_reviews[{idx}].{field}: expected False, got {row.get(field)!r}")
+
+    for idx, row in enumerate(style_views):
+        risk_boundary = row.get("risk_boundary", {}) if isinstance(row, dict) else {}
+        if not isinstance(risk_boundary, dict):
+            mismatches.append(f"pm_competition.style_views[{idx}].risk_boundary: expected object")
+            continue
+        if risk_boundary.get("real_trade_allowed") is not False:
+            mismatches.append(f"pm_competition.style_views[{idx}].risk_boundary.real_trade_allowed: expected False, got {risk_boundary.get('real_trade_allowed')!r}")
+        if risk_boundary.get("broker_integration") != "disabled":
+            mismatches.append(f"pm_competition.style_views[{idx}].risk_boundary.broker_integration: expected 'disabled', got {risk_boundary.get('broker_integration')!r}")
+    if isinstance(pm_competition, dict):
+        winner = pm_competition.get("winner", {}) if isinstance(pm_competition.get("winner", {}), dict) else {}
+        if winner.get("authority") != "simulation_only":
+            mismatches.append(f"pm_competition.winner.authority: expected 'simulation_only', got {winner.get('authority')!r}")
+        if winner.get("capital_authority_changed") is not False:
+            mismatches.append(f"pm_competition.winner.capital_authority_changed: expected False, got {winner.get('capital_authority_changed')!r}")
+
+    required_controls = {
+        "skill_guardrails_required",
+        "performance_review_is_not_capital_authority",
+        "promotion_does_not_change_risk_limits",
+        "human_approval_required_for_role_change",
+        "seat_competition_is_review_signal_only",
+        "disagreement_preservation_required",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    }
+    missing_controls = sorted(required_controls - controls)
+    if missing_controls:
+        mismatches.append(f"agent_organization_harness.controls missing {missing_controls!r}")
+
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": sorted(set(missing_artifacts)),
+        "mismatches": mismatches,
+        "schema_paths": {name: str(path) for name, path in schemas.items()},
+        "artifact_paths": {name: str(path) for name, path in artifacts.items()},
+        "selected_agent_count": selected_count,
+        "agent_harness_agent_count": int(agent_harness.get("agent_count", 0) or 0) if isinstance(agent_harness, dict) else 0,
+        "skill_benchmark_agents_evaluated": int(skill_benchmark.get("agents_evaluated", 0) or 0) if isinstance(skill_benchmark, dict) else 0,
+        "agent_performance_agent_count": int(agent_performance.get("agent_count", 0) or 0) if isinstance(agent_performance, dict) else 0,
+        "agent_governance_agent_count": int(agent_governance.get("agent_count", 0) or 0) if isinstance(agent_governance, dict) else 0,
+        "pm_competition_style_count": int(pm_competition.get("style_count", 0) or 0) if isinstance(pm_competition, dict) else 0,
+        "pm_harness_style_count": int(pm_harness.get("style_count", 0) or 0) if isinstance(pm_harness, dict) else 0,
+        "collaboration_handoff_count": int(collaboration_harness.get("handoff_count", 0) or 0) if isinstance(collaboration_harness, dict) else 0,
+        "collaboration_disagreement_count": int(collaboration_harness.get("disagreement_count", 0) or 0) if isinstance(collaboration_harness, dict) else 0,
+        "collaboration_veto_count": int(collaboration_harness.get("veto_count", 0) or 0) if isinstance(collaboration_harness, dict) else 0,
+        "market_subject_count": len(subject_states),
         "controls": sorted(controls),
         "real_trade_allowed": False,
         "broker_integration": "disabled",

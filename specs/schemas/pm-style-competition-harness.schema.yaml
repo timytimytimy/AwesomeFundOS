@@ -1,0 +1,32 @@
+version: 0.1.0
+type: object
+required:
+  - artifact_type
+  - competition_id
+  - overall_score
+  - style_count
+  - disagreement_count
+  - risk_boundary_present
+  - no_real_trade_action
+  - checks
+  - blocking_issues
+  - controls
+  - real_trade_allowed
+  - broker_integration
+properties:
+  artifact_type: {enum: [pm_style_competition_harness]}
+  competition_id: {type: string}
+  overall_score: {type: number}
+  style_count: {type: integer}
+  disagreement_count: {type: integer}
+  risk_boundary_present: {type: boolean}
+  no_real_trade_action: {type: boolean}
+  checks: {type: object}
+  blocking_issues:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

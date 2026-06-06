@@ -1,0 +1,90 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - benchmark_id
+  - source_path
+  - run_id
+  - overall_score
+  - agents_evaluated
+  - passed_agents
+  - blocked_agents
+  - skill_candidates_evaluated
+  - blocked_skill_candidates
+  - agent_skill_results
+  - capability_candidate_results
+  - blocking_issues
+  - controls
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [skill_benchmark_report]}
+  benchmark_id: {type: string}
+  source_path: {type: string}
+  run_id: {type: string}
+  overall_score: {type: number}
+  agents_evaluated: {type: integer}
+  passed_agents: {type: integer}
+  blocked_agents: {type: integer}
+  skill_candidates_evaluated: {type: integer}
+  blocked_skill_candidates: {type: integer}
+  agent_skill_results:
+    type: array
+    items:
+      type: object
+      required:
+        - agent_id
+        - role_family
+        - overall_skill_score
+        - benchmark_status
+        - gate_scores
+        - blocking_issues
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        agent_id: {type: string}
+        role: {type: string}
+        role_family: {type: string}
+        overall_skill_score: {type: number}
+        benchmark_status: {type: string}
+        gate_scores: {type: object}
+        blocking_issues:
+          type: array
+          items: {type: string}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  capability_candidate_results:
+    type: array
+    items:
+      type: object
+      required:
+        - candidate_id
+        - target_agent
+        - skill_benchmark_status
+        - application_status_after_skill_benchmark
+        - blocking_issues
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        candidate_id: {type: string}
+        target_agent: {type: string}
+        capability_kind: {type: string}
+        regression_status: {type: string}
+        agent_benchmark_status: {type: string}
+        skill_benchmark_status: {type: string}
+        application_status_after_skill_benchmark: {type: string}
+        blocking_issues:
+          type: array
+          items: {type: string}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  blocking_issues:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}
