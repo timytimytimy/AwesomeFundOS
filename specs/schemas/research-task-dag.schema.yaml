@@ -1,0 +1,144 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - workflow_id
+  - source_path
+  - run_id
+  - node_count
+  - edge_count
+  - blocked_node_count
+  - task_dag_quality_score
+  - nodes
+  - edges
+  - missing_artifacts
+  - topological_order_valid
+  - controls
+  - research_gap_count
+  - next_research_tasks
+  - agent_reasoning_hypothesis_task_count
+  - agent_reasoning_hypothesis_quality
+  - disclaimer
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [research_task_dag]}
+  workflow_id: {enum: [research_task_dag_v1]}
+  source_path: {type: string}
+  run_id: {type: string}
+  query: {type: [string, 'null']}
+  market: {type: string}
+  node_count: {type: integer}
+  edge_count: {type: integer}
+  blocked_node_count: {type: integer}
+  task_dag_quality_score: {type: number}
+  nodes:
+    type: array
+    items:
+      type: object
+      required:
+        - node_id
+        - owner_role
+        - phase
+        - description
+        - depends_on
+        - expected_artifacts
+        - missing_artifacts
+        - status
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        node_id: {type: string}
+        owner_role: {type: string}
+        owner_agent_id: {type: string}
+        phase: {type: string}
+        description: {type: [string, 'null']}
+        depends_on:
+          type: array
+          items: {type: string}
+        expected_artifacts:
+          type: array
+          items: {type: string}
+        missing_artifacts:
+          type: array
+          items: {type: string}
+        status: {type: string}
+        task_id: {type: string}
+        category: {type: string}
+        priority: {type: string}
+        assigned_agents:
+          type: array
+          items: {type: string}
+        agent_count: {type: integer}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  edges:
+    type: array
+    items:
+      type: object
+      required: [from, to]
+      properties:
+        from: {type: string}
+        to: {type: string}
+  missing_artifacts:
+    type: array
+    items:
+      type: object
+      required: [node_id, artifact]
+      properties:
+        node_id: {type: string}
+        artifact: {type: string}
+  topological_order_valid: {type: boolean}
+  controls:
+    type: array
+    items: {type: string}
+  research_plan_coverage: {type: object}
+  research_gap_count: {type: integer}
+  next_research_tasks:
+    type: array
+    items:
+      type: object
+      required:
+        - task_id
+        - category
+        - owner_agent_id
+        - priority
+        - reason
+        - real_trade_allowed
+        - broker_integration
+      properties:
+        task_id: {type: string}
+        category: {type: string}
+        owner_agent: {type: string}
+        owner_agent_id: {type: string}
+        priority: {type: string}
+        reason: {type: string}
+        source: {type: string}
+        source_agent_id: {type: [string, 'null']}
+        source_evidence_id: {type: [string, 'null']}
+        source_claim_id: {type: [string, 'null']}
+        source_type: {type: [string, 'null']}
+        source_tier: {type: [string, 'null']}
+        hypothesis: {type: string}
+        validation_required: {type: string}
+        status: {type: string}
+        real_trade_allowed: {enum: [false]}
+        broker_integration: {enum: [disabled]}
+  agent_reasoning_hypothesis_task_count: {type: integer}
+  agent_reasoning_hypothesis_quality:
+    type: object
+    required: [artifact_type, routed_count, all_have_validation_required, all_have_source_agent, all_safe, score, real_trade_allowed, broker_integration]
+    properties:
+      artifact_type: {enum: [agent_reasoning_hypothesis_followup_quality]}
+      routed_count: {type: integer}
+      all_have_validation_required: {type: boolean}
+      all_have_source_agent: {type: boolean}
+      all_safe: {type: boolean}
+      score: {type: number}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  disclaimer: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

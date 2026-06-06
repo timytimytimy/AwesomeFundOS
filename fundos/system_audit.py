@@ -85,6 +85,9 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     portfolio_review = load_yaml(run_path / "portfolio" / "portfolio-review.yaml", {})
     outcome_tracking = load_yaml(run_path / "portfolio" / "outcome-tracking.yaml", {})
     failure_patterns = load_yaml(run_path / "learning" / "failure-patterns.yaml", {})
+    task_dag = load_yaml(run_path / "workflow" / "task-dag.yaml", {})
+    research_gap_tasks = load_yaml(run_path / "workflow" / "research-gap-tasks.yaml", {})
+    task_dag_harness = load_yaml(run_path / "harness" / "task-dag-harness.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     agent_learning = load_yaml(run_path / "learning" / "agent-learning-report.yaml", {})
@@ -141,6 +144,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     portfolio_outcome_check = operating_system_manifest_portfolio_outcome_check(os_manifest, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     portfolio_outcome_schema_check = runtime_portfolio_outcome_schema_check(repo_root, run_path, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     failure_pattern_schema_check = runtime_failure_pattern_schema_check(repo_root, run_path, failure_patterns, failure_pattern_library)
+    task_dag_schema_check = runtime_task_dag_schema_check(repo_root, run_path, task_dag, research_gap_tasks, task_dag_harness)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -414,6 +418,21 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             failure_pattern_schema_check["ok"],
             details=failure_pattern_schema_check,
+        ),
+        requirement(
+            "runtime.task_dag_and_research_gap_artifacts_match_schemas",
+            "runtime_harness",
+            "Runtime task DAG, research gap task manifest, and task DAG harness match source-controlled schemas and preserve follow-up research-only no-broker controls.",
+            [
+                repo_root / "specs/schemas/research-task-dag.schema.yaml",
+                repo_root / "specs/schemas/research-gap-task-manifest.schema.yaml",
+                repo_root / "specs/schemas/task-dag-harness.schema.yaml",
+                run_path / "workflow" / "task-dag.yaml",
+                run_path / "workflow" / "research-gap-tasks.yaml",
+                run_path / "harness" / "task-dag-harness.yaml",
+            ],
+            task_dag_schema_check["ok"],
+            details=task_dag_schema_check,
         ),
     ]
 
@@ -1590,6 +1609,92 @@ def runtime_failure_pattern_schema_check(repo_root: Path, run_path: Path, report
         "report_pattern_count": len(patterns),
         "organization_library_rows": len(library_rows),
         "organization_library_rows_for_run": len(library_rows_for_run),
+        "controls": controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_task_dag_schema_check(repo_root: Path, run_path: Path, dag: Any, task_manifest: Any, harness: Any) -> dict[str, Any]:
+    artifacts = {
+        "task-dag.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "research-task-dag.schema.yaml",
+            "path": run_path / "workflow" / "task-dag.yaml",
+            "value": dag,
+        },
+        "research-gap-tasks.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "research-gap-task-manifest.schema.yaml",
+            "path": run_path / "workflow" / "research-gap-tasks.yaml",
+            "value": task_manifest,
+        },
+        "task-dag-harness.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "task-dag-harness.schema.yaml",
+            "path": run_path / "harness" / "task-dag-harness.yaml",
+            "value": harness,
+        },
+    }
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+    for name, config in artifacts.items():
+        schema_path = config["schema"]
+        artifact_path = config["path"]
+        value = config["value"]
+        if not schema_path.exists():
+            schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
+            continue
+        if not artifact_path.exists() or not isinstance(value, dict):
+            missing_artifacts.append(name)
+            continue
+        result = validate_runtime_schema(schema_path, value)
+        if not result["ok"]:
+            schema_errors_by_artifact[name] = result["schema_errors"]
+
+    dag_nodes = dag.get("nodes", []) if isinstance(dag, dict) and isinstance(dag.get("nodes", []), list) else []
+    dag_edges = dag.get("edges", []) if isinstance(dag, dict) and isinstance(dag.get("edges", []), list) else []
+    tasks = task_manifest.get("tasks", []) if isinstance(task_manifest, dict) and isinstance(task_manifest.get("tasks", []), list) else []
+    controls = dag.get("controls", []) if isinstance(dag, dict) and isinstance(dag.get("controls", []), list) else []
+    required_controls = {
+        "no_real_trade_action",
+        "broker_integration_disabled",
+        "human_approval_required_for_evolution_apply",
+        "evidence_hierarchy_required",
+    }
+    missing_controls = sorted(required_controls - set(str(control) for control in controls))
+    if missing_controls:
+        mismatches.append(f"task_dag.controls missing {missing_controls!r}")
+    compare_value(mismatches, "task_dag.node_count", dag.get("node_count") if isinstance(dag, dict) else None, len(dag_nodes))
+    compare_value(mismatches, "task_dag.edge_count", dag.get("edge_count") if isinstance(dag, dict) else None, len(dag_edges))
+    compare_value(mismatches, "task_dag.research_gap_count", dag.get("research_gap_count") if isinstance(dag, dict) else None, len(tasks))
+    compare_value(mismatches, "research_gap_task_manifest.research_gap_count", task_manifest.get("research_gap_count") if isinstance(task_manifest, dict) else None, len(tasks))
+    compare_value(mismatches, "task_dag_harness.node_count", harness.get("node_count") if isinstance(harness, dict) else None, len(dag_nodes))
+    compare_value(mismatches, "task_dag_harness.edge_count", harness.get("edge_count") if isinstance(harness, dict) else None, len(dag_edges))
+    compare_value(mismatches, "task_dag_harness.research_gap_count", harness.get("research_gap_count") if isinstance(harness, dict) else None, len(tasks))
+    if isinstance(dag, dict) and dag.get("real_trade_allowed") is not False:
+        mismatches.append(f"task_dag.real_trade_allowed: expected False, got {dag.get('real_trade_allowed')!r}")
+    if isinstance(dag, dict) and dag.get("broker_integration") != "disabled":
+        mismatches.append(f"task_dag.broker_integration: expected 'disabled', got {dag.get('broker_integration')!r}")
+    for idx, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            mismatches.append(f"research_gap_task_manifest.tasks[{idx}]: expected object")
+            continue
+        if task.get("allowed_output") != "research_follow_up_brief_only":
+            mismatches.append(f"research_gap_task_manifest.tasks[{idx}].allowed_output: expected research_follow_up_brief_only, got {task.get('allowed_output')!r}")
+        if task.get("real_trade_allowed") is not False:
+            mismatches.append(f"research_gap_task_manifest.tasks[{idx}].real_trade_allowed: expected False, got {task.get('real_trade_allowed')!r}")
+        if task.get("broker_integration") != "disabled":
+            mismatches.append(f"research_gap_task_manifest.tasks[{idx}].broker_integration: expected 'disabled', got {task.get('broker_integration')!r}")
+
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": missing_artifacts,
+        "mismatches": mismatches,
+        "schema_paths": {name: str(config["schema"]) for name, config in artifacts.items()},
+        "artifact_paths": {name: str(config["path"]) for name, config in artifacts.items()},
+        "node_count": len(dag_nodes),
+        "edge_count": len(dag_edges),
+        "research_gap_count": len(tasks),
         "controls": controls,
         "real_trade_allowed": False,
         "broker_integration": "disabled",

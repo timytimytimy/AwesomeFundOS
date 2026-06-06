@@ -5,6 +5,7 @@ from pathlib import Path
 from fundos.evidence import make_evidence_pack
 from fundos.harness import make_evaluation_for_run
 from fundos.io import REPO_ROOT, read_yaml, write_yaml
+from fundos.system_audit import validate_runtime_schema
 from fundos.task_dag import (
     close_research_gap_followup_with_evidence,
     load_task_dag_harness,
@@ -88,6 +89,39 @@ class ResearchTaskDagTests(unittest.TestCase):
             self.assertEqual(harness["task_dag_quality_score"], report["task_dag_quality_score"])
             self.assertTrue(harness["topological_order_valid"])
             self.assertFalse(harness["real_trade_allowed"])
+
+    def test_task_dag_schemas_exist_and_validate_runtime_artifacts(self):
+        pack = make_evidence_pack("dag-schema", "topic", "机器人产业链投资机会")
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 5,
+            "missing_categories": ["market_data"],
+            "category_counts": {"announcement": 1, "policy": 1, "news": 1, "social_signal": 1, "case_library": 1},
+            "plan_step_count": 6,
+        }
+        selected = [
+            {"agent_id": "fund_manager", "role": "FundManager"},
+            {"agent_id": "position_trend_trader", "role": "Trader"},
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-schema", "input": {"value": "机器人产业链投资机会"}})
+
+            write_task_dag(run_path, selected, pack)
+
+            artifact_pairs = {
+                "research-task-dag.schema.yaml": read_yaml(run_path / "workflow" / "task-dag.yaml"),
+                "research-gap-task-manifest.schema.yaml": read_yaml(run_path / "workflow" / "research-gap-tasks.yaml"),
+                "task-dag-harness.schema.yaml": read_yaml(run_path / "harness" / "task-dag-harness.yaml"),
+            }
+            for schema_name, artifact in artifact_pairs.items():
+                with self.subTest(schema=schema_name):
+                    schema_path = REPO_ROOT / "specs" / "schemas" / schema_name
+                    self.assertTrue(schema_path.exists(), schema_name)
+                    result = validate_runtime_schema(schema_path, artifact)
+                    self.assertEqual(result["schema_errors"], [], schema_name)
+                    self.assertFalse(artifact["real_trade_allowed"])
+                    self.assertEqual(artifact["broker_integration"], "disabled")
 
     def test_write_task_dag_materializes_research_gap_followup_tasks(self):
         pack = make_evidence_pack("dag-gap", "topic", "机器人产业链投资机会")

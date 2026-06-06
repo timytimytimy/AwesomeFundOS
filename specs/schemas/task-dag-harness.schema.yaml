@@ -1,0 +1,72 @@
+version: 0.1.0
+type: object
+required:
+  - artifact_type
+  - workflow_id
+  - run_id
+  - task_dag_quality_score
+  - node_count
+  - edge_count
+  - blocked_node_count
+  - planned_node_count
+  - ready_node_count
+  - topological_order_valid
+  - missing_artifacts
+  - blocking_issues
+  - controls
+  - research_gap_count
+  - next_research_tasks
+  - agent_reasoning_hypothesis_task_count
+  - agent_reasoning_hypothesis_quality
+  - real_trade_allowed
+  - broker_integration
+properties:
+  artifact_type: {enum: [research_task_dag_harness]}
+  workflow_id: {enum: [research_task_dag_v1]}
+  run_id: {type: string}
+  task_dag_quality_score: {type: number}
+  node_count: {type: integer}
+  edge_count: {type: integer}
+  blocked_node_count: {type: integer}
+  planned_node_count: {type: integer}
+  ready_node_count: {type: integer}
+  topological_order_valid: {type: boolean}
+  missing_artifacts:
+    type: array
+    items:
+      type: object
+  blocking_issues:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  research_plan_coverage: {type: object}
+  research_gap_count: {type: integer}
+  research_gap_answered_count: {type: integer}
+  research_gap_closed_count: {type: integer}
+  research_gap_pending_count: {type: integer}
+  research_gap_unsafe_blocked_count: {type: integer}
+  research_gap_accepted_evidence_count: {type: integer}
+  research_gap_result_paths:
+    type: array
+    items: {type: string}
+  next_research_tasks:
+    type: array
+    items:
+      type: object
+  agent_reasoning_hypothesis_task_count: {type: integer}
+  agent_reasoning_hypothesis_quality:
+    type: object
+    required: [artifact_type, routed_count, all_have_validation_required, all_have_source_agent, all_safe, score, real_trade_allowed, broker_integration]
+    properties:
+      artifact_type: {enum: [agent_reasoning_hypothesis_followup_quality]}
+      routed_count: {type: integer}
+      all_have_validation_required: {type: boolean}
+      all_have_source_agent: {type: boolean}
+      all_safe: {type: boolean}
+      score: {type: number}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}
