@@ -320,6 +320,14 @@ class ResearchTaskDagTests(unittest.TestCase):
             manifest_after_regen = read_yaml(run_path / "workflow" / "research-gap-tasks.yaml")
             self.assertEqual(manifest_after_regen["tasks"][0]["status"], "closed_by_accepted_evidence")
 
+            evaluation = make_evaluation_for_run("dag-gap-close", selected, updated_pack, run_path)
+            quality = evaluation["research_gap_followup_quality"]
+            self.assertEqual(quality["closed_count"], 1)
+            self.assertEqual(quality["accepted_evidence_count"], 1)
+            self.assertEqual(quality["closed_categories"], ["market_data"])
+            self.assertIn("research_gap_closures", evaluation["accepted_outputs"])
+            self.assertGreaterEqual(evaluation["dimension_scores"]["research_gap_followup"], 90)
+
     def test_close_research_gap_followup_rejects_weak_or_mismatched_evidence(self):
         pack = make_evidence_pack("dag-gap-reject", "topic", "机器人产业链投资机会")
         pack["research_plan_coverage"] = {

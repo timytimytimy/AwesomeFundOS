@@ -613,6 +613,9 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(node_after_eval["status"], "closed_by_accepted_evidence")
             evaluation = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
             self.assertNotIn(task["category"], evaluation["research_plan_coverage"].get("missing_categories", []))
+            self.assertIn("research_gap_closures", evaluation["accepted_outputs"])
+            self.assertEqual(evaluation["research_gap_followup_quality"]["closed_count"], 1)
+            self.assertEqual(evaluation["research_gap_followup_quality"]["accepted_evidence_count"], 1)
 
     def test_followups_close_cli_rejects_invalid_evidence_file(self):
         with tempfile.TemporaryDirectory() as d:

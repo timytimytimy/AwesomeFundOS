@@ -115,6 +115,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("task_dag")
     if research_gap_followups.get("result_count", 0) > 0:
         accepted_outputs.append("research_gap_followups")
+    if research_gap_followups.get("closed_count", 0) > 0:
+        accepted_outputs.append("research_gap_closures")
     if tool_runtime.get("tool_runtime_quality_score", 0) > 0:
         accepted_outputs.append("tool_runtime")
     if claim_graph.get("traceability_score", 0) > 0:

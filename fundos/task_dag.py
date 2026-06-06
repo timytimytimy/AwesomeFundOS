@@ -361,22 +361,36 @@ def reconciled_status_for_result(result: dict[str, Any]) -> str:
 def load_research_gap_followup_quality(run_path: Path | None) -> dict[str, Any]:
     if not run_path:
         return default_research_gap_followup_quality()
+    manifest = load_research_gap_task_manifest(run_path)
+    closed_tasks = [task for task in manifest.get("tasks", []) if task.get("status") == "closed_by_accepted_evidence"]
+    closed_categories = sorted({str(task.get("category")) for task in closed_tasks if task.get("category")})
+    accepted_evidence_ids = sorted({str(eid) for task in closed_tasks for eid in task.get("accepted_evidence_ids", []) if eid})
     result_dir = run_path / "follow_up" / "results"
     if not result_dir.exists():
-        return default_research_gap_followup_quality()
+        report = default_research_gap_followup_quality()
+        report.update(closed_quality_fields(closed_tasks, closed_categories, accepted_evidence_ids))
+        if closed_tasks:
+            report["research_gap_followup_score"] = 90
+        return report
     results = []
     for path in sorted(result_dir.glob("*.yaml")):
         loaded = read_yaml(path) or {}
         if loaded.get("artifact_type") == "research_gap_followup_result":
             results.append(loaded)
     if not results:
-        return default_research_gap_followup_quality()
+        report = default_research_gap_followup_quality()
+        report.update(closed_quality_fields(closed_tasks, closed_categories, accepted_evidence_ids))
+        if closed_tasks:
+            report["research_gap_followup_score"] = 90
+        return report
     unsafe = [row for row in results if row.get("real_trade_allowed") or row.get("broker_integration") != "disabled"]
     with_requests = [row for row in results if row.get("evidence_requests")]
     score = 65 + min(20, len(with_requests) * 10)
+    if closed_tasks:
+        score = max(score, 90 + min(5, len(accepted_evidence_ids)))
     if unsafe:
         score = 0
-    return {
+    report = {
         "artifact_type": "research_gap_followup_quality",
         "result_count": len(results),
         "owner_agent_count": len({row.get("owner_agent_id") for row in results if row.get("owner_agent_id")}),
@@ -388,6 +402,8 @@ def load_research_gap_followup_quality(run_path: Path | None) -> dict[str, Any]:
         "real_trade_allowed": False if not unsafe else True,
         "broker_integration": "disabled" if not unsafe else "violation",
     }
+    report.update(closed_quality_fields(closed_tasks, closed_categories, accepted_evidence_ids))
+    return report
 
 
 def default_research_gap_followup_quality() -> dict[str, Any]:
@@ -397,11 +413,24 @@ def default_research_gap_followup_quality() -> dict[str, Any]:
         "owner_agent_count": 0,
         "categories": [],
         "results_with_evidence_requests": 0,
+        "closed_count": 0,
+        "closed_categories": [],
+        "accepted_evidence_count": 0,
+        "accepted_evidence_ids": [],
         "all_safe": True,
         "blocking_issues": [],
         "research_gap_followup_score": 0,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
+    }
+
+
+def closed_quality_fields(closed_tasks: list[dict[str, Any]], closed_categories: list[str], accepted_evidence_ids: list[str]) -> dict[str, Any]:
+    return {
+        "closed_count": len(closed_tasks),
+        "closed_categories": closed_categories,
+        "accepted_evidence_count": len(accepted_evidence_ids),
+        "accepted_evidence_ids": accepted_evidence_ids,
     }
 
 

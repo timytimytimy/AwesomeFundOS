@@ -226,6 +226,8 @@ closed_by_accepted_evidence
 
 后续再次运行 `fundos eval --run <run>` 或重新生成 Research Task DAG 时，已关闭的缺口必须继续保留在 manifest / DAG / Harness 中，不能因为 `research_plan_coverage.missing_categories` 已移除该 category 而丢失审计历史。
 
+Evaluation 会把已关闭缺口作为一等 Harness 信号：`research_gap_followup_quality` 输出 `closed_count`、`closed_categories`、`accepted_evidence_count` 和 `accepted_evidence_ids`，并在 `accepted_outputs` 中加入 `research_gap_closures`。关闭缺口会提高 `dimension_scores.research_gap_followup`，但仍不产生真实交易权限。
+
 约束：
 
 - follow-up task 只能产生研究 brief、证据请求和 source-quality notes；
