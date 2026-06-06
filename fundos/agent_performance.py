@@ -43,12 +43,15 @@ def evaluate_agent_performance(run_path: Path) -> dict[str, Any]:
     eval_by_agent = {row.get("agent_id"): row for row in evaluation.get("agent_scores", [])}
     results = [evaluate_single_agent(run_doc.get("run_id", run_path.name), item, harness_by_agent.get(item.get("agent_id")), eval_by_agent.get(item.get("agent_id"))) for item in selected]
     counts = count_by(results, "recommended_action")
+    scored = [float(row.get("final_score", 0) or 0) for row in results if float(row.get("final_score", 0) or 0) > 0]
     return {
         "version": PERFORMANCE_VERSION,
         "artifact_type": "agent_performance_report",
         "run_id": run_doc.get("run_id", run_path.name),
         "agent_count": len(results),
+        "average_final_score": round(sum(scored) / len(scored), 1) if scored else 0,
         "recommended_action_counts": counts,
+        "ledger_entries_written": len(results),
         "agent_results": results,
         "controls": [
             "performance_review_is_not_capital_authority",

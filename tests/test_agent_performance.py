@@ -6,6 +6,8 @@ from pathlib import Path
 import yaml
 
 from fundos.agent_performance import evaluate_agent_performance, load_performance_summary, write_agent_performance
+from fundos.evidence import make_evidence_pack
+from fundos.harness import make_evaluation_for_run
 from fundos.io import write_yaml
 
 
@@ -106,6 +108,61 @@ class AgentPerformanceTests(unittest.TestCase):
 
             self.assertEqual(report["agent_results"][0]["recommended_action"], "needs_more_observations")
             self.assertIn("missing_agent_harness", report["agent_results"][0]["blocking_issues"])
+
+    def test_evaluation_summary_surfaces_agent_performance_quality(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "run-performance-evaluation"
+            (run_path / "harness").mkdir(parents=True)
+            (run_path / "evaluations").mkdir(parents=True)
+            selected = [
+                {"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"},
+                {"agent_id": "swing_trader", "role": "SwingTrader"},
+            ]
+            pack = make_evidence_pack(
+                "run-performance-evaluation",
+                "topic",
+                "机器人产业链投资机会",
+                public_results=[{"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"}],
+            )
+            write_yaml(run_path / "run.yaml", {"run_id": "run-performance-evaluation", "selected_agents": selected})
+            write_yaml(run_path / "harness" / "agent-harness.yaml", {
+                "agent_results": [
+                    {
+                        "agent_id": "tech_growth_analyst",
+                        "overall_score": 92,
+                        "context_compression_quality": {"score": 90},
+                        "skill_invocation_quality": {"score": 93},
+                        "role_consistency_quality": {"score": 94},
+                        "blocking_issues": [],
+                    },
+                    {
+                        "agent_id": "swing_trader",
+                        "overall_score": 52,
+                        "context_compression_quality": {"score": 55},
+                        "skill_invocation_quality": {"score": 58},
+                        "role_consistency_quality": {"score": 50},
+                        "blocking_issues": ["agent_harness_score_below_60"],
+                    },
+                ]
+            })
+            write_yaml(run_path / "evaluations" / "evaluation-report.yaml", {
+                "agent_scores": [
+                    {"agent_id": "tech_growth_analyst", "contribution_quality": 90, "context_fit": 88, "role_consistency": 91},
+                    {"agent_id": "swing_trader", "contribution_quality": 45, "context_fit": 55, "role_consistency": 50},
+                ]
+            })
+            performance = write_agent_performance(run_path, root=root)
+
+            evaluation = make_evaluation_for_run("run-performance-evaluation", selected, pack, run_path)
+
+        self.assertEqual(evaluation["dimension_scores"]["agent_performance"], performance["average_final_score"])
+        self.assertIn("agent_performance", evaluation["accepted_outputs"])
+        self.assertEqual(evaluation["agent_performance_quality"]["agent_count"], 2)
+        self.assertEqual(evaluation["agent_performance_quality"]["promote_watch"], 1)
+        self.assertEqual(evaluation["agent_performance_quality"]["retrain_or_downgrade_watch"], 1)
+        self.assertEqual(evaluation["agent_performance_quality"]["ledger_entries_written"], 2)
+        self.assertIn("agent_performance_retrain_or_downgrade_watch", evaluation["blocking_issues"])
 
 
 if __name__ == "__main__":

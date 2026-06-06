@@ -551,6 +551,10 @@ def command_evolve(args: argparse.Namespace) -> int:
     write_agent_performance(run_path)
     governance = write_agent_governance(run_path)
     write_operating_system_manifest(run_path)
+    if (run_path / "evidence" / "evidence-pack.yaml").exists():
+        evidence = read_yaml(run_path / "evidence" / "evidence-pack.yaml")
+        evaluation = make_evaluation_for_run(run_doc.get("run_id", run_path.name), run_doc.get("selected_agents", []), evidence, run_path)
+        write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     memory_summary = load_memory_writeback_summary(run_path)
     print(f"evolution_results={run_path / 'evolution' / 'evolution-gate-results.jsonl'}")
     print(f"candidates={len(results)}")

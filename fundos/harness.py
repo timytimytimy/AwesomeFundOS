@@ -5,6 +5,7 @@ from typing import Any
 
 from fundos.agent_harness import load_agent_harness
 from fundos.agent_learning import load_agent_learning_report
+from fundos.agent_performance import load_agent_performance
 from fundos.agent_tool_use import load_agent_tool_use_report
 from fundos.agent_governance import load_governance_summary
 from fundos.agent_threads import evaluate_thread_manifest
@@ -68,6 +69,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     claim_graph = load_claim_graph_report(run_path)
     agent_tool_use = load_agent_tool_use_report(run_path)
     agent_learning = load_agent_learning_report(run_path)
+    agent_performance = load_agent_performance(run_path)
     case_replay_score = case_replay.get("case_replay_score", 0)
     outcome_score = outcome_tracking.get("outcome_quality_score", 0)
     paper_actions = portfolio["paper_portfolio"].get("actions", [])
@@ -137,6 +139,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("agent_tool_use")
     if agent_learning.get("candidate_count", 0) > 0:
         accepted_outputs.append("agent_learning_candidates")
+    if agent_performance.get("agent_count", 0) > 0:
+        accepted_outputs.append("agent_performance")
     for issue in tool_harness.get("blocking_issues", []):
         if issue not in blocking:
             blocking.append(issue)
@@ -197,6 +201,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             blocking.append(issue)
     if agent_learning.get("real_trade_allowed"):
         blocking.append("Agent Learning 出现 real_trade_allowed=true，违反学习升级边界。")
+    if int(agent_performance.get("recommended_action_counts", {}).get("retrain_or_downgrade_watch", 0) or 0) > 0:
+        blocking.append("agent_performance_retrain_or_downgrade_watch")
     if source_ingestion.get("ingested_sources", 0) > 0 and not source_ingestion.get("all_patterns_start_quarantined", False):
         blocking.append("Source Ingestion 生成了未隔离的 pattern candidate，禁止进入 Evolution。")
     agent_harness_scores = agent_harness.get("aggregate_scores", {})
@@ -231,6 +237,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "claim_traceability": claim_graph.get("traceability_score", 0),
             "agent_tool_use": agent_tool_use.get("overall_score", 0),
             "agent_os_contract": agent_harness_scores.get("agent_os_contract", 0),
+            "agent_performance": agent_performance.get("average_final_score", 0),
             "research_gap_followup": research_gap_followups.get("research_gap_followup_score", 0),
         },
         "context_quality_scores": {
@@ -362,6 +369,16 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "controls": agent_learning.get("controls", []),
             "real_trade_allowed": agent_learning.get("real_trade_allowed", False),
             "broker_integration": agent_learning.get("broker_integration", "disabled"),
+        },
+        "agent_performance_quality": {
+            "agent_count": agent_performance.get("agent_count", 0),
+            "average_final_score": agent_performance.get("average_final_score", 0),
+            "promote_watch": agent_performance.get("recommended_action_counts", {}).get("promote_watch", 0),
+            "maintain": agent_performance.get("recommended_action_counts", {}).get("maintain", 0),
+            "retrain_or_downgrade_watch": agent_performance.get("recommended_action_counts", {}).get("retrain_or_downgrade_watch", 0),
+            "needs_more_observations": agent_performance.get("recommended_action_counts", {}).get("needs_more_observations", 0),
+            "ledger_entries_written": agent_performance.get("ledger_entries_written", 0),
+            "controls": agent_performance.get("controls", []),
         },
         "source_ingestion_quality": {
             "status": source_ingestion.get("status", "present"),
