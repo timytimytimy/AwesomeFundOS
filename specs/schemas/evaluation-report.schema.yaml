@@ -4,6 +4,26 @@ required: [run_id, overall_score, dimension_scores, agent_scores, blocking_issue
 properties:
   run_id: {type: string}
   overall_score: {type: number}
+  source_coverage:
+    type: object
+    properties:
+      total_items: {type: integer}
+      public_research_items: {type: integer}
+      tier_1_primary_fact: {type: integer}
+      low_tier_items: {type: integer}
+  research_plan_coverage:
+    type: object
+    properties:
+      planned_categories: {type: integer}
+      categories_covered: {type: integer}
+      missing_categories:
+        type: array
+        items: {type: string}
+      category_counts: {type: object}
+      plan_step_count: {type: integer}
+  next_research_tasks:
+    type: array
+    items: {type: object}
   dimension_scores:
     type: object
     properties:
@@ -14,6 +34,16 @@ properties:
       collaboration_quality: {type: number}
       tool_usage_quality: {type: number}
       context_quality: {type: number}
+      historical_case_replay: {type: number}
+      outcome_tracking: {type: number}
+      market_state_recognition: {type: number}
+      workflow_orchestration: {type: number}
+      tool_runtime_quality: {type: number}
+      claim_traceability: {type: number}
+      agent_tool_use: {type: number}
+      agent_os_contract: {type: number}
+      agent_performance: {type: number}
+      research_gap_followup: {type: number}
   context_quality_scores:
     type: object
     properties:
@@ -25,6 +55,299 @@ properties:
       noise_control: {type: number}
       leakage_control: {type: number}
       contradiction_preservation: {type: number}
+  agent_harness_quality:
+    type: object
+    properties:
+      agent_count: {type: integer}
+      context_compression: {type: number}
+      context_management_quality: {type: number}
+      thread_memory_summary_quality: {type: number}
+      memory_lesson_traceability_quality: {type: number}
+      reasoning_layer_separation_quality: {type: number}
+      skill_invocation: {type: number}
+      skill_guardrails: {type: number}
+      agent_os_contract_quality: {type: number}
+      role_consistency: {type: number}
+      overall: {type: number}
+  agent_thread_quality:
+    type: object
+  context_management_quality:
+    type: object
+    properties:
+      overall: {type: number}
+      agents_evaluated: {type: integer}
+      budget_manifest_present: {type: integer}
+      token_budget_respected: {type: integer}
+      loss_accounting_present: {type: integer}
+      role_specific_compression_present: {type: integer}
+      excluded_items: {type: integer}
+      estimated_tokens_before: {type: integer}
+      estimated_tokens_after: {type: integer}
+      drop_reasons:
+        type: array
+        items: {type: string}
+      thread_memory_summary_quality: {type: number}
+      thread_summaries_available: {type: integer}
+      thread_summary_signals_present: {type: integer}
+  task_dag_quality:
+    type: object
+    properties:
+      task_dag_quality_score: {type: number}
+      node_count: {type: integer}
+      edge_count: {type: integer}
+      blocked_node_count: {type: integer}
+      topological_order_valid: {type: boolean}
+      missing_artifacts:
+        type: array
+        items: {type: string}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      controls:
+        type: array
+        items: {type: string}
+      agent_reasoning_hypothesis_task_count: {type: integer}
+      agent_reasoning_hypothesis_quality:
+        type: object
+        properties:
+          routed_count: {type: integer}
+          all_have_validation_required: {type: boolean}
+          all_have_source_agent: {type: boolean}
+          all_safe: {type: boolean}
+          score: {type: number}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  research_gap_followup_quality:
+    type: object
+  agent_governance_quality:
+    type: object
+    properties:
+      agent_count: {type: integer}
+      governance_action_counts: {type: object}
+      seat_competitions: {type: integer}
+      promotion_watch: {type: integer}
+      retrain_and_downgrade_watch: {type: integer}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  collaboration_harness_quality:
+    type: object
+    properties:
+      overall_score: {type: number}
+      handoff_count: {type: integer}
+      disagreement_count: {type: integer}
+      veto_count: {type: integer}
+      checks: {type: object}
+      blocking_issues:
+        type: array
+        items: {type: string}
+  pm_competition_quality:
+    type: object
+    properties:
+      overall_score: {type: number}
+      style_count: {type: integer}
+      disagreement_count: {type: integer}
+      risk_boundary_present: {type: boolean}
+      no_real_trade_action: {type: boolean}
+      checks: {type: object}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  tool_harness_quality:
+    type: object
+    properties:
+      overall_score: {type: number}
+      adapter_coverage_score: {type: number}
+      public_research_items: {type: integer}
+      primary_public_items: {type: integer}
+      low_tier_public_items: {type: integer}
+      research_plan_coverage: {type: object}
+      high_confidence_allowed: {type: boolean}
+      blocking_issues:
+        type: array
+        items: {type: string}
+  claim_graph_quality:
+    type: object
+    properties:
+      traceability_score: {type: number}
+      claim_node_count: {type: integer}
+      evidence_node_count: {type: integer}
+      decision_claim_count: {type: integer}
+      agent_claim_count: {type: integer}
+      tool_result_node_count: {type: integer}
+      unsupported_decision_claims:
+        type: array
+        items: {type: object}
+      low_tier_decision_claims:
+        type: array
+        items: {type: object}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  tool_runtime_quality:
+    type: object
+    properties:
+      tool_runtime_quality_score: {type: number}
+      tool_call_count: {type: integer}
+      evidence_items_created: {type: integer}
+      blocked_tool_calls: {type: integer}
+      adapters_called:
+        type: array
+        items: {type: string}
+      source_tier_counts: {type: object}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  agent_tool_use_quality:
+    type: object
+    properties:
+      overall_score: {type: number}
+      agent_count: {type: integer}
+      agents_with_missing_required_tools: {type: integer}
+      agents_with_forbidden_tool_calls: {type: integer}
+      succeeded_tool_calls: {type: integer}
+      linked_tool_results: {type: integer}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  agent_learning_quality:
+    type: object
+    properties:
+      candidate_count: {type: integer}
+      new_candidates: {type: integer}
+      merged_to_evolution: {type: integer}
+      candidates_by_agent: {type: object}
+      candidate_type_counts: {type: object}
+      target_scope_counts: {type: object}
+      route_counts: {type: object}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  agent_performance_quality:
+    type: object
+    properties:
+      agent_count: {type: integer}
+      average_final_score: {type: number}
+      promote_watch: {type: integer}
+      maintain: {type: integer}
+      retrain_or_downgrade_watch: {type: integer}
+      needs_more_observations: {type: integer}
+      ledger_entries_written: {type: integer}
+      controls:
+        type: array
+        items: {type: string}
+  source_ingestion_quality:
+    type: object
+    properties:
+      status: {type: string}
+      ingested_sources: {type: integer}
+      quarantined_sources: {type: integer}
+      pattern_candidates: {type: integer}
+      evolution_candidates: {type: integer}
+      direct_trade_signal_blocked: {type: boolean}
+      copyright_violation_blocked: {type: boolean}
+      all_patterns_start_quarantined: {type: boolean}
+      real_trade_allowed: {enum: [false]}
+  portfolio_quality:
+    type: object
+    properties:
+      watchlist_items: {type: integer}
+      paper_actions: {type: integer}
+      real_trade_violations: {type: integer}
+      review_dates_present: {type: integer}
+  portfolio_review_quality:
+    type: object
+    properties:
+      reviewed_actions: {type: integer}
+      attribution_items: {type: integer}
+      learning_candidates: {type: integer}
+      real_trade_violations: {type: integer}
+      review_verdict: {type: string}
+  outcome_tracking_quality:
+    type: object
+    properties:
+      outcome_status: {type: string}
+      actions_evaluated: {type: integer}
+      actions_missing_market_replay: {type: integer}
+      market_replay_items: {type: integer}
+      outcome_quality_score: {type: number}
+  market_state_quality:
+    type: object
+    properties:
+      market_state_quality_score: {type: number}
+      subjects_evaluated: {type: integer}
+      subjects_missing_data: {type: integer}
+      state_counts: {type: object}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
+  case_replay_quality:
+    type: object
+    properties:
+      patterns_replayed: {type: integer}
+      case_results_total: {type: integer}
+      passed_results: {type: integer}
+      high_overfit_results: {type: integer}
+      case_replay_score: {type: number}
+  case_library_quality:
+    type: object
+    properties:
+      case_count: {type: integer}
+      matched_cases: {type: integer}
+      matched_case_types: {type: integer}
+      matched_case_type_names:
+        type: array
+        items: {type: string}
+      agent_coverage: {type: object}
+      case_library_index: {type: string}
+      real_trade_allowed: {enum: [false]}
+  capability_regression_quality:
+    type: object
+    properties:
+      regression_status: {type: string}
+      candidates_total: {type: integer}
+      passed_candidates: {type: integer}
+      blocked_candidates: {type: integer}
+  skill_benchmark_quality:
+    type: object
+    properties:
+      overall_score: {type: number}
+      agents_evaluated: {type: integer}
+      passed_agents: {type: integer}
+      blocked_agents: {type: integer}
+      skill_candidates_evaluated: {type: integer}
+      blocked_skill_candidates: {type: integer}
+      blocking_issues:
+        type: array
+        items: {type: string}
+      real_trade_allowed: {enum: [false]}
+      broker_integration: {enum: [disabled]}
   agent_scores:
     type: array
     items:
@@ -37,48 +360,6 @@ properties:
         improvement_suggestions:
           type: array
           items: {type: string}
-  agent_harness_quality:
-    type: object
-    properties:
-      agent_count: {type: integer}
-      context_compression: {type: number}
-      context_management_quality: {type: number}
-      thread_memory_summary_quality: {type: number}
-      memory_lesson_traceability_quality: {type: number}
-      reasoning_layer_separation_quality: {type: number}
-      skill_invocation: {type: number}
-      skill_guardrails: {type: number}
-      role_consistency: {type: number}
-      overall: {type: number}
-  context_management_quality:
-    type: object
-    properties:
-      overall: {type: number}
-      agents_evaluated: {type: integer}
-      budget_manifest_present: {type: integer}
-      token_budget_respected: {type: integer}
-      loss_accounting_present: {type: integer}
-      role_specific_compression_present: {type: integer}
-      thread_memory_summary_quality: {type: number}
-      thread_summaries_available: {type: integer}
-      thread_summary_signals_present: {type: integer}
-  task_dag_quality:
-    type: object
-    properties:
-      task_dag_quality_score: {type: number}
-      node_count: {type: integer}
-      edge_count: {type: integer}
-      blocked_node_count: {type: integer}
-      topological_order_valid: {type: boolean}
-      agent_reasoning_hypothesis_task_count: {type: integer}
-      agent_reasoning_hypothesis_quality:
-        type: object
-        properties:
-          routed_count: {type: integer}
-          all_have_validation_required: {type: boolean}
-          all_have_source_agent: {type: boolean}
-          all_safe: {type: boolean}
-          score: {type: number}
   blocking_issues:
     type: array
     items: {type: string}

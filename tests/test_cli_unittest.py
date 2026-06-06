@@ -967,3 +967,57 @@ class FundosCliTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class EvaluationReportSchemaContractTests(unittest.TestCase):
+    def test_evaluation_report_schema_declares_current_runtime_quality_fields(self):
+        schema = yaml.safe_load((ROOT / "specs/schemas/evaluation-report.schema.yaml").read_text(encoding="utf-8"))
+
+        dimensions = schema["properties"]["dimension_scores"]["properties"]
+        for field in [
+            "historical_case_replay",
+            "outcome_tracking",
+            "market_state_recognition",
+            "workflow_orchestration",
+            "tool_runtime_quality",
+            "claim_traceability",
+            "agent_tool_use",
+            "agent_os_contract",
+            "agent_performance",
+            "research_gap_followup",
+        ]:
+            self.assertIn(field, dimensions)
+
+        top_level_quality_blocks = [
+            "agent_thread_quality",
+            "research_gap_followup_quality",
+            "agent_governance_quality",
+            "collaboration_harness_quality",
+            "pm_competition_quality",
+            "tool_harness_quality",
+            "claim_graph_quality",
+            "tool_runtime_quality",
+            "agent_tool_use_quality",
+            "agent_learning_quality",
+            "agent_performance_quality",
+            "source_ingestion_quality",
+            "portfolio_quality",
+            "portfolio_review_quality",
+            "outcome_tracking_quality",
+            "market_state_quality",
+            "case_replay_quality",
+            "case_library_quality",
+            "capability_regression_quality",
+            "skill_benchmark_quality",
+        ]
+        for field in top_level_quality_blocks:
+            self.assertIn(field, schema["properties"])
+
+        harness_quality = schema["properties"]["agent_harness_quality"]["properties"]
+        self.assertIn("agent_os_contract_quality", harness_quality)
+        agent_performance = schema["properties"]["agent_performance_quality"]["properties"]
+        for field in ["agent_count", "average_final_score", "ledger_entries_written", "retrain_or_downgrade_watch"]:
+            self.assertIn(field, agent_performance)
+        governance = schema["properties"]["agent_governance_quality"]["properties"]
+        self.assertIn("retrain_and_downgrade_watch", governance)
+        self.assertEqual(governance["real_trade_allowed"]["enum"], [False])
+        self.assertEqual(governance["broker_integration"]["enum"], ["disabled"])
