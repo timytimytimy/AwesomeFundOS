@@ -219,6 +219,7 @@ V1 轻量设计：
 - Run Workspace 保存当次用户问题、证据、上下文包、Agent 输出、辩论过程、决策备忘录、评估报告和升级候选。
 - 只有通过 EvolutionGate 的内容才能写回长期记忆。
 - EvolutionGate 必须把候选评估结果追加回目标 Agent Thread；若发生受控 Memory Writeback，还必须追加 `memory_writeback_applied`，从而形成 `Thread -> Learning Candidate -> EvolutionGate -> Memory/Thread` 的闭环。
+- ContextPack 生成时必须把安全的 Agent Thread 摘要作为只读检索输入，使长期经验、被隔离/拒绝的候选和未关闭证据缺口能影响下一次角色化上下文，但不得覆盖当前证据或改变权限。
 
 ## 15. 输出形态
 

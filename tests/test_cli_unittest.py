@@ -172,7 +172,13 @@ class FundosCliTests(unittest.TestCase):
             self.assertFalse(pm_competition["real_trade_allowed"])
 
             for agent_id in ids:
-                self.assertTrue((run_path / "context" / f"{agent_id}.context-pack.yaml").exists(), agent_id)
+                context_path = run_path / "context" / f"{agent_id}.context-pack.yaml"
+                self.assertTrue(context_path.exists(), agent_id)
+                context_pack = yaml.safe_load(context_path.read_text())
+                self.assertIn("thread_memory_summary", context_pack)
+                self.assertTrue(context_pack["thread_memory_summary"]["available"])
+                self.assertGreaterEqual(context_pack["thread_memory_summary"]["event_count"], 1)
+                self.assertIn("thread_summary_included", context_pack["context_budget_manifest"]["controls"])
                 self.assertTrue((run_path / "agent_work" / f"{agent_id}.md").exists(), agent_id)
 
             memo = yaml.safe_load((run_path / "decision/final-decision-memo.yaml").read_text())

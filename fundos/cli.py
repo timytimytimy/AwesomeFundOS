@@ -432,7 +432,7 @@ def command_run(args: argparse.Namespace) -> int:
     agent_outputs = []
     for item in selected:
         agent = agents_by_id[item["agent_id"]]
-        context = make_context_pack(run_id, agent, evidence_pack)
+        context = make_context_pack(run_id, agent, evidence_pack, runtime_root=Path.cwd())
         write_yaml(run_path / "context" / f"{agent['id']}.context-pack.yaml", context)
         agent_outputs.append(write_agent_output(run_path / "agent_work" / f"{agent['id']}.md", agent, context, value, evidence_pack))
     write_agent_harness(run_path, selected)

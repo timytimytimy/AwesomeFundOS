@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+import json
 
 import yaml
 
@@ -39,6 +40,68 @@ class ContextManagementHarnessTests(unittest.TestCase):
         self.assertIn("low_tier_or_lower_priority", {row["reason"] for row in loss["excluded_evidence"]})
         self.assertIn("retained_claim_ids", loss)
         self.assertIn("dropped_claim_ids", loss)
+
+    def test_context_pack_includes_agent_thread_memory_summary_when_runtime_root_provided(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+            trader = next(item for item in roster["agents"] if item["id"] == "position_trend_trader")
+            pack = dense_evidence_pack("ctx-thread-run")
+            thread_dir = root / "memory" / "agents" / "position_trend_trader"
+            thread_dir.mkdir(parents=True, exist_ok=True)
+            (thread_dir / "thread-events.jsonl").write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in [
+                {
+                    "timestamp": "2026-06-06T00:00:00+00:00",
+                    "event_type": "research_gap_followup_answered",
+                    "agent_id": "position_trend_trader",
+                    "run_id": "ctx-thread-run",
+                    "payload": {"task_id": "ctx-thread-run:research_gap:001", "category": "market_data", "status": "needs_evidence"},
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+                {
+                    "timestamp": "2026-06-06T00:01:00+00:00",
+                    "event_type": "evolution_candidate_quarantined",
+                    "agent_id": "position_trend_trader",
+                    "run_id": "ctx-thread-run",
+                    "payload": {"candidate_id": "cand_quarantine", "decision": "quarantine", "reasons": ["missing_source_registry_required_gate"]},
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+                {
+                    "timestamp": "2026-06-06T00:02:00+00:00",
+                    "event_type": "evolution_candidate_rejected",
+                    "agent_id": "position_trend_trader",
+                    "run_id": "ctx-thread-run",
+                    "payload": {"candidate_id": "cand_reject", "decision": "reject", "reasons": ["core_profile_mutation"]},
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+                {
+                    "timestamp": "2026-06-06T00:03:00+00:00",
+                    "event_type": "memory_writeback_applied",
+                    "agent_id": "position_trend_trader",
+                    "run_id": "ctx-thread-run",
+                    "payload": {"candidate_id": "cand_accept", "approval_mode": "evolution_gate_v1_auto_controlled"},
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+            ]), encoding="utf-8")
+
+            context = make_context_pack("ctx-thread-run", trader, pack, runtime_root=root)
+
+            summary = context["thread_memory_summary"]
+            self.assertEqual(summary["agent_id"], "position_trend_trader")
+            self.assertEqual(summary["event_count"], 4)
+            self.assertEqual(summary["latest_event_type"], "memory_writeback_applied")
+            self.assertEqual(summary["accepted_memory_lessons"][0]["candidate_id"], "cand_accept")
+            self.assertEqual(summary["quarantined_candidates"][0]["candidate_id"], "cand_quarantine")
+            self.assertEqual(summary["rejected_candidates"][0]["candidate_id"], "cand_reject")
+            self.assertEqual(summary["open_research_gaps"][0]["category"], "market_data")
+            self.assertFalse(summary["real_trade_allowed"])
+            self.assertEqual(summary["broker_integration"], "disabled")
+            self.assertIn("thread_memory_summary", context["context_budget_manifest"])
+            self.assertIn("thread_summary_included", context["context_budget_manifest"]["controls"])
 
     def test_agent_harness_scores_context_management_quality(self):
         with tempfile.TemporaryDirectory() as d:

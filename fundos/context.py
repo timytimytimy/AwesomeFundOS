@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 import re
+from pathlib import Path
 from typing import Any
 
 from fundos.io import REPO_ROOT
@@ -9,7 +11,7 @@ from fundos.memory_policies import load_memory_policy
 from fundos.tool_policies import load_tool_policy
 
 
-def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[str, Any]) -> dict[str, Any]:
+def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[str, Any], runtime_root: Path | None = None) -> dict[str, Any]:
     role = agent["role"]
     agent_id = agent["id"]
     policy = load_context_policy(agent)
@@ -45,6 +47,21 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
     excluded = non_candidates + [excluded_row_from_context_item(item, "low_tier_or_lower_priority") for item in excluded_candidates]
     manifest = make_context_budget_manifest(agent_id, policy, candidates, included, excluded, focus)
     loss_accounting = make_context_loss_accounting(included, excluded)
+    thread_memory_summary = load_thread_memory_summary(runtime_root, agent_id)
+    if thread_memory_summary.get("available"):
+        manifest["thread_memory_summary"] = {
+            "included": True,
+            "event_count": thread_memory_summary.get("event_count", 0),
+            "latest_event_type": thread_memory_summary.get("latest_event_type"),
+            "open_research_gap_count": len(thread_memory_summary.get("open_research_gaps", [])),
+            "accepted_memory_lesson_count": len(thread_memory_summary.get("accepted_memory_lessons", [])),
+            "quarantined_candidate_count": len(thread_memory_summary.get("quarantined_candidates", [])),
+            "rejected_candidate_count": len(thread_memory_summary.get("rejected_candidates", [])),
+        }
+        controls = list(manifest.get("controls", []))
+        if "thread_summary_included" not in controls:
+            controls.append("thread_summary_included")
+        manifest["controls"] = controls
     return {
         "context_pack_id": f"ctx_{agent_id}",
         "run_id": run_id,
@@ -74,8 +91,110 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "context_quality_controls": policy.get("harness_checks", []),
         "memory_quality_controls": memory_policy.get("harness_checks", []),
         "memory_retrieval_contract": memory_policy.get("retrieval_contract", {}),
+        "thread_memory_summary": thread_memory_summary,
         "tool_quality_controls": tool_policy.get("harness_checks", []),
         "output_schema": f"{role}Output",
+    }
+
+
+def load_thread_memory_summary(runtime_root: Path | None, agent_id: str, max_items: int = 5) -> dict[str, Any]:
+    base = {
+        "agent_id": agent_id,
+        "available": False,
+        "event_count": 0,
+        "latest_event_type": "none",
+        "accepted_memory_lessons": [],
+        "quarantined_candidates": [],
+        "rejected_candidates": [],
+        "open_research_gaps": [],
+        "controls": ["thread_summary_is_retrieval_input_only", "no_real_trade_action", "broker_integration_disabled"],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+    if not runtime_root:
+        return base
+    events_path = Path(runtime_root) / "memory" / "agents" / agent_id / "thread-events.jsonl"
+    if not events_path.exists():
+        return base
+    events = read_thread_events(events_path)
+    if not events:
+        return base
+    summary = dict(base)
+    summary["available"] = True
+    summary["event_log_path"] = str(Path("memory") / "agents" / agent_id / "thread-events.jsonl")
+    summary["event_count"] = len(events)
+    summary["latest_event_type"] = events[-1].get("event_type", "none")
+    summary["accepted_memory_lessons"] = latest_by_type(events, "memory_writeback_applied", max_items, accepted_memory_lesson_from_event)
+    summary["quarantined_candidates"] = latest_by_type(events, "evolution_candidate_quarantined", max_items, candidate_result_from_event)
+    summary["rejected_candidates"] = latest_by_type(events, "evolution_candidate_rejected", max_items, candidate_result_from_event)
+    summary["open_research_gaps"] = open_research_gaps(events, max_items)
+    summary["recent_events"] = [compact_thread_event(event) for event in events[-max_items:]]
+    return summary
+
+
+def read_thread_events(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        rows.append(json.loads(line))
+    return [row for row in rows if not row.get("real_trade_allowed") and row.get("broker_integration", "disabled") == "disabled"]
+
+
+def latest_by_type(events: list[dict[str, Any]], event_type: str, max_items: int, mapper: Any) -> list[dict[str, Any]]:
+    return [mapper(event) for event in events if event.get("event_type") == event_type][-max_items:]
+
+
+def accepted_memory_lesson_from_event(event: dict[str, Any]) -> dict[str, Any]:
+    payload = event.get("payload", {}) or {}
+    return {
+        "candidate_id": payload.get("candidate_id"),
+        "approval_mode": payload.get("approval_mode"),
+        "semantic_memory_path": payload.get("semantic_memory_path"),
+        "timestamp": event.get("timestamp"),
+    }
+
+
+def candidate_result_from_event(event: dict[str, Any]) -> dict[str, Any]:
+    payload = event.get("payload", {}) or {}
+    return {
+        "candidate_id": payload.get("candidate_id"),
+        "decision": payload.get("decision"),
+        "reasons": payload.get("reasons", []),
+        "timestamp": event.get("timestamp"),
+    }
+
+
+def open_research_gaps(events: list[dict[str, Any]], max_items: int) -> list[dict[str, Any]]:
+    opened: dict[str, dict[str, Any]] = {}
+    closed: set[str] = set()
+    for event in events:
+        payload = event.get("payload", {}) or {}
+        task_id = payload.get("task_id")
+        if not task_id:
+            continue
+        if event.get("event_type") == "research_gap_followup_answered" and payload.get("status") == "needs_evidence":
+            opened[str(task_id)] = {
+                "task_id": task_id,
+                "category": payload.get("category"),
+                "status": payload.get("status"),
+                "result_path": payload.get("result_path"),
+                "timestamp": event.get("timestamp"),
+            }
+        elif event.get("event_type") == "research_gap_followup_closed":
+            closed.add(str(task_id))
+    return [row for task_id, row in opened.items() if task_id not in closed][-max_items:]
+
+
+def compact_thread_event(event: dict[str, Any]) -> dict[str, Any]:
+    payload = event.get("payload", {}) or {}
+    return {
+        "timestamp": event.get("timestamp"),
+        "event_type": event.get("event_type"),
+        "run_id": event.get("run_id"),
+        "candidate_id": payload.get("candidate_id"),
+        "task_id": payload.get("task_id"),
+        "category": payload.get("category"),
     }
 
 

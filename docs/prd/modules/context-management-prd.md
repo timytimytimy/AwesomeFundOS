@@ -11,6 +11,7 @@ Context Management 负责把全量 EvidencePack 压缩、过滤、路由为 Agen
 ```text
 Raw Sources / Tool Results
   -> EvidencePack
+  + Agent Persistent Thread Summary
   -> Context Manager
   -> Agent-specific ContextPack
   -> Agent Output
@@ -52,9 +53,12 @@ ContextPack 是某个 Agent 在某个阶段看到的上下文包。
 - contradiction_table
 - missing_evidence
 - excluded_evidence_summary
+- thread_memory_summary
 - required_focus
 - forbidden_focus
 - output_schema
+
+`thread_memory_summary` 是长期 Thread 的只读检索摘要，不是自动上下文污染。它只允许纳入：最近 accepted memory lessons、quarantined/rejected candidates、尚未关闭的 research gaps 和最近事件索引；必须过滤任何 real trade / broker 泄漏，并在 ContextBudgetManifest 中记录 `thread_summary_included`。Agent 可以用它维持长期连续性和避免重复错误，但不能让它覆盖当前 EvidencePack、ToolPolicy、MemoryPolicy 或 Harness 结果。
 
 ## 5. 角色化上下文策略
 
@@ -102,6 +106,7 @@ V1 的 Context Quality Harness 不只给全局平均分，还必须按 Agent 输
 - allowed_claims 是否能回链 Claim ID；
 - Agent 输出中的 key_claims 是否来自该 ContextPack；
 - contradiction_table、missing_evidence、excluded_evidence_summary 是否保留；
+- thread_memory_summary 是否保留已接受经验、隔离/拒绝候选和未关闭证据缺口，且只作为 retrieval input；
 - Skill 的 Context Management 规则是否进入运行时 Skill Contract。
 
 产物路径：`runs/{run_id}/harness/agent-harness.yaml`。
@@ -114,3 +119,4 @@ V1 的 Context Quality Harness 不只给全局平均分，还必须按 Agent 输
 - 不同角色获得明显不同的上下文内容和输出约束。
 - Harness 能对 ContextPack 评分并指出缺陷。
 - Harness 能把 ContextPack 评分纳入 `agent_harness_quality`。
+- ContextPack 能在有 runtime thread 时纳入安全的 Thread summary，并保持 no-real-trade / broker-disabled 边界。
