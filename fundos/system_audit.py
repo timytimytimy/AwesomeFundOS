@@ -57,6 +57,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     claim_graph = load_yaml(run_path / "harness" / "claim-graph.yaml", {})
     agent_performance = load_yaml(run_path / "harness" / "agent-performance.yaml", {})
     agent_governance = load_yaml(run_path / "harness" / "agent-governance.yaml", {})
+    agent_harness_full = load_yaml(run_path / "harness" / "agent-harness.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
@@ -72,6 +73,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     evaluation_schema_check = validate_evaluation_report_schema(repo_root, evaluation)
     manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
     manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
+    manifest_context_check = operating_system_manifest_context_management_check(os_manifest, agent_harness_full)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -195,6 +197,18 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_source_check["ok"],
             details=manifest_source_check,
+        ),
+        requirement(
+            "runtime.operating_system_manifest_context_management_matches_harness",
+            "context_management",
+            "Operating-system manifest context management summary matches agent harness context compression, loss accounting, and thread-memory summary quality.",
+            [
+                run_path / "system" / "operating-system-manifest.yaml",
+                run_path / "harness" / "agent-harness.yaml",
+                run_path / "context",
+            ],
+            manifest_context_check["ok"],
+            details=manifest_context_check,
         ),
     ]
 
@@ -718,12 +732,47 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "evolution_artifacts": manifest.get("evolution_artifacts", []),
         "evolution_summary": manifest.get("evolution_summary", {}),
         "source_provenance_summary": manifest.get("source_provenance_summary", {}),
+        "context_management_summary": manifest.get("context_management_summary", {}),
         "agent_performance_summary": manifest.get("agent_performance_summary", {}),
         "agent_governance_summary": manifest.get("agent_governance_summary", {}),
         "evaluation_summary": manifest.get("evaluation_summary", {}),
         "real_trade_allowed": manifest.get("real_trade_allowed"),
         "broker_integration": manifest.get("broker_integration"),
     }
+
+
+def operating_system_manifest_context_management_check(manifest: Any, agent_harness: Any) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not all(isinstance(item, dict) for item in [manifest, agent_harness]):
+        return {"ok": False, "mismatches": ["manifest_or_agent_harness_missing_or_invalid"]}
+    summary = manifest.get("context_management_summary", {}) or {}
+    results = agent_harness.get("agent_results", []) or []
+    context_docs = [row.get("context_management_quality", {}) for row in results if isinstance(row, dict) and isinstance(row.get("context_management_quality", {}), dict)]
+    thread_docs = [row.get("thread_memory_summary_quality", {}) for row in results if isinstance(row, dict) and isinstance(row.get("thread_memory_summary_quality", {}), dict)]
+    aggregate = agent_harness.get("aggregate_scores", {}) or {}
+    compare_value(mismatches, "context_management_summary.overall", summary.get("overall"), aggregate.get("context_management_quality", 0))
+    compare_value(mismatches, "context_management_summary.agents_evaluated", summary.get("agents_evaluated"), len(context_docs))
+    compare_value(mismatches, "context_management_summary.budget_manifest_present", summary.get("budget_manifest_present"), sum(1 for item in context_docs if item.get("budget_manifest_present")))
+    compare_value(mismatches, "context_management_summary.token_budget_respected", summary.get("token_budget_respected"), sum(1 for item in context_docs if item.get("token_budget_respected")))
+    compare_value(mismatches, "context_management_summary.loss_accounting_present", summary.get("loss_accounting_present"), sum(1 for item in context_docs if item.get("loss_accounting_present")))
+    compare_value(mismatches, "context_management_summary.role_specific_compression_present", summary.get("role_specific_compression_present"), sum(1 for item in context_docs if item.get("role_specific_compression_present")))
+    compare_value(mismatches, "context_management_summary.evidence_loss_auditable", summary.get("evidence_loss_auditable"), sum(1 for item in context_docs if item.get("evidence_loss_auditable")))
+    compare_value(mismatches, "context_management_summary.excluded_items", summary.get("excluded_items"), sum(int(item.get("excluded_items", 0) or 0) for item in context_docs))
+    compare_value(mismatches, "context_management_summary.estimated_tokens_before", summary.get("estimated_tokens_before"), sum(int(item.get("estimated_tokens_before", 0) or 0) for item in context_docs))
+    compare_value(mismatches, "context_management_summary.estimated_tokens_after", summary.get("estimated_tokens_after"), sum(int(item.get("estimated_tokens_after", 0) or 0) for item in context_docs))
+    compare_value(mismatches, "context_management_summary.drop_reasons", summary.get("drop_reasons"), sorted({reason for item in context_docs for reason in item.get("drop_reasons", []) if reason}))
+    compare_value(mismatches, "context_management_summary.thread_memory_summary_quality", summary.get("thread_memory_summary_quality"), aggregate.get("thread_memory_summary", 0))
+    compare_value(mismatches, "context_management_summary.thread_summaries_available", summary.get("thread_summaries_available"), sum(1 for item in thread_docs if item.get("available")))
+    compare_value(mismatches, "context_management_summary.thread_summary_signals_present", summary.get("thread_summary_signals_present"), sum(1 for item in thread_docs if item.get("summary_signal_present")))
+    controls = set(summary.get("controls", []) or [])
+    for required_control in ["role_specific_compression", "loss_accounting_required", "token_budget_respected", "thread_summary_is_retrieval_input_only"]:
+        if required_control not in controls:
+            mismatches.append(f"context_management_summary.controls: missing {required_control}")
+    if summary.get("real_trade_allowed") is not False:
+        mismatches.append(f"context_management_summary.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+    if summary.get("broker_integration") != "disabled":
+        mismatches.append(f"context_management_summary.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+    return {"ok": not mismatches, "mismatches": mismatches}
 
 
 def operating_system_manifest_source_provenance_check(manifest: Any, registry: Any, ingestion: Any, evidence: Any) -> dict[str, Any]:

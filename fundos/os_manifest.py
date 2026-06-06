@@ -87,6 +87,7 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "evolution_artifacts": existing_relative_paths(run_path, EVOLUTION_ARTIFACTS),
         "evolution_summary": evolution_summary(run_path),
         "source_provenance_summary": source_provenance_summary(run_path),
+        "context_management_summary": context_management_summary(run_path),
         "agent_performance_summary": agent_performance_summary(run_path),
         "agent_governance_summary": agent_governance_summary(run_path),
         "evaluation_summary": evaluation_summary(run_path),
@@ -130,6 +131,7 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
     governance = manifest.get("agent_governance_summary", {}) or {}
     evaluation = manifest.get("evaluation_summary", {}) or {}
     provenance = manifest.get("source_provenance_summary", {}) or {}
+    context_management = manifest.get("context_management_summary", {}) or {}
     safety = manifest.get("safety_invariants", {}) or {}
     lines = [
         "# Operating System Manifest",
@@ -177,6 +179,10 @@ def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
         f"- quarantined_sources: {provenance.get('quarantined_sources', 0)}",
         f"- evidence_item_count: {provenance.get('evidence_item_count', 0)}",
         f"- methodology_sources_are_hypothesis_only: {provenance.get('methodology_sources_are_hypothesis_only')}",
+        f"- context_management_score: {context_management.get('overall', 0)}",
+        f"- context_agents_evaluated: {context_management.get('agents_evaluated', 0)}",
+        f"- context_token_budget_respected: {context_management.get('token_budget_respected', 0)}",
+        f"- context_loss_accounting_present: {context_management.get('loss_accounting_present', 0)}",
         f"- agent_performance_score: {performance.get('average_final_score', 0)}",
         f"- agent_governance_score: {governance.get('governance_quality_score', 0)}",
         f"- evaluation_overall_score: {evaluation.get('overall_score', 0)}",
@@ -306,6 +312,40 @@ def source_provenance_summary(run_path: Path) -> dict[str, Any]:
         "low_tier_evidence_items": int(source_coverage.get("low_tier_items", 0) or 0) if isinstance(source_coverage, dict) else 0,
         "methodology_sources_are_hypothesis_only": bool(boundary_policy.get("methodology_sources_are_hypothesis_generators", False)) if isinstance(boundary_policy, dict) else False,
         "primary_evidence_required_for_company_conclusions": bool(boundary_policy.get("primary_evidence_required_for_company_conclusions", False)) if isinstance(boundary_policy, dict) else False,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def context_management_summary(run_path: Path) -> dict[str, Any]:
+    agent_harness = read_optional_yaml(run_path / "harness" / "agent-harness.yaml", {})
+    results = agent_harness.get("agent_results", []) if isinstance(agent_harness, dict) else []
+    context_docs = [row.get("context_management_quality", {}) for row in results if isinstance(row, dict) and isinstance(row.get("context_management_quality", {}), dict)]
+    thread_docs = [row.get("thread_memory_summary_quality", {}) for row in results if isinstance(row, dict) and isinstance(row.get("thread_memory_summary_quality", {}), dict)]
+    aggregate = agent_harness.get("aggregate_scores", {}) if isinstance(agent_harness, dict) else {}
+    return {
+        "overall": float(aggregate.get("context_management_quality", 0) or 0) if isinstance(aggregate, dict) else 0,
+        "agents_evaluated": len(context_docs),
+        "budget_manifest_present": sum(1 for item in context_docs if item.get("budget_manifest_present")),
+        "token_budget_respected": sum(1 for item in context_docs if item.get("token_budget_respected")),
+        "loss_accounting_present": sum(1 for item in context_docs if item.get("loss_accounting_present")),
+        "role_specific_compression_present": sum(1 for item in context_docs if item.get("role_specific_compression_present")),
+        "evidence_loss_auditable": sum(1 for item in context_docs if item.get("evidence_loss_auditable")),
+        "excluded_items": sum(int(item.get("excluded_items", 0) or 0) for item in context_docs),
+        "estimated_tokens_before": sum(int(item.get("estimated_tokens_before", 0) or 0) for item in context_docs),
+        "estimated_tokens_after": sum(int(item.get("estimated_tokens_after", 0) or 0) for item in context_docs),
+        "drop_reasons": sorted({reason for item in context_docs for reason in item.get("drop_reasons", []) if reason}),
+        "thread_memory_summary_quality": float(aggregate.get("thread_memory_summary", 0) or 0) if isinstance(aggregate, dict) else 0,
+        "thread_summaries_available": sum(1 for item in thread_docs if item.get("available")),
+        "thread_summary_signals_present": sum(1 for item in thread_docs if item.get("summary_signal_present")),
+        "controls": [
+            "role_specific_compression",
+            "loss_accounting_required",
+            "token_budget_respected",
+            "thread_summary_is_retrieval_input_only",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

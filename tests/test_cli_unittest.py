@@ -131,8 +131,19 @@ class FundosCliTests(unittest.TestCase):
                 self.assertTrue(checks["memory_policy_matches_agent_namespace"])
                 self.assertTrue(checks["context_policy_preserves_kol_methodology_boundary"])
                 self.assertTrue(checks["safety_boundaries_disabled"])
+            agent_harness = yaml.safe_load((run_path / "harness/agent-harness.yaml").read_text())
             self.assertIn("harness/agent-harness.yaml", os_manifest["harness_artifacts"])
             self.assertIn("evolution/candidates.jsonl", os_manifest["evolution_artifacts"])
+            self.assertIn("context_management_summary", os_manifest)
+            context_summary = os_manifest["context_management_summary"]
+            self.assertEqual(context_summary["agents_evaluated"], len(run_doc["selected_agents"]))
+            self.assertEqual(context_summary["overall"], agent_harness["aggregate_scores"]["context_management_quality"])
+            self.assertEqual(context_summary["thread_memory_summary_quality"], agent_harness["aggregate_scores"]["thread_memory_summary"])
+            self.assertGreaterEqual(context_summary["token_budget_respected"], 1)
+            self.assertGreaterEqual(context_summary["loss_accounting_present"], 1)
+            self.assertIn("role_specific_compression", context_summary["controls"])
+            self.assertFalse(context_summary["real_trade_allowed"])
+            self.assertEqual(context_summary["broker_integration"], "disabled")
             self.assertTrue(os_manifest["safety_invariants"]["paper_portfolio_only"])
             self.assertTrue(os_manifest["safety_invariants"]["kol_is_hypothesis_only"])
             self.assertIn("# Operating System Manifest", os_manifest_md)
@@ -141,6 +152,7 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("## Agent OS Contract Checks", os_manifest_md)
             self.assertIn("all_agent_os_contracts_valid: True", os_manifest_md)
             self.assertIn("## Harness, Memory, Evolution", os_manifest_md)
+            self.assertIn("context_management_score", os_manifest_md)
             self.assertIn("## Safety Boundaries", os_manifest_md)
             self.assertIn("real_trade_allowed: False", os_manifest_md)
             self.assertIn("broker_integration: disabled", os_manifest_md)
@@ -178,7 +190,6 @@ class FundosCliTests(unittest.TestCase):
             replay = yaml.safe_load((run_path / "harness/historical-case-replay.yaml").read_text())
             self.assertGreaterEqual(replay["patterns_replayed"], 1)
             self.assertIn("direct_case_mapping_forbidden", replay["controls"])
-            agent_harness = yaml.safe_load((run_path / "harness/agent-harness.yaml").read_text())
             self.assertEqual(agent_harness["agent_count"], len(run_doc["selected_agents"]))
             self.assertIn("skill_invocation", agent_harness["aggregate_scores"])
             skill_benchmark = yaml.safe_load((run_path / "harness/skill-benchmark.yaml").read_text())
@@ -333,6 +344,7 @@ class FundosCliTests(unittest.TestCase):
             "evolution_artifacts",
             "evolution_summary",
             "source_provenance_summary",
+            "context_management_summary",
             "safety_invariants",
             "real_trade_allowed",
             "broker_integration",
@@ -347,6 +359,11 @@ class FundosCliTests(unittest.TestCase):
         self.assertIn("agent_performance_summary", schema["properties"])
         self.assertIn("agent_governance_summary", schema["properties"])
         self.assertIn("evaluation_summary", schema["properties"])
+        context_required = schema["properties"]["context_management_summary"]["required"]
+        self.assertIn("token_budget_respected", context_required)
+        self.assertIn("loss_accounting_present", context_required)
+        self.assertIn("role_specific_compression_present", context_required)
+        self.assertIn("thread_memory_summary_quality", context_required)
         source_required = schema["properties"]["source_provenance_summary"]["required"]
         self.assertIn("registry_source_count", source_required)
         self.assertIn("quarantined_sources", source_required)
