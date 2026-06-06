@@ -81,6 +81,45 @@ class ResearchTaskDagTests(unittest.TestCase):
             self.assertTrue(harness["topological_order_valid"])
             self.assertFalse(harness["real_trade_allowed"])
 
+    def test_write_task_dag_materializes_research_gap_followup_tasks(self):
+        pack = make_evidence_pack("dag-gap", "topic", "机器人产业链投资机会")
+        pack["research_plan_coverage"] = {
+            "planned_categories": 6,
+            "categories_covered": 4,
+            "missing_categories": ["market_data", "case_library"],
+            "category_counts": {"announcement": 1, "policy": 1, "news": 1, "social_signal": 1},
+            "plan_step_count": 6,
+        }
+        selected = [
+            {"agent_id": "fund_manager", "role": "FundManager"},
+            {"agent_id": "position_trend_trader", "role": "Trader"},
+            {"agent_id": "review_archivist", "role": "ReviewArchivist"},
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "dag-gap", "input": {"value": "机器人产业链投资机会"}})
+
+            report = write_task_dag(run_path, selected, pack)
+
+            by_id = {node["node_id"]: node for node in report["nodes"]}
+            self.assertIn("research_gap:market_data", by_id)
+            self.assertIn("research_gap:case_library", by_id)
+            self.assertEqual(by_id["research_gap:market_data"]["owner_agent_id"], "position_trend_trader")
+            self.assertEqual(by_id["research_gap:case_library"]["owner_agent_id"], "review_archivist")
+            self.assertEqual(by_id["research_gap:market_data"]["status"], "planned")
+            self.assertEqual(by_id["research_gap:case_library"]["status"], "planned")
+            self.assertIn({"from": "evaluation", "to": "research_gap:market_data"}, report["edges"])
+            self.assertIn({"from": "evaluation", "to": "research_gap:case_library"}, report["edges"])
+            self.assertEqual(report["research_gap_count"], 2)
+            self.assertEqual([task["category"] for task in report["next_research_tasks"]], ["market_data", "case_library"])
+            self.assertFalse(report["real_trade_allowed"])
+            self.assertEqual(report["broker_integration"], "disabled")
+
+            harness = load_task_dag_harness(run_path)
+            self.assertEqual(harness["research_gap_count"], 2)
+            self.assertEqual([task["owner_agent_id"] for task in harness["next_research_tasks"]], ["position_trend_trader", "review_archivist"])
+            self.assertFalse(harness["real_trade_allowed"])
+
     def test_evaluation_reads_task_dag_quality_and_accepts_output(self):
         pack = make_evidence_pack("dag-eval", "topic", "机器人产业链投资机会")
         selected = [{"agent_id": "fund_manager", "role": "FundManager"}]

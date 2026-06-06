@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
+from fundos.research_tasks import build_next_research_tasks
 
 SPEC_REL = "specs/workflows/research-task-dag.yaml"
 TASK_DAG_VERSION = "0.1.0"
@@ -29,6 +30,8 @@ def default_task_dag_harness() -> dict[str, Any]:
         "controls": [],
         "real_trade_allowed": False,
         "broker_integration": "disabled",
+        "research_gap_count": 0,
+        "next_research_tasks": [],
     }
 
 
@@ -48,6 +51,10 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
     spec = load_task_dag_spec()
     selected_ids = [row["agent_id"] for row in selected_agents]
     nodes = [build_runtime_node(run_path, node, selected_ids) for node in spec.get("nodes", [])]
+    run_id = evidence_pack.get("run_id") or read_run_id(run_path)
+    coverage = evidence_pack.get("research_plan_coverage") or {}
+    next_research_tasks = build_next_research_tasks(coverage, run_id or "unknown-run")
+    nodes.extend(build_research_gap_nodes(next_research_tasks))
     edges = build_edges(nodes)
     missing_artifacts = [
         {"node_id": node["node_id"], "artifact": artifact}
@@ -70,7 +77,7 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
         "artifact_type": "research_task_dag",
         "workflow_id": spec.get("workflow_id"),
         "source_path": spec.get("source_path"),
-        "run_id": evidence_pack.get("run_id") or read_run_id(run_path),
+        "run_id": run_id,
         "query": evidence_pack.get("query"),
         "market": evidence_pack.get("market", "CN_A_SHARE"),
         "node_count": len(nodes),
@@ -82,6 +89,9 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
         "missing_artifacts": missing_artifacts,
         "topological_order_valid": topological_ok,
         "controls": controls,
+        "research_plan_coverage": coverage,
+        "research_gap_count": len(next_research_tasks),
+        "next_research_tasks": next_research_tasks,
         "disclaimer": DISCLAIMER,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
@@ -100,12 +110,40 @@ def write_task_dag(run_path: Path, selected_agents: list[dict[str, str]], eviden
         "missing_artifacts": missing_artifacts,
         "blocking_issues": blocking_issues,
         "controls": controls,
+        "research_plan_coverage": coverage,
+        "research_gap_count": len(next_research_tasks),
+        "next_research_tasks": next_research_tasks,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
     write_yaml(run_path / "workflow" / "task-dag.yaml", dag)
     write_yaml(run_path / "harness" / "task-dag-harness.yaml", harness)
     return dag
+
+
+def build_research_gap_nodes(next_research_tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    nodes = []
+    for task in next_research_tasks:
+        category = task["category"]
+        nodes.append(
+            {
+                "node_id": f"research_gap:{category}",
+                "owner_role": task.get("owner_agent_id") or task.get("owner_agent"),
+                "owner_agent_id": task.get("owner_agent_id") or task.get("owner_agent"),
+                "phase": "follow_up_research",
+                "description": task.get("reason"),
+                "depends_on": ["evaluation"],
+                "expected_artifacts": [],
+                "missing_artifacts": [],
+                "status": "planned",
+                "task_id": task.get("task_id"),
+                "category": category,
+                "priority": task.get("priority", "medium"),
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            }
+        )
+    return nodes
 
 
 def build_runtime_node(run_path: Path, node: dict[str, Any], selected_ids: list[str]) -> dict[str, Any]:

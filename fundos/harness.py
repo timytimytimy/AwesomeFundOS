@@ -21,6 +21,7 @@ from fundos.tool_harness import load_tool_harness
 from fundos.task_dag import load_task_dag_harness
 from fundos.tool_runtime import load_tool_runtime_report
 from fundos.claim_graph import load_claim_graph_report
+from fundos.research_tasks import build_next_research_tasks
 
 
 def make_evaluation(run_id: str, selected: list[dict[str, str]], evidence_pack: dict[str, Any]) -> dict[str, Any]:
@@ -446,31 +447,6 @@ def summarize_context_management(agent_harness: dict[str, Any]) -> dict[str, Any
 
 def default_research_plan_coverage() -> dict[str, Any]:
     return {"planned_categories": 0, "categories_covered": 0, "missing_categories": [], "category_counts": {}, "plan_step_count": 0}
-
-
-def build_next_research_tasks(coverage: dict[str, Any], run_id: str) -> list[dict[str, Any]]:
-    tasks = []
-    priority_map = {"market_data": "high", "case_library": "medium", "announcement": "high", "policy": "high", "news": "medium", "social_signal": "low"}
-    owner_map = {
-        "market_data": "position_trend_trader",
-        "case_library": "review_archivist",
-        "announcement": "quality_growth_company_analyst",
-        "policy": "policy_event_analyst",
-        "news": "tech_growth_analyst",
-        "social_signal": "bear_debater",
-    }
-    for index, category in enumerate(coverage.get("missing_categories", []) or [], start=1):
-        tasks.append(
-            {
-                "task_id": f"{run_id}:research_gap:{index:03d}",
-                "category": category,
-                "owner_agent": owner_map.get(category, "chief_of_staff"),
-                "priority": priority_map.get(category, "medium"),
-                "reason": f"research plan category {category} had no accepted public research evidence",
-                "real_trade_allowed": False,
-            }
-        )
-    return tasks
 
 
 def count_market_states(report: dict[str, Any]) -> dict[str, int]:
