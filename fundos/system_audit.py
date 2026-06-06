@@ -55,6 +55,8 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     tool_harness = load_yaml(run_path / "harness" / "tool-harness.yaml", {})
     agent_tool_use = load_yaml(run_path / "harness" / "agent-tool-use.yaml", {})
     claim_graph = load_yaml(run_path / "harness" / "claim-graph.yaml", {})
+    agent_performance = load_yaml(run_path / "harness" / "agent-performance.yaml", {})
+    agent_governance = load_yaml(run_path / "harness" / "agent-governance.yaml", {})
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
     items = evidence.get("evidence_items", []) if isinstance(evidence, dict) else []
@@ -66,6 +68,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     model_record_check = runtime_model_records_check(run_doc)
     manifest_schema_check = validate_operating_system_manifest_schema(repo_root, os_manifest)
     evaluation_schema_check = validate_evaluation_report_schema(repo_root, evaluation)
+    manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -163,6 +166,19 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [repo_root / "specs/schemas/evaluation-report.schema.yaml", run_path / "evaluations" / "evaluation-report.yaml"],
             evaluation_schema_check["ok"],
             details=evaluation_schema_check,
+        ),
+        requirement(
+            "runtime.operating_system_manifest_runtime_summaries_match_sources",
+            "runtime_governance",
+            "Operating-system manifest performance, governance, and evaluation summaries match source reports and preserve safety boundaries.",
+            [
+                run_path / "system" / "operating-system-manifest.yaml",
+                run_path / "harness" / "agent-performance.yaml",
+                run_path / "harness" / "agent-governance.yaml",
+                run_path / "evaluations" / "evaluation-report.yaml",
+            ],
+            manifest_summary_check["ok"],
+            details=manifest_summary_check,
         ),
     ]
 
@@ -685,9 +701,59 @@ def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
         "memory_thread_artifacts": manifest.get("memory_thread_artifacts", []),
         "evolution_artifacts": manifest.get("evolution_artifacts", []),
         "evolution_summary": manifest.get("evolution_summary", {}),
+        "agent_performance_summary": manifest.get("agent_performance_summary", {}),
+        "agent_governance_summary": manifest.get("agent_governance_summary", {}),
+        "evaluation_summary": manifest.get("evaluation_summary", {}),
         "real_trade_allowed": manifest.get("real_trade_allowed"),
         "broker_integration": manifest.get("broker_integration"),
     }
+
+
+def operating_system_manifest_runtime_summary_check(manifest: Any, performance: Any, governance: Any, evaluation: Any) -> dict[str, Any]:
+    mismatches: list[str] = []
+    if not all(isinstance(item, dict) for item in [manifest, performance, governance, evaluation]):
+        return {"ok": False, "mismatches": ["manifest_or_source_report_missing_or_invalid"]}
+    perf_summary = manifest.get("agent_performance_summary", {}) or {}
+    gov_summary = manifest.get("agent_governance_summary", {}) or {}
+    eval_summary = manifest.get("evaluation_summary", {}) or {}
+    dimensions = evaluation.get("dimension_scores", {}) or {}
+    compare_value(mismatches, "agent_performance_summary.agent_count", perf_summary.get("agent_count"), performance.get("agent_count", 0))
+    compare_value(mismatches, "agent_performance_summary.average_final_score", perf_summary.get("average_final_score"), performance.get("average_final_score", 0))
+    compare_value(mismatches, "agent_performance_summary.recommended_action_counts", perf_summary.get("recommended_action_counts"), performance.get("recommended_action_counts", {}))
+    compare_value(mismatches, "agent_performance_summary.ledger_entries_written", perf_summary.get("ledger_entries_written"), performance.get("ledger_entries_written", 0))
+    compare_value(mismatches, "agent_governance_summary.agent_count", gov_summary.get("agent_count"), governance.get("agent_count", 0))
+    compare_value(mismatches, "agent_governance_summary.governance_quality_score", gov_summary.get("governance_quality_score"), governance.get("governance_quality_score", 0))
+    compare_value(mismatches, "agent_governance_summary.governance_action_counts", gov_summary.get("governance_action_counts"), governance.get("governance_action_counts", {}))
+    compare_value(mismatches, "agent_governance_summary.seat_competition_count", gov_summary.get("seat_competition_count"), len(governance.get("seat_competitions", {}) or {}))
+    compare_value(mismatches, "evaluation_summary.overall_score", eval_summary.get("overall_score"), evaluation.get("overall_score", 0))
+    compare_value(mismatches, "evaluation_summary.agent_performance_score", eval_summary.get("agent_performance_score"), dimensions.get("agent_performance", 0))
+    compare_value(mismatches, "evaluation_summary.agent_governance_score", eval_summary.get("agent_governance_score"), dimensions.get("agent_governance", 0))
+    compare_value(mismatches, "evaluation_summary.agent_os_contract_score", eval_summary.get("agent_os_contract_score"), dimensions.get("agent_os_contract", 0))
+    compare_value(mismatches, "evaluation_summary.blocking_issue_count", eval_summary.get("blocking_issue_count"), len(evaluation.get("blocking_issues", []) or []))
+    compare_value(mismatches, "evaluation_summary.accepted_output_count", eval_summary.get("accepted_output_count"), len(evaluation.get("accepted_outputs", []) or []))
+    for prefix, summary in [("agent_performance_summary", perf_summary), ("agent_governance_summary", gov_summary), ("evaluation_summary", eval_summary)]:
+        if summary.get("real_trade_allowed") is not False:
+            mismatches.append(f"{prefix}.real_trade_allowed: expected False, got {summary.get('real_trade_allowed')!r}")
+        if summary.get("broker_integration") != "disabled":
+            mismatches.append(f"{prefix}.broker_integration: expected 'disabled', got {summary.get('broker_integration')!r}")
+    return {"ok": not mismatches, "mismatches": mismatches}
+
+
+def compare_value(mismatches: list[str], field: str, actual: Any, expected: Any) -> None:
+    if normalize_comparable(actual) != normalize_comparable(expected):
+        mismatches.append(f"{field}: expected {expected!r}, got {actual!r}")
+
+
+def normalize_comparable(value: Any) -> Any:
+    if isinstance(value, float):
+        return round(value, 6)
+    if isinstance(value, int) and not isinstance(value, bool):
+        return float(value)
+    if isinstance(value, dict):
+        return {key: normalize_comparable(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        return [normalize_comparable(item) for item in value]
+    return value
 
 
 def validate_operating_system_manifest_schema(repo_root: Path, manifest: Any) -> dict[str, Any]:

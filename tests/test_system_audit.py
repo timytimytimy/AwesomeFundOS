@@ -224,6 +224,42 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('$.overall_score', errors)
             self.assertIn('$.agent_governance_quality.real_trade_allowed', errors)
 
+    def test_system_audit_strict_mode_fails_stale_os_manifest_governance_summary(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            evolve_result = run_cli(['evolve', '--run', str(run_path)], cwd)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+            manifest_yaml = run_path / 'system' / 'operating-system-manifest.yaml'
+            manifest = yaml.safe_load(manifest_yaml.read_text(encoding='utf-8'))
+            manifest['agent_performance_summary']['average_final_score'] = -1
+            manifest['agent_governance_summary']['broker_integration'] = 'enabled'
+            manifest['evaluation_summary']['agent_governance_score'] = -1
+            manifest_yaml.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(run_path), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.operating_system_manifest_runtime_summaries_match_sources']['status'], 'fail')
+            mismatches = '\n'.join(by_id['runtime.operating_system_manifest_runtime_summaries_match_sources']['details']['mismatches'])
+            self.assertIn('agent_performance_summary.average_final_score', mismatches)
+            self.assertIn('agent_governance_summary.broker_integration', mismatches)
+            self.assertIn('evaluation_summary.agent_governance_score', mismatches)
+
 
 if __name__ == '__main__':
     unittest.main()

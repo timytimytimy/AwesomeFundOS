@@ -493,10 +493,10 @@ def command_run(args: argparse.Namespace) -> int:
     write_reflections(run_path, selected, run_id)
     write_failure_patterns(run_path)
     generate_agent_learning_candidates(run_path)
-    write_operating_system_manifest(run_path)
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     (run_path / "evaluations" / "evaluation-report.md").write_text(f"# Evaluation Report\n\nOverall score: {evaluation['overall_score']}\n\nBlocking issues:\n" + "\n".join(f"- {x}" for x in evaluation["blocking_issues"]), encoding="utf-8")
+    write_operating_system_manifest(run_path)
     (run_path / "archive" / "run-summary.md").write_text(f"# Run Summary\n\nrun_id: {run_id}\nquery: {value}\nselected_agents: {len(selected)}\n", encoding="utf-8")
 
     print(f"run_id={run_id}")
@@ -531,9 +531,9 @@ def command_eval(args: argparse.Namespace) -> int:
     run_skill_benchmark(run_path)
     write_failure_patterns(run_path)
     generate_agent_learning_candidates(run_path)
-    write_operating_system_manifest(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
+    write_operating_system_manifest(run_path)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")
     return 0
 
