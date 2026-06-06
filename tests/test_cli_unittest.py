@@ -255,6 +255,7 @@ class FundosCliTests(unittest.TestCase):
 
             self.assertEqual(inspect.returncode, 0, inspect.stderr)
             self.assertIn("os_manifest=", inspect.stdout)
+            self.assertIn("os_manifest_markdown=", inspect.stdout)
             self.assertIn("runtime_mode=local_file_protocol", inspect.stdout)
             self.assertIn("model_records=", inspect.stdout)
             self.assertIn("all_runtime_assets=True", inspect.stdout)

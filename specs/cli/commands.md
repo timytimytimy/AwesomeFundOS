@@ -173,7 +173,7 @@ runs/{run_id}/evolution/capability-version-summary.yaml
 
 V1 输出必须包含 Agent OS 装配摘要，至少包括：
 
-- `os_manifest` 路径；
+- `os_manifest` 与 `os_manifest_markdown` 路径；
 - `runtime_mode`；
 - `model_records` 数量；
 - `all_runtime_assets`；

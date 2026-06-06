@@ -584,6 +584,7 @@ def command_inspect(args: argparse.Namespace) -> int:
         evolution = manifest.get("evolution_summary", {}) or {}
         safety = manifest.get("safety_invariants", {}) or {}
         print(f"os_manifest={manifest_path}")
+        print(f"os_manifest_markdown={run_path / 'system' / 'operating-system-manifest.md'}")
         print(f"runtime_mode={manifest.get('runtime_mode')}")
         print(f"model_records={manifest.get('model_record_count', 0)}")
         print(f"all_runtime_assets={manifest.get('all_selected_agents_have_runtime_assets')}")

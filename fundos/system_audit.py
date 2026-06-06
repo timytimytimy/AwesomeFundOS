@@ -80,6 +80,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
                 "harness/claim-graph.yaml",
                 "portfolio/paper-portfolio.yaml",
                 "system/operating-system-manifest.yaml",
+                "system/operating-system-manifest.md",
             ]],
             all((run_path / p).exists() for p in [
                 "run.yaml",
@@ -91,6 +92,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
                 "harness/claim-graph.yaml",
                 "portfolio/paper-portfolio.yaml",
                 "system/operating-system-manifest.yaml",
+                "system/operating-system-manifest.md",
             ]),
         ),
         requirement(
@@ -141,7 +143,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             "runtime.operating_system_manifest_links_agent_os_assets",
             "runtime_governance",
             "Run operating-system manifest links selected agents to Profile, Skill, Tool, Memory, Thread, Harness, Evolution, and safety boundaries.",
-            [run_path / "system" / "operating-system-manifest.yaml"],
+            [run_path / "system" / "operating-system-manifest.yaml", run_path / "system" / "operating-system-manifest.md"],
             operating_system_manifest_ok(os_manifest, run_doc),
             details=operating_system_manifest_details(os_manifest),
         ),

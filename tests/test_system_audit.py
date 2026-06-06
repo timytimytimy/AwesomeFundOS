@@ -129,6 +129,9 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(by_id['runtime.run_has_no_stub_blocking_issues']['status'], 'pass')
             self.assertEqual(by_id['runtime.model_records_have_concrete_policy_fields']['status'], 'pass')
             self.assertEqual(by_id['runtime.operating_system_manifest_links_agent_os_assets']['status'], 'pass')
+            manifest_evidence = '\n'.join(by_id['runtime.operating_system_manifest_links_agent_os_assets']['evidence'])
+            self.assertIn('system/operating-system-manifest.yaml', manifest_evidence)
+            self.assertIn('system/operating-system-manifest.md', manifest_evidence)
 
     def test_system_audit_strict_mode_fails_missing_runtime_model_record_policy_fields(self):
         with tempfile.TemporaryDirectory() as d:
