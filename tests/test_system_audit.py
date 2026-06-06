@@ -68,6 +68,7 @@ class SystemAuditTests(unittest.TestCase):
             'agents.agent_os_assets_cross_reference_roster_contract',
             'agents.agent_cards_expose_profile_harness_memory_evolution',
             'agents.skill_files_expose_purpose_workflow_context_safety',
+            'agents.agent_maturity_contracts_are_differentiated',
             'memory.persistent_threads_and_memory_policies',
             'harness.agent_tool_context_skill_market_case_claim_evaluations',
             'learning.source_ingestion_agent_learning_evolution_gate',

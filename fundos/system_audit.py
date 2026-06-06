@@ -379,6 +379,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details={"missing_sections": missing_agent_skill_sections(root, agent_ids)},
         ),
         requirement(
+            "agents.agent_maturity_contracts_are_differentiated",
+            "agent_identity",
+            "Each Agent card and Skill define differentiated edge, market regimes, anti-patterns, capability benchmarks, growth roadmap, role-specific context compression, and evolution candidate rules.",
+            [root / "specs/agents/agent-cards", root / "specs/skills"],
+            agent_maturity_contracts_ok(root, agents),
+            details=agent_maturity_contract_mismatches(root, agents),
+        ),
+        requirement(
             "memory.persistent_threads_and_memory_policies",
             "agent_skills_tools_memory",
             "Persistent agent threads and controlled memory writeback exist.",
@@ -735,6 +743,92 @@ def missing_skill_sections_for_agent(root: Path, agent_id: str) -> list[str]:
         "boundaries",
     ]
     return [section for section in required if section not in text]
+
+
+AGENT_MATURITY_CARD_REQUIRED = [
+    "## Differentiated Edge",
+    "## Preferred Market Regimes",
+    "## Anti-Patterns and Failure Modes",
+    "## Capability Benchmarks",
+    "## Growth Roadmap",
+    "## Role-Specific Context Compression",
+    "edge_signature:",
+    "preferred_regimes:",
+    "adverse_regimes:",
+    "benchmark_id:",
+    "minimum_pass_score:",
+    "regression_tests:",
+    "context_priority_order:",
+    "must_preserve_context:",
+    "compression_loss_budget:",
+    "growth_stage_v1:",
+    "promotion_criteria:",
+    "rollback_triggers:",
+    "Research / watchlist / Paper Portfolio only",
+    "real_trade_allowed=false",
+    "broker_integration=disabled",
+]
+
+
+AGENT_MATURITY_SKILL_REQUIRED = [
+    "## Role-Specific Benchmark",
+    "## Context Compression Recipe",
+    "## Evolution Candidate Rules",
+    "benchmark_id:",
+    "minimum_pass_score:",
+    "regression_tests:",
+    "context_priority_order:",
+    "must_preserve_context:",
+    "compression_loss_budget:",
+    "Research / watchlist / Paper Portfolio only",
+    "real_trade_allowed=false",
+    "broker_integration=disabled",
+]
+
+
+def agent_maturity_contracts_ok(root: Path, agents: list[dict[str, Any]]) -> bool:
+    details = agent_maturity_contract_mismatches(root, agents)
+    return not details["missing_by_agent"] and details["unique_edge_signatures"] >= max(details["agent_count"] - 1, 0)
+
+
+def agent_maturity_contract_mismatches(root: Path, agents: list[dict[str, Any]]) -> dict[str, Any]:
+    missing_by_agent: dict[str, list[str]] = {}
+    edge_signatures: list[str] = []
+    for agent in agents:
+        aid = agent.get("id", "")
+        issues: list[str] = []
+        card_path = root / f"specs/agents/agent-cards/{aid}/agent.md"
+        skill_path = root / f"specs/skills/{aid}/SKILL.md"
+        if not card_path.exists():
+            issues.append("missing_agent_card")
+            card_text = ""
+        else:
+            card_text = card_path.read_text(encoding="utf-8")
+            issues.extend(f"agent_card_missing:{needle}" for needle in AGENT_MATURITY_CARD_REQUIRED if needle not in card_text)
+            signature_lines = [line.strip() for line in card_text.splitlines() if line.strip().startswith("- edge_signature:")]
+            if len(signature_lines) != 1:
+                issues.append("agent_card_edge_signature_count")
+            else:
+                edge_signatures.append(signature_lines[0])
+        if not skill_path.exists():
+            issues.append("missing_skill")
+            skill_text = ""
+        else:
+            skill_text = skill_path.read_text(encoding="utf-8")
+            issues.extend(f"skill_missing:{needle}" for needle in AGENT_MATURITY_SKILL_REQUIRED if needle not in skill_text)
+        combined = card_text + "\n" + skill_text
+        for safety in ["Research / watchlist / Paper Portfolio only", "real_trade_allowed=false", "broker_integration=disabled"]:
+            if safety not in combined:
+                issues.append(f"safety_missing:{safety}")
+        if issues:
+            missing_by_agent[aid or "unknown"] = issues
+    return {
+        "agent_count": len(agents),
+        "edge_signature_count": len(edge_signatures),
+        "unique_edge_signatures": len(set(edge_signatures)),
+        "required_unique_edge_signatures": max(len(agents) - 1, 0),
+        "missing_by_agent": missing_by_agent,
+    }
 
 
 def safety_boundary_present(root: Path) -> bool:

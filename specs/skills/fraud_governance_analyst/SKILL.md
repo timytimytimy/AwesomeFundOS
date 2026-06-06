@@ -154,6 +154,29 @@ Before finalizing this skill output, verify all gates below:
 - Do not copy long copyrighted book/course content; summarize only short, lawful methodology points.
 - If the assigned ContextPack lacks essential evidence, say `insufficient evidence` and propose next research tasks.
 
+
+## Role-Specific Benchmark
+
+- benchmark_id: fraud_governance_analyst_skill_benchmark_v1
+- minimum_pass_score: 80
+- benchmark_dimensions: [red_flag_recall, false_positive_control, governance_traceability, forensic_case_match_quality, role_consistency, safety_boundary]
+- regression_tests: [role_drift_check, evidence_quality_check, context_compression_replay, tool_policy_guard, safety_boundary_check]
+- failure_to_pass_action: create Evolution Candidate; do not silently mutate Profile, Skill, Tool, Memory, Thread, Harness, or Evolution boundaries.
+
+## Context Compression Recipe
+
+- context_priority_order: [cash-profit divergence, receivables, related parties, pledges, audit opinions, goodwill]
+- must_preserve_context: [red-flag evidence, benign alternative, governance blocker, forensic case analogy, confidence cap, Evidence IDs, Claim IDs, source tiers, confidence caps]
+- compression_loss_budget: preserve all risk blockers, contradiction rows, Evidence IDs, Claim IDs, source tiers, confidence caps, and role-critical falsifiers.
+- output_when_over_budget: emit missing-context list and cap confidence instead of inventing facts.
+
+## Evolution Candidate Rules
+
+- allowed_candidate_types: memory, checklist, principle, workflow, or skill candidate.
+- forbidden_candidate_types: direct profile mutation, tool permission expansion, risk limit change, broker or order execution authority.
+- approval_route: quarantine -> Evaluation -> EvolutionGate -> capability regression -> human approval when protected scope is touched.
+- safety_boundary: Research / watchlist / Paper Portfolio only; real_trade_allowed=false; broker_integration=disabled.
+
 ## Required Closing
 
 Close with: `研究分析，不构成投资建议；不接真实交易，不自动下单。`

@@ -102,5 +102,53 @@ class AgentAssetTests(unittest.TestCase):
                 self.assertTrue(memory_policy["writeback_rules"]["requires_evolution_gate"])
                 self.assertTrue(context_policy["evidence_selection"]["kol_and_books_as_methodology_only"])
 
+
+    def test_each_agent_has_differentiated_maturity_contract(self):
+        roster = yaml.safe_load((ROOT / "specs" / "agents" / "default-roster.yaml").read_text(encoding="utf-8"))["agents"]
+        signatures = set()
+        for agent in roster:
+            aid = agent["id"]
+            with self.subTest(agent_id=aid):
+                agent_text = (ROOT / "specs" / "agents" / "agent-cards" / aid / "agent.md").read_text(encoding="utf-8")
+                skill_text = (ROOT / "specs" / "skills" / aid / "SKILL.md").read_text(encoding="utf-8")
+                for section in [
+                    "## Differentiated Edge",
+                    "## Preferred Market Regimes",
+                    "## Anti-Patterns and Failure Modes",
+                    "## Capability Benchmarks",
+                    "## Growth Roadmap",
+                    "## Role-Specific Context Compression",
+                ]:
+                    self.assertIn(section, agent_text)
+                for section in [
+                    "## Role-Specific Benchmark",
+                    "## Context Compression Recipe",
+                    "## Evolution Candidate Rules",
+                ]:
+                    self.assertIn(section, skill_text)
+                required_literals = [
+                    "edge_signature:",
+                    "preferred_regimes:",
+                    "adverse_regimes:",
+                    "benchmark_id:",
+                    "minimum_pass_score:",
+                    "regression_tests:",
+                    "context_priority_order:",
+                    "must_preserve_context:",
+                    "compression_loss_budget:",
+                    "growth_stage_v1:",
+                    "promotion_criteria:",
+                    "rollback_triggers:",
+                    "Research / watchlist / Paper Portfolio only",
+                    "real_trade_allowed=false",
+                    "broker_integration=disabled",
+                ]
+                for literal in required_literals:
+                    self.assertIn(literal, agent_text + "\n" + skill_text)
+                edge_lines = [line.strip() for line in agent_text.splitlines() if line.strip().startswith("- edge_signature:")]
+                self.assertEqual(len(edge_lines), 1)
+                signatures.add(edge_lines[0])
+        self.assertGreaterEqual(len(signatures), len(roster) - 1)
+
 if __name__ == "__main__":
     unittest.main()
