@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 
 from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
+from fundos.evolution import run_evolution_gate, write_jsonl
 from fundos.harness import make_evaluation_for_run
 from fundos.io import REPO_ROOT, read_yaml, write_yaml
 
@@ -190,6 +191,68 @@ class AgentThreadTests(unittest.TestCase):
             self.assertIn("research_gap_closures", evaluation["accepted_outputs"])
             self.assertFalse(evaluation["agent_thread_quality"]["real_trade_allowed"])
             self.assertEqual(evaluation["agent_thread_quality"]["broker_integration"], "disabled")
+
+    def test_evolution_gate_appends_result_and_memory_writeback_events_to_agent_thread(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "thread-evolution-run"
+            run_path.mkdir(parents=True)
+            roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+            materialize_agent_threads(root, roster)
+            write_acceptance_artifacts(run_path)
+            write_jsonl(run_path / "evolution" / "candidates.jsonl", [
+                {
+                    "candidate_id": "agent_learning_thread_memory_route",
+                    "run_id": "thread-evolution-run",
+                    "source_agent": "evaluation_harness",
+                    "target_agent": "fund_manager",
+                    "candidate_type": "reflection_update",
+                    "target_scope": "agent_memory",
+                    "proposal": "复盘时记录一手证据缺口，防止方法论源替代事实。",
+                    "source_basis": [{"evidence_id": "memory/agents/fund_manager/thread-events.jsonl", "source_tier": "tier_2_canonical_framework"}],
+                    "required_tests": ["historical_case_replay", "role_drift_check", "evidence_quality_check"],
+                    "adoption_route": "memory_writeback_after_evolution",
+                    "memory_write_policy": "auto_after_evolution_accept",
+                    "human_approval_required": False,
+                    "protected_mutation_allowed": False,
+                    "controls": ["no_direct_profile_mutation", "no_real_trade_action"],
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                }
+            ])
+
+            results = run_evolution_gate(run_path)
+
+            self.assertEqual(results[0]["decision"], "accept")
+            events_path = root / "memory" / "agents" / "fund_manager" / "thread-events.jsonl"
+            events = [json.loads(line) for line in events_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            event_types = [row["event_type"] for row in events]
+            self.assertIn("evolution_candidate_accepted", event_types)
+            self.assertIn("memory_writeback_applied", event_types)
+            accepted_event = next(row for row in events if row["event_type"] == "evolution_candidate_accepted")
+            self.assertEqual(accepted_event["run_id"], "thread-evolution-run")
+            self.assertEqual(accepted_event["payload"]["candidate_id"], "agent_learning_thread_memory_route")
+            self.assertEqual(accepted_event["payload"]["decision"], "accept")
+            writeback_event = next(row for row in events if row["event_type"] == "memory_writeback_applied")
+            self.assertEqual(writeback_event["payload"]["candidate_id"], "agent_learning_thread_memory_route")
+            self.assertEqual(writeback_event["payload"]["approval_mode"], "evolution_gate_v1_auto_controlled")
+            self.assertFalse(writeback_event["real_trade_allowed"])
+            self.assertEqual(writeback_event["broker_integration"], "disabled")
+
+            manifest = yaml.safe_load((run_path / "memory" / "agent-thread-manifest.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["event_type"], "memory_writeback_applied")
+            self.assertEqual(manifest["threads"][0]["agent_id"], "fund_manager")
+            self.assertEqual(load_agent_thread_summary(root, "fund_manager")["latest_event_type"], "memory_writeback_applied")
+
+
+def write_acceptance_artifacts(run_path: Path) -> None:
+    (run_path / "evolution").mkdir(parents=True, exist_ok=True)
+    (run_path / "harness").mkdir(parents=True, exist_ok=True)
+    (run_path / "evaluations").mkdir(parents=True, exist_ok=True)
+    write_yaml(run_path / "run.yaml", {"run_id": run_path.name, "selected_agents": []})
+    write_yaml(run_path / "harness" / "historical-case-replay.yaml", {"case_replay_score": 82, "case_results_total": 3})
+    write_yaml(run_path / "harness" / "agent-harness.yaml", {"aggregate_scores": {"role_consistency": 88, "skill_invocation": 90}})
+    write_yaml(run_path / "evaluations" / "evaluation-report.yaml", {"source_coverage": {"tier_1_primary_fact": 2}, "dimension_scores": {"evidence_quality": 86}})
 
 
 if __name__ == "__main__":

@@ -257,6 +257,17 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn(rows[0]["decision"], {"accept", "reject", "quarantine"})
             self.assertIn("memory_write_allowed", rows[0])
             self.assertGreaterEqual(load_yaml(run_path / "evolution/memory-writeback-summary.yaml")["memory_writes"], 1)
+            accepted_memory_rows = [row for row in rows if row.get("memory_write_allowed")]
+            self.assertTrue(accepted_memory_rows)
+            accepted_memory_row = accepted_memory_rows[0]
+            show_result = run_cli(["threads", "show", "--agent", accepted_memory_row["target_agent"]], tmp_path)
+            self.assertEqual(show_result.returncode, 0, show_result.stderr)
+            self.assertIn("latest_event_type=", show_result.stdout)
+            thread_events_path = tmp_path / "memory" / "agents" / accepted_memory_row["target_agent"] / "thread-events.jsonl"
+            thread_events = [json.loads(line) for line in thread_events_path.read_text().splitlines() if line.strip()]
+            event_types = [row["event_type"] for row in thread_events]
+            self.assertIn("evolution_candidate_accepted", event_types)
+            self.assertIn("memory_writeback_applied", event_types)
             cap_summary = load_yaml(run_path / "evolution/capability-version-summary.yaml")
             self.assertGreaterEqual(cap_summary["approved_candidates"], 1)
             self.assertGreaterEqual(cap_summary["pending_human_apply"], 1)

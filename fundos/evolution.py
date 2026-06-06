@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from fundos.agent_threads import record_run_threads
 from fundos.capabilities import apply_capability_versions
 from fundos.capability_regression import run_capability_regression
 from fundos.learning import source_registry_by_id, write_run_learning_source_registry
@@ -211,6 +212,7 @@ def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     candidates = collect_evolution_candidates(run_path)
     results = [evaluate_candidate(candidate) for candidate in candidates]
     apply_evolution_results(run_path, results)
+    record_evolution_thread_events(run_path, results)
     apply_capability_versions(run_path, results)
     run_capability_regression(run_path)
     accepted = [row for row in results if row["decision"] == "accept"]
@@ -221,6 +223,52 @@ def run_evolution_gate(run_path: Path) -> list[dict[str, Any]]:
     write_jsonl(evo_dir / "quarantine.jsonl", quarantined)
     write_jsonl(evo_dir / "rejected.jsonl", rejected)
     return results
+
+
+def record_evolution_thread_events(run_path: Path, results: list[dict[str, Any]]) -> None:
+    for result in results:
+        target_agent = result.get("target_agent") or result.get("source_agent")
+        if not target_agent:
+            continue
+        decision = str(result.get("decision") or "unknown")
+        event_decision = {"accept": "accepted", "quarantine": "quarantined", "reject": "rejected"}.get(decision, decision)
+        record_run_threads(
+            run_path,
+            [{"agent_id": str(target_agent), "role": "evolution_candidate_target"}],
+            event_type=f"evolution_candidate_{event_decision}",
+            payload={
+                "candidate_id": result.get("candidate_id"),
+                "decision": decision,
+                "candidate_type": result.get("candidate_type"),
+                "target_scope": result.get("target_scope"),
+                "adoption_route": result.get("adoption_route"),
+                "memory_write_policy": result.get("memory_write_policy"),
+                "scores": result.get("scores", {}),
+                "reasons": result.get("reasons", []),
+                "memory_write_allowed": bool(result.get("memory_write_allowed")),
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            },
+        )
+        memory_write = result.get("memory_write") or {}
+        if result.get("memory_write_allowed") and memory_write:
+            record_run_threads(
+                run_path,
+                [{"agent_id": str(target_agent), "role": "evolution_memory_target"}],
+                event_type="memory_writeback_applied",
+                payload={
+                    "candidate_id": result.get("candidate_id"),
+                    "candidate_type": result.get("candidate_type"),
+                    "target_scope": result.get("target_scope"),
+                    "approval_mode": memory_write.get("approval_mode"),
+                    "already_written": bool(memory_write.get("already_written")),
+                    "semantic_memory_path": memory_write.get("semantic_memory_path"),
+                    "agent_ledger_path": memory_write.get("agent_ledger_path"),
+                    "organization_ledger_path": memory_write.get("organization_ledger_path"),
+                    "real_trade_allowed": False,
+                    "broker_integration": "disabled",
+                },
+            )
 
 
 def collect_evolution_candidates(run_path: Path) -> list[dict[str, Any]]:
