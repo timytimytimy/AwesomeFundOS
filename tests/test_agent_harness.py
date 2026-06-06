@@ -47,6 +47,7 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertEqual(row["agent_id"], "tech_growth_analyst")
             self.assertGreaterEqual(row["context_compression_quality"]["score"], 70)
             self.assertGreaterEqual(row["skill_invocation_quality"]["score"], 70)
+            self.assertGreaterEqual(row["policy_contract_quality"]["score"], 90)
             self.assertGreaterEqual(row["agent_os_contract_quality"]["score"], 90)
             self.assertGreaterEqual(row["role_consistency_quality"]["score"], 70)
             self.assertTrue(row["context_compression_quality"]["evidence_traceability"])
@@ -62,10 +63,18 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertIn("Quality Gates", row["skill_invocation_quality"]["runtime_sections"])
             self.assertGreaterEqual(report["aggregate_scores"]["skill_guardrails"], 90)
             self.assertGreaterEqual(report["aggregate_scores"]["skill_execution"], 90)
+            self.assertGreaterEqual(report["aggregate_scores"]["policy_contract"], 90)
             self.assertGreaterEqual(report["aggregate_scores"]["agent_os_contract"], 90)
             self.assertIn("skill_guardrails_required", report["controls"])
             self.assertIn("skill_procedure_quality_gates_required", report["controls"])
+            self.assertIn("policy_contract_required", report["controls"])
             self.assertIn("agent_os_contract_required", report["controls"])
+            self.assertTrue(row["policy_contract_quality"]["context_agent_policy_contract_loaded"])
+            self.assertTrue(row["policy_contract_quality"]["context_skill_execution_policy_contract_loaded"])
+            self.assertTrue(row["policy_contract_quality"]["structured_output_policy_contract_loaded"])
+            self.assertTrue(row["policy_contract_quality"]["output_matches_context_contracts"])
+            self.assertTrue(row["policy_contract_quality"]["safety_boundaries_respected"])
+            self.assertTrue(row["policy_contract_quality"]["evolution_approval_required"])
             self.assertTrue(row["agent_os_contract_quality"]["valid"])
             self.assertTrue(row["agent_os_contract_quality"]["agent_card_matches_roster"])
             self.assertTrue(row["agent_os_contract_quality"]["skill_references_agent_card"])
@@ -101,6 +110,26 @@ class AgentHarnessTests(unittest.TestCase):
         self.assertIn("tool_policy_allowed_tools_mismatch", quality["mismatches"])
         self.assertIn("agent_os_contract_invalid", report["agent_results"][0]["blocking_issues"])
         self.assertLess(report["aggregate_scores"]["agent_os_contract"], 60)
+
+    def test_agent_harness_penalizes_missing_runtime_policy_contract_application(self):
+        pack = make_evidence_pack("run-agent-policy-contract-miss", "topic", "机器人产业链投资机会")
+        context = make_context_pack("run-agent-policy-contract-miss", AGENT, pack)
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
+            output = write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+            output.pop("policy_contract", None)
+            write_yaml(run_path / "agent_work" / "tech_growth_analyst.structured.yaml", output)
+
+            report = evaluate_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
+
+        quality = report["agent_results"][0]["policy_contract_quality"]
+        self.assertTrue(quality["context_agent_policy_contract_loaded"])
+        self.assertTrue(quality["context_skill_execution_policy_contract_loaded"])
+        self.assertFalse(quality["structured_output_policy_contract_loaded"])
+        self.assertFalse(quality["output_matches_context_contracts"])
+        self.assertLess(quality["score"], 60)
+        self.assertIn("policy_contract_missing_or_unapplied", report["agent_results"][0]["blocking_issues"])
 
     def test_agent_harness_penalizes_missing_runtime_guardrail_application(self):
         pack = make_evidence_pack("run-agent-guardrail-miss", "topic", "机器人产业链投资机会")
@@ -162,10 +191,14 @@ class AgentHarnessTests(unittest.TestCase):
             self.assertIn("agent_harness_quality", evaluation)
             self.assertEqual(evaluation["agent_harness_quality"]["agent_count"], 1)
             self.assertIn("agent_os_contract_quality", evaluation["agent_harness_quality"])
+            self.assertIn("policy_contract_quality", evaluation["agent_harness_quality"])
             self.assertGreaterEqual(evaluation["agent_harness_quality"]["agent_os_contract_quality"], 90)
+            self.assertGreaterEqual(evaluation["agent_harness_quality"]["policy_contract_quality"], 90)
             self.assertEqual(evaluation["dimension_scores"]["agent_os_contract"], report["aggregate_scores"]["agent_os_contract"])
+            self.assertEqual(evaluation["dimension_scores"]["policy_contract_compliance"], report["aggregate_scores"]["policy_contract"])
             self.assertIn("agent_harness", evaluation["accepted_outputs"])
             self.assertIn("agent_os_contract", evaluation["accepted_outputs"])
+            self.assertIn("policy_contracts", evaluation["accepted_outputs"])
 
     def test_evaluation_summary_surfaces_invalid_agent_os_contract_blocking_issue(self):
         pack = make_evidence_pack("run-agent-os-contract-eval", "topic", "机器人产业链投资机会")

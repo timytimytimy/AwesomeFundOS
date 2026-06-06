@@ -42,6 +42,7 @@ properties:
       claim_traceability: {type: number}
       agent_tool_use: {type: number}
       agent_os_contract: {type: number}
+      policy_contract_compliance: {type: number}
       agent_performance: {type: number}
       agent_governance: {type: number}
       research_gap_followup: {type: number}
@@ -68,6 +69,7 @@ properties:
       skill_invocation: {type: number}
       skill_guardrails: {type: number}
       agent_os_contract_quality: {type: number}
+      policy_contract_quality: {type: number}
       role_consistency: {type: number}
       overall: {type: number}
   agent_thread_quality:

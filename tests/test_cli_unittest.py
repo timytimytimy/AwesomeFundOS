@@ -1269,6 +1269,7 @@ class EvaluationReportSchemaContractTests(unittest.TestCase):
             "claim_traceability",
             "agent_tool_use",
             "agent_os_contract",
+            "policy_contract_compliance",
             "agent_performance",
             "agent_governance",
             "research_gap_followup",
@@ -1302,6 +1303,7 @@ class EvaluationReportSchemaContractTests(unittest.TestCase):
 
         harness_quality = schema["properties"]["agent_harness_quality"]["properties"]
         self.assertIn("agent_os_contract_quality", harness_quality)
+        self.assertIn("policy_contract_quality", harness_quality)
         agent_performance = schema["properties"]["agent_performance_quality"]["properties"]
         for field in ["agent_count", "average_final_score", "ledger_entries_written", "retrain_or_downgrade_watch"]:
             self.assertIn(field, agent_performance)

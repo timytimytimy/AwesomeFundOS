@@ -105,6 +105,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("skill_guardrails")
     if agent_harness.get("aggregate_scores", {}).get("agent_os_contract", 0) > 0:
         accepted_outputs.append("agent_os_contract")
+    if agent_harness.get("aggregate_scores", {}).get("policy_contract", 0) > 0:
+        accepted_outputs.append("policy_contracts")
     if collaboration_harness.get("overall_score", 0) > 0:
         accepted_outputs.append("collaboration_harness")
     if pm_competition_harness.get("overall_score", 0) > 0:
@@ -243,6 +245,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "claim_traceability": claim_graph.get("traceability_score", 0),
             "agent_tool_use": agent_tool_use.get("overall_score", 0),
             "agent_os_contract": agent_harness_scores.get("agent_os_contract", 0),
+            "policy_contract_compliance": agent_harness_scores.get("policy_contract", 0),
             "agent_performance": agent_performance.get("average_final_score", 0),
             "agent_governance": agent_governance.get("governance_quality_score", 0),
             "research_gap_followup": research_gap_followups.get("research_gap_followup_score", 0),
@@ -267,6 +270,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "skill_invocation": agent_harness_scores.get("skill_invocation", 0),
             "skill_guardrails": agent_harness_scores.get("skill_guardrails", 0),
             "agent_os_contract_quality": agent_harness_scores.get("agent_os_contract", 0),
+            "policy_contract_quality": agent_harness_scores.get("policy_contract", 0),
             "role_consistency": agent_harness_scores.get("role_consistency", 0),
             "overall": agent_harness_scores.get("overall", 0),
         },
