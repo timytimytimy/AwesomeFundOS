@@ -215,13 +215,15 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
 
 def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[str, Any]]:
     agent_ids = [agent["id"] for agent in agents if agent.get("id")]
+    prd_coverage = module_prd_coverage(root)
     return [
         requirement(
             "prd.overall_and_modules_exist",
             "prd",
-            "Overall PRD and module PRDs exist for direct Codex implementation.",
+            "Overall PRD and all core module PRDs exist with implementation-ready scope, artifacts, acceptance criteria, and safety boundaries.",
             [root / "docs/prd/overall-prd.md", root / "docs/prd/modules"],
-            exists(root / "docs/prd/overall-prd.md") and dir_has_files(root / "docs/prd/modules", "*.md"),
+            prd_coverage["ok"],
+            details=prd_coverage,
         ),
         requirement(
             "agents.default_roster_has_diverse_roles",
@@ -396,6 +398,46 @@ def exists(path: Path) -> bool:
 
 def dir_has_files(path: Path, pattern: str) -> bool:
     return path.is_dir() and any(path.glob(pattern))
+
+
+REQUIRED_MODULE_PRDS = {
+    "agent-system": ["agent", "profile", "memory", "harness", "acceptance criteria", "real_trade_allowed=false"],
+    "codex-runtime": ["codex", "cli", "run.yaml", "model_records", "acceptance criteria", "broker_integration=disabled"],
+    "context-management": ["contextpack", "thread_memory_summary", "contextbudgetmanifest", "acceptance criteria", "real_trade_allowed=false"],
+    "evidence-system": ["evidencepack", "source quality", "public", "acceptance criteria", "broker_integration=disabled"],
+    "harness": ["evaluationreport", "agent-harness.yaml", "capability-regression.yaml", "acceptance criteria", "real_trade_allowed=false"],
+    "learning-evolution": ["evolutiongate", "capability", "failure pattern", "acceptance criteria", "broker_integration=disabled"],
+    "investment-committee": ["investment committee", "debate", "risk", "decision memo", "acceptance criteria", "real_trade_allowed=false"],
+    "portfolio-outcome": ["watchlist", "paper portfolio", "outcome tracking", "market replay", "acceptance criteria", "broker_integration=disabled"],
+    "tooling-data-adapters": ["tool adapter", "read-only", "fixture", "source", "acceptance criteria", "real_trade_allowed=false"],
+    "system-governance-audit": ["operating-system-manifest", "system audit", "schema", "strict", "acceptance criteria", "broker_integration=disabled"],
+}
+
+
+def module_prd_coverage(root: Path) -> dict[str, Any]:
+    modules_dir = root / "docs" / "prd" / "modules"
+    present_modules = sorted(path.name.removesuffix("-prd.md") for path in modules_dir.glob("*-prd.md")) if modules_dir.exists() else []
+    missing_modules = sorted(set(REQUIRED_MODULE_PRDS) - set(present_modules))
+    weak_modules: list[dict[str, Any]] = []
+    for module, needles in REQUIRED_MODULE_PRDS.items():
+        path = modules_dir / f"{module}-prd.md"
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8").lower()
+        missing_needles = [needle for needle in needles if needle.lower() not in text]
+        if missing_needles:
+            weak_modules.append({"module": module, "missing_terms": missing_needles})
+    overall = root / "docs" / "prd" / "overall-prd.md"
+    overall_ok = overall.exists() and all(term in overall.read_text(encoding="utf-8").lower() for term in ["v1", "agent", "harness", "evolutiongate", "不构成投资建议"])
+    return {
+        "ok": overall_ok and not missing_modules and not weak_modules,
+        "overall_prd_present": overall.exists(),
+        "overall_prd_implementation_ready": overall_ok,
+        "required_modules": sorted(REQUIRED_MODULE_PRDS),
+        "present_modules": present_modules,
+        "missing_modules": missing_modules,
+        "weak_modules": weak_modules,
+    }
 
 
 def all_exists(root: Path, rels: list[str]) -> bool:

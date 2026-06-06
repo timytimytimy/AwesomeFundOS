@@ -269,3 +269,12 @@ V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hy
 - 能从 reflections、evaluation blocking issues 和 outcome tracking 中生成 `learning/failure-patterns.yaml`，并追加到 `memory/organization/failure-pattern-library.jsonl`。
 - `fundos failures summary` 能汇总组织级 failure pattern 数量、category_counts 和 severity_counts。
 - 被拒绝升级保留拒绝理由，不能删除。
+
+## Acceptance Criteria
+
+- Source registry records learning sources, source tiers, allowed outputs, forbidden outputs, required gates, adoption policy and boundary policy.
+- EvolutionGate scores source quality, testability, overfitting risk, role drift risk and risk regression risk before any durable learning.
+- Accepted memory candidates write only reversible semantic memory and ledgers; capability candidates enter pending_human_apply and require regression plus human approver.
+- Failure patterns from reflections, evaluation, Agent Harness and outcome tracking feed future candidates as negative examples.
+- Source-controlled `agent.md` and `SKILL.md` are never mutated by automatic evolve/apply flows.
+- Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, capability upgrades cannot open broker or real-trade permissions.

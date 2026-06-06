@@ -139,3 +139,12 @@ Cache entry 记录 query、adapter_name、limit、created_at、results、retriev
 - 能为 Context Manager 提供按 Agent 过滤的证据索引。
 - Tool Harness 能检查 adapter 覆盖、来源等级、KOL/社媒边界和高置信阻断。
 - 每次 run 生成 public-research-manifest，并能用 cache/research 复现公开检索输入。
+
+## Acceptance Criteria
+
+- A run can generate EvidencePack from public fixture/runtime retrieval without user-provided materials.
+- Each EvidenceItem declares source_type, source_tier, confidence, claims and retrievable provenance.
+- KOL, Serenity, books, courses and historical cases are methodology / hypothesis / checklist / case_pattern inputs, not direct factual or buy/sell evidence.
+- Public research manifest records adapter coverage, cache status, source hash and source tier/type distribution.
+- High-confidence conclusions require tier_1_primary_fact or accepted cross-validated evidence.
+- Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, EvidencePack never contains broker actions.

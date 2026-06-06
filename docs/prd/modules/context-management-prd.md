@@ -129,3 +129,12 @@ V1 的 Context Quality Harness 不只给全局平均分，还必须按 Agent 输
 - Harness 能把 ContextPack 评分纳入 `agent_harness_quality`。
 - ContextPack 必须从 `SKILL.md` 抽取 `Guardrails`，并要求 Agent runtime 输出 `skill_guardrails_applied` 与 `guardrail_checks`；Context / Harness 压缩不得丢失 `real_trade_allowed=false`、`broker_integration=disabled`、EvolutionGate、以及 Profile/Skill/Tool/Memory/Thread/Harness/Evolution 边界。
 - ContextPack 能在有 runtime thread 时纳入安全的 Thread summary，并保持 no-real-trade / broker-disabled 边界。
+
+## Acceptance Criteria
+
+- Every selected Agent receives a role-specific ContextPack, not a shared undifferentiated summary.
+- Every ContextPack contains included evidence, included claims, contradiction table, missing evidence, excluded evidence summary, Thread summary and output schema.
+- ContextBudgetManifest records token budget, compression ratio, included/excluded items, drop reasons and loss accounting.
+- Thread memory summary is retrieval context only and cannot override current EvidencePack, ToolPolicy, MemoryPolicy or Harness results.
+- Harness scores context compression, role specificity, loss accounting, thread summary quality and memory lesson traceability.
+- Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, no context path can grant trading authority.

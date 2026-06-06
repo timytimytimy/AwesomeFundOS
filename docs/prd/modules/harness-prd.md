@@ -263,3 +263,12 @@ Skill Guardrails 违规必须生成 `skill_guardrail_violation` failure pattern�
 - Harness 能生成 `learning/failure-patterns.yaml` 并把组织级错误模式追加到 `memory/organization/failure-pattern-library.jsonl`。
 - Harness 能拒绝低质量升级候选。
 - 所有评分依据能引用 artifact / evidence / context / output id。
+
+## Acceptance Criteria
+
+- Every run writes EvaluationReport plus tool, agent, context, skill, case replay, claim graph, task DAG, portfolio, outcome, performance and governance harness artifacts when the relevant workflow runs.
+- Harness must produce blocking issues for missing primary evidence, role drift, missing risk review, missing bear case, unclosed high-priority evidence gaps, unsafe broker leakage or real trade language.
+- `agent-harness.yaml` must bind Agent Card, Skill, ContextPack, ToolPolicy, MemoryPolicy, Thread summary and structured output quality.
+- `capability-regression.yaml` must block capability apply if required regression artifacts are missing or safety boundaries are violated.
+- `system audit --strict` must independently verify manifest schemas and runtime summaries against source artifacts.
+- Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, harness never promotes real trading authority.

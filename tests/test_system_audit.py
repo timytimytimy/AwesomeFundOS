@@ -44,6 +44,23 @@ class SystemAuditTests(unittest.TestCase):
         }:
             self.assertIn(expected, categories)
         by_id = {row['requirement_id']: row for row in report['requirements']}
+        module_details = by_id['prd.overall_and_modules_exist']['details']
+        self.assertEqual(module_details['missing_modules'], [])
+        self.assertEqual(module_details['weak_modules'], [])
+        for expected_module in [
+            'agent-system',
+            'codex-runtime',
+            'context-management',
+            'evidence-system',
+            'harness',
+            'learning-evolution',
+            'investment-committee',
+            'portfolio-outcome',
+            'tooling-data-adapters',
+            'system-governance-audit',
+        ]:
+            self.assertIn(expected_module, module_details['required_modules'])
+            self.assertIn(expected_module, module_details['present_modules'])
         for requirement_id in [
             'prd.overall_and_modules_exist',
             'agents.all_roster_agents_have_cards_and_skills',
