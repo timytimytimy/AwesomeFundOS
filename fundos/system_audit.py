@@ -88,6 +88,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     task_dag = load_yaml(run_path / "workflow" / "task-dag.yaml", {})
     research_gap_tasks = load_yaml(run_path / "workflow" / "research-gap-tasks.yaml", {})
     task_dag_harness = load_yaml(run_path / "harness" / "task-dag-harness.yaml", {})
+    agent_thread_manifest = load_yaml(run_path / "memory" / "agent-thread-manifest.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
     agent_learning = load_yaml(run_path / "learning" / "agent-learning-report.yaml", {})
@@ -145,6 +146,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     portfolio_outcome_schema_check = runtime_portfolio_outcome_schema_check(repo_root, run_path, watchlist, paper_portfolio, portfolio_review, outcome_tracking)
     failure_pattern_schema_check = runtime_failure_pattern_schema_check(repo_root, run_path, failure_patterns, failure_pattern_library)
     task_dag_schema_check = runtime_task_dag_schema_check(repo_root, run_path, task_dag, research_gap_tasks, task_dag_harness)
+    agent_thread_schema_check = runtime_agent_thread_schema_check(repo_root, run_path, runtime_root, agent_thread_manifest)
     return [
         requirement(
             "runtime.run_core_artifacts_exist",
@@ -433,6 +435,20 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             task_dag_schema_check["ok"],
             details=task_dag_schema_check,
+        ),
+        requirement(
+            "runtime.agent_thread_memory_artifacts_match_schemas",
+            "context_management",
+            "Runtime Agent Thread manifest, persistent thread files, and append-only event rows match source-controlled schemas and preserve EvolutionGate memory-write safety controls.",
+            [
+                repo_root / "specs/schemas/agent-thread-manifest.schema.yaml",
+                repo_root / "specs/schemas/agent-thread.schema.yaml",
+                repo_root / "specs/schemas/agent-thread-event.schema.yaml",
+                run_path / "memory" / "agent-thread-manifest.yaml",
+                runtime_root / "memory" / "agents",
+            ],
+            agent_thread_schema_check["ok"],
+            details=agent_thread_schema_check,
         ),
     ]
 
@@ -1696,6 +1712,123 @@ def runtime_task_dag_schema_check(repo_root: Path, run_path: Path, dag: Any, tas
         "edge_count": len(dag_edges),
         "research_gap_count": len(tasks),
         "controls": controls,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_agent_thread_schema_check(repo_root: Path, run_path: Path, runtime_root: Path, manifest: Any) -> dict[str, Any]:
+    manifest_schema = repo_root / "specs" / "schemas" / "agent-thread-manifest.schema.yaml"
+    thread_schema = repo_root / "specs" / "schemas" / "agent-thread.schema.yaml"
+    event_schema = repo_root / "specs" / "schemas" / "agent-thread-event.schema.yaml"
+    manifest_path = run_path / "memory" / "agent-thread-manifest.yaml"
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+
+    if not manifest_schema.exists():
+        schema_errors_by_artifact["agent-thread-manifest.yaml"] = [f"missing_schema:{manifest_schema}"]
+    if not thread_schema.exists():
+        schema_errors_by_artifact["agent-thread.yaml"] = [f"missing_schema:{thread_schema}"]
+    if not event_schema.exists():
+        schema_errors_by_artifact["agent-thread-event.jsonl"] = [f"missing_schema:{event_schema}"]
+
+    if not manifest_path.exists() or not isinstance(manifest, dict):
+        missing_artifacts.append("agent-thread-manifest.yaml")
+        threads = []
+        controls = []
+    else:
+        result = validate_runtime_schema(manifest_schema, manifest)
+        if not result["ok"]:
+            schema_errors_by_artifact["agent-thread-manifest.yaml"] = result["schema_errors"]
+        threads = manifest.get("threads", []) if isinstance(manifest.get("threads", []), list) else []
+        controls = manifest.get("controls", []) if isinstance(manifest.get("controls", []), list) else []
+
+    required_manifest_controls = {
+        "append_only_event_log",
+        "agent_identity_continuity",
+        "no_real_trade_action",
+    }
+    missing_manifest_controls = sorted(required_manifest_controls - set(str(control) for control in controls))
+    if missing_manifest_controls:
+        mismatches.append(f"agent_thread_manifest.controls missing {missing_manifest_controls!r}")
+    compare_value(mismatches, "agent_thread_manifest.thread_count", manifest.get("thread_count") if isinstance(manifest, dict) else None, len(threads))
+    if isinstance(manifest, dict) and manifest.get("real_trade_allowed") is not False:
+        mismatches.append(f"agent_thread_manifest.real_trade_allowed: expected False, got {manifest.get('real_trade_allowed')!r}")
+    if isinstance(manifest, dict) and manifest.get("broker_integration") != "disabled":
+        mismatches.append(f"agent_thread_manifest.broker_integration: expected 'disabled', got {manifest.get('broker_integration')!r}")
+
+    event_rows_validated = 0
+    agent_ids: list[str] = []
+    persistent_controls: set[str] = set()
+    for idx, item in enumerate(threads):
+        if not isinstance(item, dict):
+            mismatches.append(f"agent_thread_manifest.threads[{idx}]: expected object")
+            continue
+        agent_id = str(item.get("agent_id") or "")
+        if agent_id:
+            agent_ids.append(agent_id)
+        thread_rel = item.get("thread_path", "")
+        event_rel = item.get("event_log_path", "")
+        thread_path = runtime_root / thread_rel if thread_rel else runtime_root / "__missing_thread_path__"
+        event_path = runtime_root / event_rel if event_rel else runtime_root / "__missing_event_log_path__"
+        if not thread_path.exists():
+            missing_artifacts.append(str(thread_rel or f"threads[{idx}].thread_path"))
+        else:
+            thread_doc = load_yaml(thread_path, {})
+            result = validate_runtime_schema(thread_schema, thread_doc)
+            if not result["ok"]:
+                schema_errors_by_artifact[f"{thread_rel}"] = result["schema_errors"]
+            if isinstance(thread_doc, dict):
+                compare_value(mismatches, f"thread[{agent_id}].agent_id", thread_doc.get("agent_id"), agent_id)
+                compare_value(mismatches, f"thread[{agent_id}].event_log_path", thread_doc.get("event_log_path"), event_rel)
+                persistent_controls.update(str(control) for control in thread_doc.get("controls", []) if control)
+                if thread_doc.get("real_trade_allowed") is not False:
+                    mismatches.append(f"thread[{agent_id}].real_trade_allowed: expected False, got {thread_doc.get('real_trade_allowed')!r}")
+                if thread_doc.get("broker_integration") != "disabled":
+                    mismatches.append(f"thread[{agent_id}].broker_integration: expected 'disabled', got {thread_doc.get('broker_integration')!r}")
+        if not event_path.exists():
+            missing_artifacts.append(str(event_rel or f"threads[{idx}].event_log_path"))
+        else:
+            rows = load_jsonl(event_path)
+            if not rows:
+                mismatches.append(f"event_log[{agent_id}]: expected at least one row")
+            latest_event_type = rows[-1].get("event_type") if rows else None
+            compare_value(mismatches, f"agent_thread_manifest.threads[{idx}].latest_event_type", item.get("latest_event_type"), latest_event_type)
+            for row_idx, row in enumerate(rows[-3:]):
+                result = validate_runtime_schema(event_schema, row)
+                if not result["ok"]:
+                    schema_errors_by_artifact[f"{event_rel}:{max(len(rows) - 3, 0) + row_idx + 1}"] = result["schema_errors"]
+                event_rows_validated += 1
+                if row.get("agent_id") != agent_id:
+                    mismatches.append(f"event_log[{agent_id}][{row_idx}].agent_id: expected {agent_id!r}, got {row.get('agent_id')!r}")
+                if row.get("real_trade_allowed") is not False:
+                    mismatches.append(f"event_log[{agent_id}][{row_idx}].real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+                if row.get("broker_integration") != "disabled":
+                    mismatches.append(f"event_log[{agent_id}][{row_idx}].broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+
+    for required_control in ["persistent_agent_identity", "append_only_event_log", "evolution_gate_required_for_memory_write", "no_core_profile_mutation", "no_real_trade_action"]:
+        if threads and required_control not in persistent_controls:
+            mismatches.append(f"persistent_thread.controls: missing {required_control}")
+    combined_controls = sorted(set(str(control) for control in controls) | persistent_controls)
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": sorted(set(missing_artifacts)),
+        "mismatches": mismatches,
+        "schema_paths": {
+            "agent-thread-manifest.yaml": str(manifest_schema),
+            "agent-thread.yaml": str(thread_schema),
+            "agent-thread-event.schema.yaml": str(event_schema),
+        },
+        "artifact_paths": {
+            "agent-thread-manifest.yaml": str(manifest_path),
+            "memory_agents_root": str(runtime_root / "memory" / "agents"),
+        },
+        "thread_count": len(threads),
+        "agent_ids": agent_ids,
+        "event_rows_validated": event_rows_validated,
+        "controls": combined_controls,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

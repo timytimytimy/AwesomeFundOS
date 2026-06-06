@@ -68,6 +68,40 @@ class AgentThreadTests(unittest.TestCase):
                 self.assertEqual(events[-1]["run_id"], "thread-run")
                 self.assertEqual(events[-1]["real_trade_allowed"], False)
 
+    def test_agent_thread_schemas_exist_and_validate_runtime_thread_artifacts(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / "runs" / "thread-schema-run"
+            roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+            selected = [
+                {"agent_id": "fund_manager", "role": "FundManager"},
+                {"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"},
+            ]
+            materialize_agent_threads(root, roster)
+
+            manifest = record_run_threads(run_path, selected, event_type="run_participation", payload={"input": "机器人"})
+
+            from fundos.system_audit import validate_runtime_schema
+
+            schema_dir = REPO_ROOT / "specs" / "schemas"
+            run_manifest_schema = schema_dir / "agent-thread-manifest.schema.yaml"
+            persistent_thread_schema = schema_dir / "agent-thread.schema.yaml"
+            event_schema = schema_dir / "agent-thread-event.schema.yaml"
+            for path in [run_manifest_schema, persistent_thread_schema, event_schema]:
+                self.assertTrue(path.exists(), path)
+
+            manifest_result = validate_runtime_schema(run_manifest_schema, manifest)
+            self.assertEqual(manifest_result["schema_errors"], [])
+            for item in manifest["threads"]:
+                thread_doc = yaml.safe_load((root / item["thread_path"]).read_text(encoding="utf-8"))
+                thread_result = validate_runtime_schema(persistent_thread_schema, thread_doc)
+                self.assertEqual(thread_result["schema_errors"], [], item["agent_id"])
+                events = [json.loads(line) for line in (root / item["event_log_path"]).read_text(encoding="utf-8").splitlines() if line.strip()]
+                event_result = validate_runtime_schema(event_schema, events[-1])
+                self.assertEqual(event_result["schema_errors"], [], item["agent_id"])
+                self.assertFalse(events[-1]["real_trade_allowed"])
+                self.assertEqual(events[-1]["broker_integration"], "disabled")
+
     def test_run_and_evolve_update_thread_continuity_and_cli_summary(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)

@@ -1,0 +1,21 @@
+version: 0.1.0
+type: object
+required:
+  - timestamp
+  - event_type
+  - agent_id
+  - role
+  - run_id
+  - payload
+  - real_trade_allowed
+  - broker_integration
+properties:
+  timestamp: {type: string}
+  event_type: {type: string}
+  agent_id: {type: string}
+  role: {type: string}
+  run_id: {type: string}
+  payload:
+    type: object
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

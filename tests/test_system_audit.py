@@ -249,6 +249,16 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('no_real_trade_action', task_dag_schema_details['controls'])
             self.assertFalse(task_dag_schema_details['real_trade_allowed'])
             self.assertEqual(task_dag_schema_details['broker_integration'], 'disabled')
+            self.assertEqual(by_id['runtime.agent_thread_memory_artifacts_match_schemas']['status'], 'pass')
+            thread_schema_details = by_id['runtime.agent_thread_memory_artifacts_match_schemas']['details']
+            self.assertEqual(thread_schema_details['schema_errors_by_artifact'], {})
+            self.assertEqual(thread_schema_details['missing_artifacts'], [])
+            self.assertEqual(thread_schema_details['thread_count'], len(thread_schema_details['agent_ids']))
+            self.assertGreaterEqual(thread_schema_details['event_rows_validated'], thread_schema_details['thread_count'])
+            self.assertIn('append_only_event_log', thread_schema_details['controls'])
+            self.assertIn('evolution_gate_required_for_memory_write', thread_schema_details['controls'])
+            self.assertFalse(thread_schema_details['real_trade_allowed'])
+            self.assertEqual(thread_schema_details['broker_integration'], 'disabled')
             committee_details = by_id['runtime.committee_debate_risk_decision_loop_complete']['details']
             self.assertGreaterEqual(committee_details['disagreement_count'], 1)
             self.assertGreaterEqual(committee_details['active_veto_count'], 1)
@@ -354,6 +364,46 @@ class SystemAuditTests(unittest.TestCase):
             errors = '\n'.join(by_id['runtime.task_dag_and_research_gap_artifacts_match_schemas']['details']['schema_errors_by_artifact']['task-dag.yaml'])
             self.assertIn('$.broker_integration', errors)
             self.assertIn('$.nodes[0].broker_integration', errors)
+
+    def test_system_audit_strict_mode_fails_agent_thread_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            fixture.write_text('''[
+                {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},
+                {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},
+                {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},
+                {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},
+                {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},
+                {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}
+            ]''', encoding='utf-8')
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            manifest_yaml = run_path / 'memory' / 'agent-thread-manifest.yaml'
+            manifest = yaml.safe_load(manifest_yaml.read_text(encoding='utf-8'))
+            manifest['broker_integration'] = 'enabled'
+            first_thread = manifest['threads'][0]
+            first_thread.pop('event_log_path', None)
+            manifest_yaml.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding='utf-8')
+            event_path = cwd / first_thread['thread_path'].replace('thread.yaml', 'thread-events.jsonl')
+            rows = [json.loads(line) for line in event_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            rows[-1]['broker_integration'] = 'enabled'
+            event_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.agent_thread_memory_artifacts_match_schemas']['status'], 'fail')
+            details = by_id['runtime.agent_thread_memory_artifacts_match_schemas']['details']
+            errors = '\n'.join(details['schema_errors_by_artifact']['agent-thread-manifest.yaml'])
+            self.assertIn('$.broker_integration', errors)
+            self.assertIn('$.threads[0].event_log_path', errors)
+            mismatches = '\n'.join(details['mismatches'])
+            self.assertIn('agent_thread_manifest.broker_integration', mismatches)
 
 
     def test_system_audit_strict_mode_fails_stale_runtime_policy_contract_manifest_summary(self):

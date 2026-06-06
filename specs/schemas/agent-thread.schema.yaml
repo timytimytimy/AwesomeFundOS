@@ -1,0 +1,38 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - thread_id
+  - agent_id
+  - agent_name
+  - role
+  - created_at
+  - updated_at
+  - continuity_scope
+  - event_log_path
+  - semantic_memory_path
+  - evolution_ledger_path
+  - controls
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [agent_thread]}
+  thread_id: {type: string}
+  agent_id: {type: string}
+  agent_name: {type: string}
+  role: {type: string}
+  created_at: {type: string}
+  updated_at: {type: string}
+  continuity_scope:
+    type: array
+    items: {type: string}
+  event_log_path: {type: string}
+  semantic_memory_path: {type: string}
+  evolution_ledger_path: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}
