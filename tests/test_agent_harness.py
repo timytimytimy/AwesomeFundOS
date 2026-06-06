@@ -146,19 +146,51 @@ class AgentHarnessTests(unittest.TestCase):
         context = make_context_pack("run-agent-harness", AGENT, pack)
         with tempfile.TemporaryDirectory() as d:
             run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "run-agent-harness", "selected_agents": [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], "model_records": []})
             write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
             write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+            write_operating_system_manifest(run_path)
 
             report = write_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
             path = run_path / "harness" / "agent-harness.yaml"
             self.assertTrue(path.exists())
             self.assertIn("aggregate_scores", report)
             self.assertIn("context_compression", report["aggregate_scores"])
+            self.assertGreaterEqual(report["aggregate_scores"]["agent_os_contract"], 90)
 
             evaluation = make_evaluation_for_run("run-agent-harness", [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], pack, run_path)
             self.assertIn("agent_harness_quality", evaluation)
             self.assertEqual(evaluation["agent_harness_quality"]["agent_count"], 1)
+            self.assertIn("agent_os_contract_quality", evaluation["agent_harness_quality"])
+            self.assertGreaterEqual(evaluation["agent_harness_quality"]["agent_os_contract_quality"], 90)
+            self.assertEqual(evaluation["dimension_scores"]["agent_os_contract"], report["aggregate_scores"]["agent_os_contract"])
             self.assertIn("agent_harness", evaluation["accepted_outputs"])
+            self.assertIn("agent_os_contract", evaluation["accepted_outputs"])
+
+    def test_evaluation_summary_surfaces_invalid_agent_os_contract_blocking_issue(self):
+        pack = make_evidence_pack("run-agent-os-contract-eval", "topic", "机器人产业链投资机会")
+        context = make_context_pack("run-agent-os-contract-eval", AGENT, pack)
+        with tempfile.TemporaryDirectory() as d:
+            run_path = Path(d)
+            write_yaml(run_path / "run.yaml", {"run_id": "run-agent-os-contract-eval", "selected_agents": [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], "model_records": []})
+            write_yaml(run_path / "context" / "tech_growth_analyst.context-pack.yaml", context)
+            write_agent_output(run_path / "agent_work" / "tech_growth_analyst.md", AGENT, context, "机器人产业链投资机会", pack)
+            manifest = write_operating_system_manifest(run_path)
+            manifest["agents"][0]["os_contract_checks"]["valid"] = False
+            manifest["agents"][0]["os_contract_checks"]["memory_policy_matches_agent_namespace"] = False
+            manifest["agents"][0]["os_contract_checks"]["mismatches"] = ["memory_policy_namespace_mismatch"]
+            manifest["all_agent_os_contracts_valid"] = False
+            manifest["agent_os_contract_summary"]["valid_contracts"] = 0
+            manifest["agent_os_contract_summary"]["invalid_contracts"] = 1
+            write_yaml(run_path / "system" / "operating-system-manifest.yaml", manifest)
+            report = write_agent_harness(run_path, selected=[{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}])
+
+            evaluation = make_evaluation_for_run("run-agent-os-contract-eval", [{"agent_id": "tech_growth_analyst", "role": "TechGrowthAnalyst"}], pack, run_path)
+
+        self.assertLess(report["aggregate_scores"]["agent_os_contract"], 60)
+        self.assertEqual(evaluation["dimension_scores"]["agent_os_contract"], report["aggregate_scores"]["agent_os_contract"])
+        self.assertLess(evaluation["agent_harness_quality"]["agent_os_contract_quality"], 60)
+        self.assertIn("agent_os_contract_invalid", evaluation["blocking_issues"])
 
     def test_agent_harness_scores_output_memory_lesson_traceability(self):
         pack = make_evidence_pack("run-agent-memory-trace", "topic", "机器人产业链投资机会")

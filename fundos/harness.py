@@ -101,6 +101,8 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
         accepted_outputs.append("reasoning_layer_separation")
     if agent_harness.get("aggregate_scores", {}).get("skill_guardrails", 0) > 0:
         accepted_outputs.append("skill_guardrails")
+    if agent_harness.get("aggregate_scores", {}).get("agent_os_contract", 0) > 0:
+        accepted_outputs.append("agent_os_contract")
     if collaboration_harness.get("overall_score", 0) > 0:
         accepted_outputs.append("collaboration_harness")
     if pm_competition_harness.get("overall_score", 0) > 0:
@@ -149,6 +151,10 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     for issue in agent_thread_quality.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_agent_thread_manifest":
             blocking.append(issue)
+    for row in agent_harness.get("agent_results", []):
+        for issue in row.get("blocking_issues", []):
+            if issue and issue not in blocking:
+                blocking.append(issue)
     for issue in skill_benchmark.get("blocking_issues", []):
         if issue and issue not in blocking and issue != "missing_skill_benchmark":
             blocking.append(issue)
@@ -224,6 +230,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "tool_runtime_quality": tool_runtime.get("tool_runtime_quality_score", 0),
             "claim_traceability": claim_graph.get("traceability_score", 0),
             "agent_tool_use": agent_tool_use.get("overall_score", 0),
+            "agent_os_contract": agent_harness_scores.get("agent_os_contract", 0),
             "research_gap_followup": research_gap_followups.get("research_gap_followup_score", 0),
         },
         "context_quality_scores": {
@@ -245,6 +252,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
             "reasoning_layer_separation_quality": agent_harness_scores.get("reasoning_layer_separation", 0),
             "skill_invocation": agent_harness_scores.get("skill_invocation", 0),
             "skill_guardrails": agent_harness_scores.get("skill_guardrails", 0),
+            "agent_os_contract_quality": agent_harness_scores.get("agent_os_contract", 0),
             "role_consistency": agent_harness_scores.get("role_consistency", 0),
             "overall": agent_harness_scores.get("overall", 0),
         },
