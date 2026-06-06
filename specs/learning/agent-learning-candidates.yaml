@@ -3,9 +3,26 @@ artifact_type: agent_learning_candidate_spec
 spec_id: agent_learning_candidates_v1
 purpose: >
   Generate quarantined, testable learning and workflow candidates from per-agent
-  runtime evidence, tool-use reconciliation, harness scores, and failure patterns.
+  runtime evidence, tool-use reconciliation, harness scores, persistent thread
+  follow-up lifecycle events, and failure patterns.
   Candidates are proposals only and must pass EvolutionGate before any memory or
   capability writeback.
+candidate_sources:
+  - agent_tool_use_reconciliation
+  - failure_pattern_library
+  - agent_harness_context_management
+  - skill_benchmark
+  - agent_thread_event_log
+thread_event_candidate_rules:
+  - event_type: research_gap_followup_closed
+    candidate_type: reflection_update
+    target_scope: agent_memory
+    source_tier: tier_2_canonical_framework
+    rule: >
+      A closed follow-up lifecycle can propose a reflection memory for the owner
+      Agent, preserving the original evidence gap, accepted evidence IDs, and
+      confidence-cap lesson. It must not directly mutate profile, tools, risk
+      limits, broker integration, or real-trade authority.
 allowed_candidate_types:
   - workflow_update
   - principle_update

@@ -622,8 +622,19 @@ class FundosCliTests(unittest.TestCase):
             evaluation = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
             self.assertNotIn(task["category"], evaluation["research_plan_coverage"].get("missing_categories", []))
             self.assertIn("research_gap_closures", evaluation["accepted_outputs"])
+            self.assertIn("agent_learning_candidates", evaluation["accepted_outputs"])
             self.assertEqual(evaluation["research_gap_followup_quality"]["closed_count"], 1)
             self.assertEqual(evaluation["research_gap_followup_quality"]["accepted_evidence_count"], 1)
+            learning = yaml.safe_load((tmp_path / run_rel / "learning" / "agent-learning-report.yaml").read_text())
+            thread_candidates = [row for row in learning["candidates"] if row["metadata"].get("source_event_type") == "research_gap_followup_closed"]
+            self.assertEqual(len(thread_candidates), 1)
+            self.assertEqual(thread_candidates[0]["target_agent"], task["owner_agent_id"])
+            self.assertIn("FGCLI001", thread_candidates[0]["proposal"])
+
+            evolve_result = run_cli(["evolve", "--run", run_rel], tmp_path)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+            gate_rows = [json.loads(line) for line in (tmp_path / run_rel / "evolution" / "evolution-gate-results.jsonl").read_text().splitlines() if line.strip()]
+            self.assertTrue(any(row["candidate_id"] == thread_candidates[0]["candidate_id"] for row in gate_rows))
 
     def test_followups_close_cli_rejects_invalid_evidence_file(self):
         with tempfile.TemporaryDirectory() as d:

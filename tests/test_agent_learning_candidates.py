@@ -139,6 +139,80 @@ class AgentLearningCandidateTests(unittest.TestCase):
                     self.assertNotEqual(row['candidate_type'], 'profile_update')
                     self.assertNotEqual(row['target_scope'], 'tool_permission')
 
+    def test_closed_followup_thread_event_generates_reflection_candidate_for_owner_agent(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            run_path = root / 'runs' / 'run_thread_learning'
+            write_minimal_run(run_path, 'run_thread_learning')
+            events_path = root / 'memory' / 'agents' / 'position_trend_trader' / 'thread-events.jsonl'
+            write_jsonl(events_path, [
+                {
+                    'timestamp': '2026-06-06T00:00:00+00:00',
+                    'event_type': 'research_gap_followup_answered',
+                    'agent_id': 'position_trend_trader',
+                    'role': 'research_gap_followup_owner',
+                    'run_id': 'run_thread_learning',
+                    'payload': {
+                        'task_id': 'run_thread_learning:research_gap:001',
+                        'category': 'market_data',
+                        'status': 'needs_evidence',
+                        'result_path': 'follow_up/results/run_thread_learning_research_gap_001.yaml',
+                    },
+                    'real_trade_allowed': False,
+                    'broker_integration': 'disabled',
+                },
+                {
+                    'timestamp': '2026-06-06T00:05:00+00:00',
+                    'event_type': 'research_gap_followup_closed',
+                    'agent_id': 'position_trend_trader',
+                    'role': 'research_gap_followup_owner',
+                    'run_id': 'run_thread_learning',
+                    'payload': {
+                        'task_id': 'run_thread_learning:research_gap:001',
+                        'category': 'market_data',
+                        'closure_status': 'closed_by_accepted_evidence',
+                        'accepted_evidence_count': 1,
+                        'accepted_evidence_ids': ['FGTHREAD001'],
+                    },
+                    'real_trade_allowed': False,
+                    'broker_integration': 'disabled',
+                },
+            ])
+            (run_path / 'memory').mkdir(parents=True, exist_ok=True)
+            (run_path / 'memory' / 'agent-thread-manifest.yaml').write_text(yaml.safe_dump({
+                'artifact_type': 'run_agent_thread_manifest',
+                'run_id': 'run_thread_learning',
+                'event_type': 'research_gap_followup_closed',
+                'thread_count': 1,
+                'threads': [
+                    {
+                        'agent_id': 'position_trend_trader',
+                        'event_log_path': 'memory/agents/position_trend_trader/thread-events.jsonl',
+                        'latest_event_type': 'research_gap_followup_closed',
+                    }
+                ],
+                'real_trade_allowed': False,
+                'broker_integration': 'disabled',
+            }, allow_unicode=True), encoding='utf-8')
+
+            report = generate_agent_learning_candidates(run_path)
+
+            thread_candidates = [row for row in report['candidates'] if row['metadata'].get('source_event_type') == 'research_gap_followup_closed']
+            self.assertEqual(len(thread_candidates), 1)
+            candidate = thread_candidates[0]
+            self.assertEqual(candidate['target_agent'], 'position_trend_trader')
+            self.assertEqual(candidate['candidate_type'], 'reflection_update')
+            self.assertEqual(candidate['target_scope'], 'agent_memory')
+            self.assertEqual(candidate['adoption_route'], 'memory_writeback_after_evolution')
+            self.assertIn('market_data', candidate['proposal'])
+            self.assertIn('FGTHREAD001', candidate['proposal'])
+            self.assertIn('agent_thread_event_log', candidate['source_basis'][0]['source_id'])
+            self.assertIn('historical_case_replay', candidate['required_tests'])
+            self.assertFalse(candidate['real_trade_allowed'])
+            self.assertEqual(candidate['broker_integration'], 'disabled')
+            evolution_candidates = read_jsonl(run_path / 'evolution/candidates.jsonl')
+            self.assertTrue(any(row['candidate_id'] == candidate['candidate_id'] for row in evolution_candidates))
+
 
 def write_minimal_run(run_path: Path, run_id: str) -> None:
     (run_path / 'harness').mkdir(parents=True, exist_ok=True)
@@ -165,6 +239,11 @@ def write_agent_tool_use(run_path: Path, agent_results: list[dict]) -> None:
 
 def read_jsonl(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+
+
+def write_jsonl(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows), encoding='utf-8')
 
 
 if __name__ == '__main__':

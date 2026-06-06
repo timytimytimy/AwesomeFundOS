@@ -114,6 +114,21 @@ V1 禁止自动写回：
 - risk limits；
 - organization structure。
 
+### 5.1.1 Thread Lifecycle to Learning Candidates
+
+Agent Thread 是长期连续性日志，不等同于自动记忆。V1 必须把部分可验证的 Thread lifecycle event 转化为 `agent_learning_candidate`，再交由 EvolutionGate 评测，而不是直接改写 Agent 能力。
+
+第一类支持事件是 `research_gap_followup_closed`：当某个 Agent 先把研究缺口标记为 `needs_evidence`，随后该缺口通过 accepted EvidenceItem 关闭时，系统可以生成一个 `reflection_update / agent_memory` 候选。候选必须记录：
+
+- owner agent；
+- task_id；
+- research gap category；
+- accepted_evidence_ids；
+- 原始 Thread event log 路径；
+- required_tests，包括 role drift、evidence quality 和 historical case replay。
+
+该候选只能表达“未来类似任务要保留证据缺口、引用已验收证据 ID、在缺口关闭前保持 confidence cap”等复盘经验；不得提出买卖指令、风控放宽、工具权限升级、broker 接入或 core profile 修改。
+
 ### 5.2 Capability Versioning / Approval Queue
 
 Principle、Skill、Checklist、Workflow、Tool Policy 类候选即使被 EvolutionGate 接受，也不能直接改写 source-controlled `agent.md`、`SKILL.md`、Profile、Tool Permission 或 Risk Limit。V1 必须把它们写入可审计的能力候选注册表：

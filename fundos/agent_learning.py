@@ -70,11 +70,13 @@ def generate_agent_learning_candidates(run_path: Path) -> dict[str, Any]:
     failure_report = read_optional_yaml(run_path / "learning" / "failure-patterns.yaml", {})
     agent_harness = read_optional_yaml(run_path / "harness" / "agent-harness.yaml", {})
     skill_benchmark = read_optional_yaml(run_path / "harness" / "skill-benchmark.yaml", {})
+    thread_manifest = read_optional_yaml(run_path / "memory" / "agent-thread-manifest.yaml", {})
 
     candidates: list[dict[str, Any]] = []
     candidates.extend(candidates_from_tool_use(run_id, agent_tool_use))
     candidates.extend(candidates_from_failure_patterns(run_id, failure_report))
     candidates.extend(candidates_from_quality_reports(run_id, agent_harness, skill_benchmark))
+    candidates.extend(candidates_from_thread_events(run_path, run_id, thread_manifest))
     candidates = dedupe_candidates([sanitize_candidate(c) for c in candidates])
 
     learning_path = run_path / "learning" / "agent-learning-candidates.jsonl"
@@ -108,6 +110,7 @@ def generate_agent_learning_candidates(run_path: Path) -> dict[str, Any]:
             "failure_patterns": "learning/failure-patterns.yaml",
             "agent_harness": "harness/agent-harness.yaml",
             "skill_benchmark": "harness/skill-benchmark.yaml",
+            "agent_thread_manifest": "memory/agent-thread-manifest.yaml",
         },
         "blocking_issues": blocking_issues(merged_learning),
         "controls": spec.get("controls", CONTROLS),
@@ -191,6 +194,56 @@ def candidates_from_tool_use(run_id: str, report: dict[str, Any]) -> list[dict[s
                 }],
                 metadata={"agent_tool_use_score": score},
             ))
+    return candidates
+
+
+def candidates_from_thread_events(run_path: Path, run_id: str, manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+    if not manifest or manifest.get("status") == "missing":
+        return candidates
+    root = infer_runtime_root(run_path)
+    for thread in manifest.get("threads", []) or []:
+        agent_id = str(thread.get("agent_id") or "")
+        event_log_rel = thread.get("event_log_path")
+        if not agent_id or not event_log_rel:
+            continue
+        events = read_jsonl(root / str(event_log_rel))
+        for event in events:
+            if event.get("run_id") != run_id:
+                continue
+            if event.get("event_type") == "research_gap_followup_closed":
+                payload = event.get("payload", {}) or {}
+                task_id = str(payload.get("task_id") or "")
+                category = str(payload.get("category") or "unknown_category")
+                accepted_evidence_ids = [str(item) for item in payload.get("accepted_evidence_ids", []) or []]
+                if not task_id:
+                    continue
+                candidates.append(make_candidate(
+                    run_id=run_id,
+                    target_agent=agent_id,
+                    reason_key=f"thread_followup_closed_{task_id}_{category}_{','.join(accepted_evidence_ids)}",
+                    candidate_type="reflection_update",
+                    target_scope="agent_memory",
+                    proposal=(
+                        f"Record a post-research reflection for closed research gap {category}: the agent first marked "
+                        f"task {task_id} as needing evidence and it was later closed with accepted evidence "
+                        f"{', '.join(accepted_evidence_ids) or 'none'}. In future similar work, preserve the original evidence gap, "
+                        "cite the accepted evidence IDs, and keep confidence capped until the gap is closed."
+                    ),
+                    source_basis=[{
+                        "source_id": "agent_thread_event_log",
+                        "evidence_id": str(Path("memory") / "agents" / agent_id / "thread-events.jsonl"),
+                        "source_tier": "tier_2_canonical_framework",
+                        "rationale": f"Persistent Agent Thread recorded a closed follow-up lifecycle for {category}.",
+                    }],
+                    metadata={
+                        "source_event_type": "research_gap_followup_closed",
+                        "task_id": task_id,
+                        "category": category,
+                        "accepted_evidence_ids": accepted_evidence_ids,
+                        "thread_event_log_path": str(event_log_rel),
+                    },
+                ))
     return candidates
 
 
@@ -398,6 +451,13 @@ def infer_run_id(run_path: Path) -> str:
     if run_doc.exists():
         return (read_yaml(run_doc) or {}).get("run_id", run_path.name)
     return run_path.name
+
+
+def infer_runtime_root(run_path: Path) -> Path:
+    resolved = run_path.resolve()
+    if resolved.parent.name == "runs":
+        return resolved.parent.parent
+    return resolved.parent
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
