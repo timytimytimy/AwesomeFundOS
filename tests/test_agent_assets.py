@@ -36,6 +36,12 @@ class AgentAssetTests(unittest.TestCase):
                     "## Context Management Policy",
                     "## Evolution Path",
                     "## Output Contract",
+                    "## Policy Contract",
+                    "## Context Contract",
+                    "## Memory Policy",
+                    "## Tool Policy",
+                    "## Evolution Contract",
+                    "## Safety Boundary",
                     "不构成投资建议",
                 ]:
                     self.assertIn(required, agent_text)
@@ -54,6 +60,12 @@ class AgentAssetTests(unittest.TestCase):
                     "## Harness Hooks",
                     "## Guardrails",
                     "## Forbidden Outputs",
+                    "## Policy Contract",
+                    "## Context Contract",
+                    "## Tool Use Policy",
+                    "## Memory Policy",
+                    "## Evolution Policy",
+                    "## Safety Boundary",
                     "## Safety",
                     "## Boundaries",
                 ]:
@@ -62,6 +74,9 @@ class AgentAssetTests(unittest.TestCase):
                     "Research / watchlist / Paper Portfolio only",
                     "real_trade_allowed=false",
                     "broker_integration=disabled",
+                    "policy_contract_loaded",
+                    "execution_policy_contract_loaded",
+                    "context_contract_loaded",
                     "Profile, Skill, Tool, Memory, Thread, Harness, and Evolution boundaries",
                     "EvolutionGate",
                 ]:

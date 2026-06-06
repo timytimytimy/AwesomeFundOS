@@ -181,6 +181,24 @@ Before finalizing this skill output, verify all gates below:
 
 Close with: `研究分析，不构成投资建议；不接真实交易，不自动下单。`
 
+## Policy Contract
+
+- contract_id: `review_archivist_skill_execution_policy_contract_v1`.
+- execution_policy_contract_loaded: true.
+- required_contracts: Context Contract, Tool Use Policy, Memory Policy, Evolution Policy, Safety Boundary, Guardrails, and Quality Gates.
+- output_application: structured output must include `policy_contract` copied from the loaded agent and skill contracts before Agent Harness evaluation.
+- controls: policy_contract_loaded; execution_policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.
+- invariant: real_trade_allowed=false; broker_integration=disabled; Research / watchlist / Paper Portfolio only.
+
+## Context Contract
+
+- context_contract_loaded: true.
+- input_scope: use the assigned Agent-specific ContextPack, source registry, approved memory summary, and orchestrator handoffs only.
+- compression_contract: preserve Evidence IDs, Claim IDs, source tiers, missing evidence, contradiction table, excluded context, confidence caps, and role-specific checklist state.
+- forbidden_context_use: do not fill gaps from unscoped context, stale memory, private account data, broker state, or KOL/social material treated as direct evidence.
+- escalation_contract: if essential context is missing or outside mandate, cap confidence and emit next_research_tasks or handoff rather than inventing facts.
+- harness_contract: Context Harness and Agent Harness must be able to score context preservation, role consistency, tool policy compliance, and safety boundaries.
+
 ## Tool Use Policy
 
 - Use only the role-approved tools declared by the assigned roster and `specs/agents/tool-policies/review_archivist.yaml`.

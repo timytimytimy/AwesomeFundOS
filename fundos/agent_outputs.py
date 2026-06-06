@@ -151,16 +151,21 @@ def compact_policy_contract(agent_card: dict[str, Any], skill_contract: dict[str
     policy = agent_card.get("policy_contract", {}) or {}
     exec_policy = skill_contract.get("execution_policy_contract", {}) or {}
     return {
+        "agent_policy_contract": policy.get("policy_contract", []),
+        "agent_context_contract": policy.get("context_contract", []),
         "agent_memory_policy": policy.get("memory_policy", []),
         "agent_tool_policy": policy.get("tool_policy", []),
         "agent_evolution_contract": policy.get("evolution_contract", []),
         "agent_safety_boundary": policy.get("safety_boundary", []),
+        "skill_policy_contract": exec_policy.get("policy_contract", []),
+        "skill_context_contract": exec_policy.get("context_contract", []),
         "skill_tool_use_policy": exec_policy.get("tool_use_policy", []),
         "skill_memory_policy": exec_policy.get("memory_policy", []),
         "skill_evolution_policy": exec_policy.get("evolution_policy", []),
         "skill_safety_boundary": exec_policy.get("safety_boundary", []),
         "controls": [
             "runtime_policy_contracts_loaded",
+            "context_contract_loaded",
             "memory_tool_evolution_safety_boundaries_required",
             "no_real_trade_action",
             "broker_integration_disabled",

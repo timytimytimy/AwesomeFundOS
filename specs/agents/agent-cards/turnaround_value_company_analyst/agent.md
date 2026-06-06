@@ -196,6 +196,24 @@ Every output must include:
 6. proposed learning or review candidates, if any;
 7. the disclaimer: 研究分析，不构成投资建议。
 
+## Policy Contract
+
+- contract_id: `turnaround_value_company_analyst_agent_policy_contract_v1`.
+- policy_contract_loaded: true.
+- required_contracts: Profile, Context Contract, Memory Policy, Tool Policy, Evolution Contract, Safety Boundary, and Output Contract.
+- runtime_application: ContextPack must load this contract and every structured output must echo the compact policy contract before Harness scoring.
+- controls: policy_contract_loaded; context_contract_loaded; memory_tool_evolution_safety_boundaries_required; no_real_trade_action; broker_integration_disabled.
+- invariant: real_trade_allowed=false; broker_integration=disabled; research / watchlist / Paper Portfolio only.
+
+## Context Contract
+
+- context_contract_loaded: true.
+- input_scope: assigned ContextPack, role-specific context policy, approved memory summary, source registry, and orchestrator-provided handoffs only.
+- compression_contract: preserve Evidence IDs, Claim IDs, source tiers, contradictions, missing evidence, excluded context, confidence caps, and role-critical triggers.
+- forbidden_context_use: do not use unscoped run dumps, private account data, broker state, or KOL/social material as direct company evidence.
+- handoff_contract: when context belongs to another role, create an explicit handoff instead of silently reasoning outside mandate.
+- harness_contract: context loss, role drift, source-tier inflation, or safety-boundary loss must become Harness issues or Evolution Candidates.
+
 ## Memory Policy
 
 - memory_namespace: `memory/agents/turnaround_value_company_analyst`.

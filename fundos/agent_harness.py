@@ -597,22 +597,30 @@ def evaluate_policy_contract(context: dict[str, Any], output: dict[str, Any]) ->
     output_policy = output.get("policy_contract") or {}
 
     context_agent_policy_contract_loaded = bool(
-        agent_policy.get("memory_policy")
+        agent_policy.get("policy_contract")
+        and agent_policy.get("context_contract")
+        and agent_policy.get("memory_policy")
         and agent_policy.get("tool_policy")
         and agent_policy.get("evolution_contract")
         and agent_policy.get("safety_boundary")
     )
     context_skill_execution_policy_contract_loaded = bool(
-        skill_policy.get("tool_use_policy")
+        skill_policy.get("policy_contract")
+        and skill_policy.get("context_contract")
+        and skill_policy.get("tool_use_policy")
         and skill_policy.get("memory_policy")
         and skill_policy.get("evolution_policy")
         and skill_policy.get("safety_boundary")
     )
     structured_output_policy_contract_loaded = bool(
-        output_policy.get("agent_memory_policy")
+        output_policy.get("agent_policy_contract")
+        and output_policy.get("agent_context_contract")
+        and output_policy.get("agent_memory_policy")
         and output_policy.get("agent_tool_policy")
         and output_policy.get("agent_evolution_contract")
         and output_policy.get("agent_safety_boundary")
+        and output_policy.get("skill_policy_contract")
+        and output_policy.get("skill_context_contract")
         and output_policy.get("skill_tool_use_policy")
         and output_policy.get("skill_memory_policy")
         and output_policy.get("skill_evolution_policy")
@@ -620,10 +628,14 @@ def evaluate_policy_contract(context: dict[str, Any], output: dict[str, Any]) ->
     )
     output_matches_context_contracts = bool(
         structured_output_policy_contract_loaded
+        and output_policy.get("agent_policy_contract") == agent_policy.get("policy_contract")
+        and output_policy.get("agent_context_contract") == agent_policy.get("context_contract")
         and output_policy.get("agent_memory_policy") == agent_policy.get("memory_policy")
         and output_policy.get("agent_tool_policy") == agent_policy.get("tool_policy")
         and output_policy.get("agent_evolution_contract") == agent_policy.get("evolution_contract")
         and output_policy.get("agent_safety_boundary") == agent_policy.get("safety_boundary")
+        and output_policy.get("skill_policy_contract") == skill_policy.get("policy_contract")
+        and output_policy.get("skill_context_contract") == skill_policy.get("context_contract")
         and output_policy.get("skill_tool_use_policy") == skill_policy.get("tool_use_policy")
         and output_policy.get("skill_memory_policy") == skill_policy.get("memory_policy")
         and output_policy.get("skill_evolution_policy") == skill_policy.get("evolution_policy")
@@ -632,6 +644,7 @@ def evaluate_policy_contract(context: dict[str, Any], output: dict[str, Any]) ->
     controls = set(output_policy.get("controls", []) or [])
     controls_present = {
         "runtime_policy_contracts_loaded",
+        "context_contract_loaded",
         "memory_tool_evolution_safety_boundaries_required",
         "no_real_trade_action",
         "broker_integration_disabled",

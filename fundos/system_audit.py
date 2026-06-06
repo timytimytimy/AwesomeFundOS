@@ -819,6 +819,8 @@ def missing_skill_sections_for_agent(root: Path, agent_id: str) -> list[str]:
 
 
 AGENT_CARD_MACHINE_POLICY_SECTIONS = [
+    "## Policy Contract",
+    "## Context Contract",
     "## Memory Policy",
     "## Tool Policy",
     "## Evolution Contract",
@@ -827,6 +829,8 @@ AGENT_CARD_MACHINE_POLICY_SECTIONS = [
 
 
 AGENT_SKILL_MACHINE_POLICY_SECTIONS = [
+    "## Policy Contract",
+    "## Context Contract",
     "## Tool Use Policy",
     "## Memory Policy",
     "## Evolution Policy",
@@ -1330,19 +1334,23 @@ def expected_runtime_policy_contract_summary(run_path: Path, agent_ids: list[str
         agent_policy = (((context.get("agent_card") or {}).get("policy_contract") or {}) if isinstance(context, dict) else {})
         skill_policy = (((context.get("skill_contract") or {}).get("execution_policy_contract") or {}) if isinstance(context, dict) else {})
         output_policy = ((output.get("policy_contract") or {}) if isinstance(output, dict) else {})
-        if agent_policy.get("memory_policy") and agent_policy.get("tool_policy") and agent_policy.get("evolution_contract") and agent_policy.get("safety_boundary"):
+        if agent_policy.get("policy_contract") and agent_policy.get("context_contract") and agent_policy.get("memory_policy") and agent_policy.get("tool_policy") and agent_policy.get("evolution_contract") and agent_policy.get("safety_boundary"):
             context_agent_policy_contracts_present += 1
         else:
             issues.append("context_agent_policy_contract_missing")
-        if skill_policy.get("tool_use_policy") and skill_policy.get("memory_policy") and skill_policy.get("evolution_policy") and skill_policy.get("safety_boundary"):
+        if skill_policy.get("policy_contract") and skill_policy.get("context_contract") and skill_policy.get("tool_use_policy") and skill_policy.get("memory_policy") and skill_policy.get("evolution_policy") and skill_policy.get("safety_boundary"):
             context_skill_execution_policy_contracts_present += 1
         else:
             issues.append("context_skill_execution_policy_contract_missing")
         required_output = [
+            "agent_policy_contract",
+            "agent_context_contract",
             "agent_memory_policy",
             "agent_tool_policy",
             "agent_evolution_contract",
             "agent_safety_boundary",
+            "skill_policy_contract",
+            "skill_context_contract",
             "skill_tool_use_policy",
             "skill_memory_policy",
             "skill_evolution_policy",
@@ -1387,6 +1395,7 @@ def expected_runtime_policy_contract_summary(run_path: Path, agent_ids: list[str
         "missing_by_agent": missing_by_agent,
         "controls": [
             "runtime_policy_contracts_loaded",
+            "context_contract_loaded",
             "memory_tool_evolution_safety_boundaries_required",
             "no_real_trade_action",
             "broker_integration_disabled",
@@ -1407,7 +1416,7 @@ def operating_system_manifest_runtime_policy_contract_check(manifest: Any, run_p
     for field, expected_value in expected.items():
         compare_value(mismatches, f"runtime_policy_contract_summary.{field}", summary.get(field), expected_value)
     controls = set(summary.get("controls", []) or [])
-    for required_control in ["runtime_policy_contracts_loaded", "memory_tool_evolution_safety_boundaries_required", "no_real_trade_action", "broker_integration_disabled"]:
+    for required_control in ["runtime_policy_contracts_loaded", "context_contract_loaded", "memory_tool_evolution_safety_boundaries_required", "no_real_trade_action", "broker_integration_disabled"]:
         if required_control not in controls:
             mismatches.append(f"runtime_policy_contract_summary.controls: missing {required_control}")
     if summary.get("real_trade_allowed") is not False:

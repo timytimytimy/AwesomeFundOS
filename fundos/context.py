@@ -378,12 +378,15 @@ def load_skill_contract(agent_id: str) -> dict[str, Any]:
 
 def load_agent_policy_contract(text: str) -> dict[str, Any]:
     return {
+        "policy_contract": bullet_lines(section_body(text, "Policy Contract")),
+        "context_contract": bullet_lines(section_body(text, "Context Contract")),
         "memory_policy": bullet_lines(section_body(text, "Memory Policy")),
         "tool_policy": bullet_lines(section_body(text, "Tool Policy")),
         "evolution_contract": bullet_lines(section_body(text, "Evolution Contract")),
         "safety_boundary": normalized_safety_boundary(text),
         "controls": [
             "policy_contract_loaded",
+            "context_contract_loaded",
             "memory_tool_evolution_safety_boundaries_required",
             "no_real_trade_action",
             "broker_integration_disabled",
@@ -395,12 +398,15 @@ def load_agent_policy_contract(text: str) -> dict[str, Any]:
 
 def load_skill_execution_policy_contract(text: str) -> dict[str, Any]:
     return {
+        "policy_contract": bullet_lines(section_body(text, "Policy Contract")),
+        "context_contract": bullet_lines(section_body(text, "Context Contract")),
         "tool_use_policy": bullet_lines(section_body(text, "Tool Use Policy")),
         "memory_policy": bullet_lines(section_body(text, "Memory Policy")),
         "evolution_policy": bullet_lines(section_body(text, "Evolution Policy")),
         "safety_boundary": normalized_safety_boundary(text),
         "controls": [
             "execution_policy_contract_loaded",
+            "context_contract_loaded",
             "memory_tool_evolution_safety_boundaries_required",
             "no_real_trade_action",
             "broker_integration_disabled",
