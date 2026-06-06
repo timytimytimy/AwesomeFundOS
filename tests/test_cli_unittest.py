@@ -72,6 +72,7 @@ class FundosCliTests(unittest.TestCase):
                 "portfolio/outcome-tracking.yaml",
                 "portfolio/outcome-attribution.jsonl",
                 "system/operating-system-manifest.yaml",
+                "system/operating-system-manifest.md",
                 "harness/historical-case-replay.yaml",
                 "harness/agent-harness.yaml",
                 "tools/tool-adapter-manifest.yaml",
@@ -105,6 +106,7 @@ class FundosCliTests(unittest.TestCase):
                 self.assertIn("runtime_mode", record)
 
             os_manifest = yaml.safe_load((run_path / "system/operating-system-manifest.yaml").read_text())
+            os_manifest_md = (run_path / "system/operating-system-manifest.md").read_text(encoding="utf-8")
             self.assertEqual(os_manifest["artifact_type"], "operating_system_manifest")
             self.assertEqual(os_manifest["run_id"], run_doc["run_id"])
             self.assertEqual(os_manifest["selected_agent_count"], len(run_doc["selected_agents"]))
@@ -122,6 +124,13 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("evolution/candidates.jsonl", os_manifest["evolution_artifacts"])
             self.assertTrue(os_manifest["safety_invariants"]["paper_portfolio_only"])
             self.assertTrue(os_manifest["safety_invariants"]["kol_is_hypothesis_only"])
+            self.assertIn("# Operating System Manifest", os_manifest_md)
+            self.assertIn(f"run_id: {run_doc['run_id']}", os_manifest_md)
+            self.assertIn("## Agent Runtime Assets", os_manifest_md)
+            self.assertIn("## Harness, Memory, Evolution", os_manifest_md)
+            self.assertIn("## Safety Boundaries", os_manifest_md)
+            self.assertIn("real_trade_allowed: False", os_manifest_md)
+            self.assertIn("broker_integration: disabled", os_manifest_md)
 
             selected = yaml.safe_load((run_path / "selected-agents.yaml").read_text())
             ids = {item["agent_id"] for item in selected["selected_agents"]}

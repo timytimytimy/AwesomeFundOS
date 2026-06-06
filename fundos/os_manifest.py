@@ -102,7 +102,62 @@ def write_operating_system_manifest(run_path: Path, repo_root: Path | None = Non
         "disclaimer": DISCLAIMER,
     }
     write_yaml(run_path / "system" / "operating-system-manifest.yaml", manifest)
+    write_operating_system_manifest_markdown(run_path, manifest)
     return manifest
+
+
+def write_operating_system_manifest_markdown(run_path: Path, manifest: dict[str, Any]) -> Path:
+    path = run_path / "system" / "operating-system-manifest.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(render_operating_system_manifest_markdown(manifest), encoding="utf-8")
+    return path
+
+
+def render_operating_system_manifest_markdown(manifest: dict[str, Any]) -> str:
+    loaded = manifest.get("loaded_asset_counts", {}) or {}
+    evolution = manifest.get("evolution_summary", {}) or {}
+    safety = manifest.get("safety_invariants", {}) or {}
+    lines = [
+        "# Operating System Manifest",
+        "",
+        f"run_id: {manifest.get('run_id')}",
+        f"runtime_mode: {manifest.get('runtime_mode')}",
+        f"selected_agent_count: {manifest.get('selected_agent_count')}",
+        f"model_record_count: {manifest.get('model_record_count')}",
+        f"all_selected_agents_have_runtime_assets: {manifest.get('all_selected_agents_have_runtime_assets')}",
+        "",
+        "## Agent Runtime Assets",
+        "",
+    ]
+    for key in ["agent_card", "skill", "context_policy", "tool_policy", "memory_policy"]:
+        lines.append(f"- {key}: {loaded.get(key, 0)}")
+    lines.extend(["", "### Selected Agents", ""])
+    for row in manifest.get("agents", []) or []:
+        lines.append(f"- {row.get('agent_id')}: {row.get('agent_card_path')} | {row.get('skill_path')}")
+    lines.extend([
+        "",
+        "## Harness, Memory, Evolution",
+        "",
+        f"- harness_artifacts: {len(manifest.get('harness_artifacts', []) or [])}",
+        f"- memory_thread_artifacts: {len(manifest.get('memory_thread_artifacts', []) or [])}",
+        f"- evolution_artifacts: {len(manifest.get('evolution_artifacts', []) or [])}",
+        f"- evolution_gate_results: {evolution.get('gate_results', 0)}",
+        f"- memory_writes: {evolution.get('memory_writes', 0)}",
+        f"- pending_human_apply: {evolution.get('pending_human_apply', 0)}",
+        "",
+        "## Safety Boundaries",
+        "",
+        f"- research_watchlist_paper_only: {safety.get('research_watchlist_paper_only')}",
+        f"- paper_portfolio_only: {safety.get('paper_portfolio_only')}",
+        f"- kol_is_hypothesis_only: {safety.get('kol_is_hypothesis_only')}",
+        f"- durable_learning_requires_harness_and_evolution_gate: {safety.get('durable_learning_requires_harness_and_evolution_gate')}",
+        f"- real_trade_allowed: {manifest.get('real_trade_allowed')}",
+        f"- broker_integration: {manifest.get('broker_integration')}",
+        "",
+        manifest.get("disclaimer", DISCLAIMER),
+        "",
+    ])
+    return "\n".join(lines)
 
 
 def agent_asset_row(repo_root: Path, agent_id: str) -> dict[str, Any]:
