@@ -71,6 +71,7 @@ class FundosCliTests(unittest.TestCase):
                 "portfolio/review-candidates.jsonl",
                 "portfolio/outcome-tracking.yaml",
                 "portfolio/outcome-attribution.jsonl",
+                "system/operating-system-manifest.yaml",
                 "harness/historical-case-replay.yaml",
                 "harness/agent-harness.yaml",
                 "tools/tool-adapter-manifest.yaml",
@@ -102,6 +103,25 @@ class FundosCliTests(unittest.TestCase):
                 self.assertIn("model_policy_id", record)
                 self.assertIn("tool_contract_id", record)
                 self.assertIn("runtime_mode", record)
+
+            os_manifest = yaml.safe_load((run_path / "system/operating-system-manifest.yaml").read_text())
+            self.assertEqual(os_manifest["artifact_type"], "operating_system_manifest")
+            self.assertEqual(os_manifest["run_id"], run_doc["run_id"])
+            self.assertEqual(os_manifest["selected_agent_count"], len(run_doc["selected_agents"]))
+            self.assertEqual(os_manifest["model_record_count"], len(run_doc["model_records"]))
+            self.assertEqual(os_manifest["runtime_mode"], "local_file_protocol")
+            self.assertFalse(os_manifest["real_trade_allowed"])
+            self.assertEqual(os_manifest["broker_integration"], "disabled")
+            self.assertIn("agent_card", os_manifest["loaded_asset_counts"])
+            self.assertIn("skill", os_manifest["loaded_asset_counts"])
+            self.assertIn("context_policy", os_manifest["loaded_asset_counts"])
+            self.assertIn("tool_policy", os_manifest["loaded_asset_counts"])
+            self.assertIn("memory_policy", os_manifest["loaded_asset_counts"])
+            self.assertTrue(os_manifest["all_selected_agents_have_runtime_assets"])
+            self.assertIn("harness/agent-harness.yaml", os_manifest["harness_artifacts"])
+            self.assertIn("evolution/candidates.jsonl", os_manifest["evolution_artifacts"])
+            self.assertTrue(os_manifest["safety_invariants"]["paper_portfolio_only"])
+            self.assertTrue(os_manifest["safety_invariants"]["kol_is_hypothesis_only"])
 
             selected = yaml.safe_load((run_path / "selected-agents.yaml").read_text())
             ids = {item["agent_id"] for item in selected["selected_agents"]}

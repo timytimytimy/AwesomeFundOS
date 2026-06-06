@@ -1,0 +1,120 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
+
+
+ASSET_PATHS = {
+    "agent_card": "specs/agents/agent-cards/{agent_id}/agent.md",
+    "skill": "specs/skills/{agent_id}/SKILL.md",
+    "context_policy": "specs/agents/context-policies/{agent_id}.yaml",
+    "tool_policy": "specs/agents/tool-policies/{agent_id}.yaml",
+    "memory_policy": "specs/agents/memory-policies/{agent_id}.yaml",
+}
+
+HARNESS_ARTIFACTS = [
+    "harness/agent-harness.yaml",
+    "harness/tool-harness.yaml",
+    "harness/agent-tool-use.yaml",
+    "harness/skill-benchmark.yaml",
+    "harness/market-state.yaml",
+    "harness/historical-case-replay.yaml",
+    "harness/claim-graph.yaml",
+]
+
+EVOLUTION_ARTIFACTS = [
+    "evolution/candidates.jsonl",
+    "learning/agent-learning-candidates.jsonl",
+    "learning/failure-patterns.yaml",
+]
+
+MEMORY_THREAD_ARTIFACTS = [
+    "memory/agent-thread-manifest.yaml",
+]
+
+
+def write_operating_system_manifest(run_path: Path, repo_root: Path | None = None) -> dict[str, Any]:
+    repo_root = repo_root or REPO_ROOT
+    run_doc = read_yaml(run_path / "run.yaml")
+    selected = run_doc.get("selected_agents", []) or []
+    model_records = run_doc.get("model_records", []) or []
+    agent_assets = [agent_asset_row(repo_root, row.get("agent_id", "")) for row in selected]
+    loaded_counts = {
+        key: sum(1 for row in agent_assets if row.get("assets", {}).get(key, {}).get("exists"))
+        for key in ASSET_PATHS
+    }
+    expected_count = len(selected)
+    missing_assets = [
+        {"agent_id": row["agent_id"], "asset_kind": kind, "path": asset["path"]}
+        for row in agent_assets
+        for kind, asset in row["assets"].items()
+        if not asset["exists"]
+    ]
+    manifest = {
+        "version": "0.1.0",
+        "artifact_type": "operating_system_manifest",
+        "run_id": run_doc.get("run_id"),
+        "input": run_doc.get("input", {}),
+        "market": run_doc.get("market"),
+        "runtime_mode": common_value(model_records, "runtime_mode", "local_file_protocol"),
+        "selected_agent_count": expected_count,
+        "model_record_count": len(model_records),
+        "loaded_asset_counts": loaded_counts,
+        "all_selected_agents_have_runtime_assets": not missing_assets and all(count == expected_count for count in loaded_counts.values()),
+        "missing_agent_assets": missing_assets,
+        "agents": agent_assets,
+        "model_records": model_records,
+        "harness_artifacts": existing_relative_paths(run_path, HARNESS_ARTIFACTS),
+        "memory_thread_artifacts": existing_relative_paths(run_path, MEMORY_THREAD_ARTIFACTS),
+        "evolution_artifacts": existing_relative_paths(run_path, EVOLUTION_ARTIFACTS),
+        "safety_invariants": {
+            "research_watchlist_paper_only": True,
+            "paper_portfolio_only": True,
+            "no_personalized_investment_advice": True,
+            "no_real_trade": True,
+            "broker_integration_disabled": True,
+            "kol_is_hypothesis_only": True,
+            "durable_learning_requires_harness_and_evolution_gate": True,
+        },
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+        "controls": [
+            "profile_skill_tool_memory_thread_harness_evolution_boundaries",
+            "context_pack_scoped_agent_execution",
+            "strict_runtime_policy_records",
+            "human_approval_required_for_capability_apply",
+            "no_broker_or_order_placement",
+        ],
+        "disclaimer": DISCLAIMER,
+    }
+    write_yaml(run_path / "system" / "operating-system-manifest.yaml", manifest)
+    return manifest
+
+
+def agent_asset_row(repo_root: Path, agent_id: str) -> dict[str, Any]:
+    assets: dict[str, dict[str, Any]] = {}
+    for kind, template in ASSET_PATHS.items():
+        rel = template.format(agent_id=agent_id)
+        assets[kind] = {"path": rel, "exists": (repo_root / rel).exists()}
+    return {
+        "agent_id": agent_id,
+        "assets": assets,
+        "agent_card_path": assets["agent_card"]["path"],
+        "skill_path": assets["skill"]["path"],
+        "context_policy_path": assets["context_policy"]["path"],
+        "tool_policy_path": assets["tool_policy"]["path"],
+        "memory_policy_path": assets["memory_policy"]["path"],
+    }
+
+
+def existing_relative_paths(run_path: Path, rels: list[str]) -> list[str]:
+    return [rel for rel in rels if (run_path / rel).exists()]
+
+
+def common_value(records: list[dict[str, Any]], key: str, default: Any) -> Any:
+    values = {record.get(key) for record in records if isinstance(record, dict) and key in record}
+    if len(values) == 1:
+        return next(iter(values))
+    return default

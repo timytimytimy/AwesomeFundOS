@@ -34,6 +34,7 @@ from fundos.market_state import write_market_state_report
 from fundos.memory import load_agent_memory_summary, load_memory_writeback_summary
 from fundos.memory_policies import load_memory_policy
 from fundos.outcomes import run_outcome_tracking
+from fundos.os_manifest import write_operating_system_manifest
 from fundos.pm_competition import write_pm_competition
 from fundos.portfolio import load_portfolio_state, write_portfolio_artifacts, write_portfolio_review
 from fundos.public_research import PublicResearchClient, build_research_plan
@@ -492,6 +493,7 @@ def command_run(args: argparse.Namespace) -> int:
     write_reflections(run_path, selected, run_id)
     write_failure_patterns(run_path)
     generate_agent_learning_candidates(run_path)
+    write_operating_system_manifest(run_path)
     evaluation = make_evaluation_for_run(run_id, selected, evidence_pack, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     (run_path / "evaluations" / "evaluation-report.md").write_text(f"# Evaluation Report\n\nOverall score: {evaluation['overall_score']}\n\nBlocking issues:\n" + "\n".join(f"- {x}" for x in evaluation["blocking_issues"]), encoding="utf-8")
@@ -529,6 +531,7 @@ def command_eval(args: argparse.Namespace) -> int:
     run_skill_benchmark(run_path)
     write_failure_patterns(run_path)
     generate_agent_learning_candidates(run_path)
+    write_operating_system_manifest(run_path)
     evaluation = make_evaluation_for_run(run_doc["run_id"], selected, evidence, run_path)
     write_yaml(run_path / "evaluations" / "evaluation-report.yaml", evaluation)
     print(f"evaluation_report={run_path / 'evaluations' / 'evaluation-report.yaml'}")

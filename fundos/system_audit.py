@@ -55,6 +55,7 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
     tool_harness = load_yaml(run_path / "harness" / "tool-harness.yaml", {})
     agent_tool_use = load_yaml(run_path / "harness" / "agent-tool-use.yaml", {})
     claim_graph = load_yaml(run_path / "harness" / "claim-graph.yaml", {})
+    os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
     items = evidence.get("evidence_items", []) if isinstance(evidence, dict) else []
     public_items = [item for item in items if item.get("source_id") == "public_research"]
@@ -77,6 +78,7 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
                 "harness/agent-tool-use.yaml",
                 "harness/claim-graph.yaml",
                 "portfolio/paper-portfolio.yaml",
+                "system/operating-system-manifest.yaml",
             ]],
             all((run_path / p).exists() for p in [
                 "run.yaml",
@@ -87,6 +89,7 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
                 "harness/agent-tool-use.yaml",
                 "harness/claim-graph.yaml",
                 "portfolio/paper-portfolio.yaml",
+                "system/operating-system-manifest.yaml",
             ]),
         ),
         requirement(
@@ -132,6 +135,14 @@ def build_runtime_requirements(run_path: Path) -> list[dict[str, Any]]:
             [run_path / "run.yaml"],
             model_record_check["ok"],
             details=model_record_check,
+        ),
+        requirement(
+            "runtime.operating_system_manifest_links_agent_os_assets",
+            "runtime_governance",
+            "Run operating-system manifest links selected agents to Profile, Skill, Tool, Memory, Thread, Harness, Evolution, and safety boundaries.",
+            [run_path / "system" / "operating-system-manifest.yaml"],
+            operating_system_manifest_ok(os_manifest, run_doc),
+            details=operating_system_manifest_details(os_manifest),
         ),
     ]
 
@@ -496,6 +507,46 @@ def runtime_model_records_check(run_doc: Any) -> dict[str, Any]:
         "missing_model_record_fields": missing_fields,
         "safety_violations": safety_violations,
         "stub_values": stub_values,
+    }
+
+
+def operating_system_manifest_ok(manifest: Any, run_doc: Any) -> bool:
+    if not isinstance(manifest, dict) or not isinstance(run_doc, dict):
+        return False
+    safety = manifest.get("safety_invariants", {}) or {}
+    required_assets = {"agent_card", "skill", "context_policy", "tool_policy", "memory_policy"}
+    loaded = manifest.get("loaded_asset_counts", {}) or {}
+    return (
+        manifest.get("artifact_type") == "operating_system_manifest"
+        and manifest.get("run_id") == run_doc.get("run_id")
+        and manifest.get("selected_agent_count") == len(run_doc.get("selected_agents", []) or [])
+        and manifest.get("model_record_count") == len(run_doc.get("model_records", []) or [])
+        and manifest.get("runtime_mode") == "local_file_protocol"
+        and manifest.get("all_selected_agents_have_runtime_assets") is True
+        and required_assets.issubset(set(loaded.keys()))
+        and "harness/agent-harness.yaml" in (manifest.get("harness_artifacts", []) or [])
+        and "evolution/candidates.jsonl" in (manifest.get("evolution_artifacts", []) or [])
+        and safety.get("paper_portfolio_only") is True
+        and safety.get("kol_is_hypothesis_only") is True
+        and manifest.get("real_trade_allowed") is False
+        and manifest.get("broker_integration") == "disabled"
+    )
+
+
+def operating_system_manifest_details(manifest: Any) -> dict[str, Any]:
+    if not isinstance(manifest, dict):
+        return {"present": False}
+    return {
+        "present": True,
+        "selected_agent_count": manifest.get("selected_agent_count", 0),
+        "model_record_count": manifest.get("model_record_count", 0),
+        "loaded_asset_counts": manifest.get("loaded_asset_counts", {}),
+        "missing_agent_assets": manifest.get("missing_agent_assets", []),
+        "harness_artifacts": manifest.get("harness_artifacts", []),
+        "memory_thread_artifacts": manifest.get("memory_thread_artifacts", []),
+        "evolution_artifacts": manifest.get("evolution_artifacts", []),
+        "real_trade_allowed": manifest.get("real_trade_allowed"),
+        "broker_integration": manifest.get("broker_integration"),
     }
 
 

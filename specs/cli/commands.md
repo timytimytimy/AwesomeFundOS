@@ -88,6 +88,7 @@ runs/{date}-{slug}/
   agent_work/{agent_id}.md
   debate/
   risk/
+  system/operating-system-manifest.yaml
   harness/historical-case-replay.yaml
   decision/
   evaluations/
@@ -97,6 +98,8 @@ runs/{date}-{slug}/
 ```
 
 `run.yaml` 必须包含参与 Agent 的 concrete `model_records`，用于审计 Codex runtime 策略是否真正落地。每条记录至少包含：agent_id、model、model_policy_id、reasoning_effort、skill_versions、tool_versions、tool_contract_id、runtime_mode、real_trade_allowed、broker_integration。V1 固定保持 `runtime_mode=local_file_protocol`、`real_trade_allowed=false`、`broker_integration=disabled`，并禁止用 stub model/tool version 代表真实 runtime 状态。
+
+`system/operating-system-manifest.yaml` 是 run 级 Agent OS 清单，必须把 selected agents 与 source-controlled Agent Card / SKILL / ContextPolicy / ToolPolicy / MemoryPolicy、runtime model records、Thread manifest、Harness artifacts、Evolution artifacts 和安全边界连接起来。该清单用于证明本次运行加载的是一个有 Profile、Skills、Tools、Memory、Thread、Harness、Evolution 能力的组织系统，而不是一组散落的输出文件。
 
 ## 4. `fundos eval --run`
 
