@@ -48,6 +48,7 @@ def run_system_audit(repo_root: Path, out_dir: Path | None = None, run_path: Pat
         "runtime_run_path": str(runtime_run_path) if runtime_run_path else "",
         "controls": [
             "requirement_coverage_is_evidence_based",
+            "prd_acceptance_criteria_matrix_required",
             "agent_assets_must_match_roster",
             "harness_and_evolution_closure_required",
             "no_real_trade_action",
@@ -625,6 +626,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
 def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[str, Any]]:
     agent_ids = [agent["id"] for agent in agents if agent.get("id")]
     prd_coverage = module_prd_coverage(root)
+    prd_matrix = prd_requirement_matrix_check(root)
     agent_skill_contract_manifest = agent_skill_contract_manifest_check(root, agents)
     return [
         requirement(
@@ -634,6 +636,18 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             [root / "docs/prd/overall-prd.md", root / "docs/prd/modules"],
             prd_coverage["ok"],
             details=prd_coverage,
+        ),
+        requirement(
+            "prd.acceptance_criteria_matrix_maps_to_evidence",
+            "prd",
+            "Every PRD acceptance criterion is mapped to concrete implementation evidence, verification commands, and paper-only safety controls in a machine-auditable matrix.",
+            [
+                root / "specs/audits/prd-requirement-matrix.yaml",
+                root / "specs/schemas/prd-requirement-matrix.schema.yaml",
+                root / "docs/prd/modules",
+            ],
+            prd_matrix["ok"],
+            details=prd_matrix,
         ),
         requirement(
             "agents.default_roster_has_diverse_roles",
@@ -893,6 +907,125 @@ def module_prd_coverage(root: Path) -> dict[str, Any]:
         "present_modules": present_modules,
         "missing_modules": missing_modules,
         "weak_modules": weak_modules,
+    }
+
+
+def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
+    matrix_path = root / "specs" / "audits" / "prd-requirement-matrix.yaml"
+    schema_path = root / "specs" / "schemas" / "prd-requirement-matrix.schema.yaml"
+    matrix = load_yaml(matrix_path, {})
+    schema_result = validate_runtime_schema(schema_path, matrix) if schema_path.exists() and matrix_path.exists() else {
+        "ok": False,
+        "schema_path": str(schema_path),
+        "schema_errors": ["matrix_or_schema_missing"],
+    }
+    if not isinstance(matrix, dict):
+        return {
+            "ok": False,
+            "matrix_path": str(matrix_path),
+            "schema_path": str(schema_path),
+            "schema_errors": schema_result.get("schema_errors", []),
+            "blocking_issues": ["prd_requirement_matrix_missing_or_invalid"],
+        }
+
+    modules = matrix.get("modules", []) if isinstance(matrix.get("modules", []), list) else []
+    matrix_module_ids = [str(module.get("module_id", "")) for module in modules if isinstance(module, dict)]
+    required_module_ids = sorted(REQUIRED_MODULE_PRDS)
+    missing_modules = sorted(set(required_module_ids) - set(matrix_module_ids))
+    extra_modules = sorted(set(matrix_module_ids) - set(required_module_ids))
+
+    missing_evidence_paths: list[dict[str, str]] = []
+    criteria_without_evidence: list[str] = []
+    criteria_without_verification: list[str] = []
+    criteria_not_covered: list[str] = []
+    module_counts: dict[str, int] = {}
+    safety_modules: set[str] = set()
+    criterion_count = 0
+    covered_count = 0
+    for module in modules:
+        if not isinstance(module, dict):
+            continue
+        module_id = str(module.get("module_id", ""))
+        criteria = module.get("acceptance_criteria", []) if isinstance(module.get("acceptance_criteria", []), list) else []
+        module_counts[module_id] = len(criteria)
+        for criterion in criteria:
+            if not isinstance(criterion, dict):
+                continue
+            criterion_count += 1
+            requirement_id = str(criterion.get("requirement_id", ""))
+            evidence_paths = criterion.get("evidence_paths", []) if isinstance(criterion.get("evidence_paths", []), list) else []
+            verification_commands = criterion.get("verification_commands", []) if isinstance(criterion.get("verification_commands", []), list) else []
+            if criterion.get("coverage_status") == "covered":
+                covered_count += 1
+            else:
+                criteria_not_covered.append(requirement_id)
+            if not evidence_paths:
+                criteria_without_evidence.append(requirement_id)
+            if not verification_commands:
+                criteria_without_verification.append(requirement_id)
+            if criterion.get("safety_boundary_relevant"):
+                safety_modules.add(module_id)
+            for rel_path in evidence_paths:
+                path = root / str(rel_path)
+                if not path.exists():
+                    missing_evidence_paths.append({"requirement_id": requirement_id, "path": str(rel_path)})
+
+    summary = matrix.get("coverage_summary", {}) if isinstance(matrix.get("coverage_summary", {}), dict) else {}
+    safety = matrix.get("safety_invariants", {}) if isinstance(matrix.get("safety_invariants", {}), dict) else {}
+    mismatches: list[str] = []
+    compare_value(mismatches, "coverage_summary.module_count", summary.get("module_count"), len(modules))
+    compare_value(mismatches, "coverage_summary.requirement_count", summary.get("requirement_count"), criterion_count)
+    compare_value(mismatches, "coverage_summary.covered_requirement_count", summary.get("covered_requirement_count"), covered_count)
+    compare_value(mismatches, "coverage_summary.uncovered_requirement_count", summary.get("uncovered_requirement_count"), criterion_count - covered_count)
+    compare_value(mismatches, "coverage_summary.modules_with_safety_boundary", summary.get("modules_with_safety_boundary"), len(safety_modules))
+    compare_value(mismatches, "safety_invariants.real_trade_allowed", safety.get("real_trade_allowed"), False)
+    compare_value(mismatches, "safety_invariants.broker_integration", safety.get("broker_integration"), "disabled")
+    compare_value(mismatches, "real_trade_allowed", matrix.get("real_trade_allowed"), False)
+    compare_value(mismatches, "broker_integration", matrix.get("broker_integration"), "disabled")
+
+    blocking_issues: list[str] = []
+    if not matrix_path.exists():
+        blocking_issues.append("prd_requirement_matrix_missing")
+    if not schema_path.exists():
+        blocking_issues.append("prd_requirement_matrix_schema_missing")
+    if schema_result.get("schema_errors"):
+        blocking_issues.append("prd_requirement_matrix_schema_errors")
+    if missing_modules:
+        blocking_issues.append("prd_requirement_matrix_missing_modules")
+    if extra_modules:
+        blocking_issues.append("prd_requirement_matrix_extra_modules")
+    if criteria_without_evidence:
+        blocking_issues.append("prd_requirement_matrix_criteria_without_evidence")
+    if criteria_without_verification:
+        blocking_issues.append("prd_requirement_matrix_criteria_without_verification")
+    if criteria_not_covered:
+        blocking_issues.append("prd_requirement_matrix_uncovered_criteria")
+    if missing_evidence_paths:
+        blocking_issues.append("prd_requirement_matrix_missing_evidence_paths")
+    if mismatches:
+        blocking_issues.append("prd_requirement_matrix_summary_mismatch")
+
+    return {
+        "ok": not blocking_issues,
+        "matrix_path": str(matrix_path),
+        "schema_path": str(schema_path),
+        "schema_errors": schema_result.get("schema_errors", []),
+        "required_modules": required_module_ids,
+        "matrix_modules": matrix_module_ids,
+        "missing_modules": missing_modules,
+        "extra_modules": extra_modules,
+        "criterion_count": criterion_count,
+        "covered_criterion_count": covered_count,
+        "criteria_without_evidence": criteria_without_evidence,
+        "criteria_without_verification": criteria_without_verification,
+        "criteria_not_covered": criteria_not_covered,
+        "missing_evidence_paths": missing_evidence_paths,
+        "module_counts": module_counts,
+        "modules_with_safety_boundary": sorted(safety_modules),
+        "mismatches": mismatches,
+        "real_trade_allowed": matrix.get("real_trade_allowed"),
+        "broker_integration": matrix.get("broker_integration"),
+        "blocking_issues": blocking_issues,
     }
 
 

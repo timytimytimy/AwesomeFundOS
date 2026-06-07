@@ -1,0 +1,101 @@
+version: 0.1.0
+type: object
+required:
+  - artifact_type
+  - version
+  - source_prd_root
+  - coverage_policy
+  - modules
+  - coverage_summary
+  - safety_invariants
+  - real_trade_allowed
+  - broker_integration
+properties:
+  artifact_type:
+    enum: [prd_requirement_matrix]
+  version: {type: string}
+  source_prd_root: {type: string}
+  coverage_policy:
+    type: object
+    required:
+      - every_acceptance_criterion_has_evidence_paths
+      - evidence_paths_must_exist
+      - implementation_evidence_required
+      - verification_evidence_required
+      - runtime_evidence_required_for_runtime_claims
+      - safety_boundary_required_for_every_module
+    properties:
+      every_acceptance_criterion_has_evidence_paths: {type: boolean}
+      evidence_paths_must_exist: {type: boolean}
+      implementation_evidence_required: {type: boolean}
+      verification_evidence_required: {type: boolean}
+      runtime_evidence_required_for_runtime_claims: {type: boolean}
+      safety_boundary_required_for_every_module: {type: boolean}
+  modules:
+    type: array
+    items:
+      type: object
+      required:
+        - module_id
+        - prd_path
+        - requirement_count
+        - acceptance_criteria
+      properties:
+        module_id: {type: string}
+        prd_path: {type: string}
+        requirement_count: {type: integer}
+        acceptance_criteria:
+          type: array
+          items:
+            type: object
+            required:
+              - requirement_id
+              - source_section
+              - requirement_text
+              - evidence_paths
+              - verification_commands
+              - coverage_status
+              - safety_boundary_relevant
+            properties:
+              requirement_id: {type: string}
+              source_section: {type: string}
+              requirement_text: {type: string}
+              evidence_paths:
+                type: array
+                items: {type: string}
+              verification_commands:
+                type: array
+                items: {type: string}
+              coverage_status:
+                enum: [covered]
+              safety_boundary_relevant: {type: boolean}
+  coverage_summary:
+    type: object
+    required:
+      - module_count
+      - requirement_count
+      - covered_requirement_count
+      - uncovered_requirement_count
+      - modules_with_safety_boundary
+    properties:
+      module_count: {type: integer}
+      requirement_count: {type: integer}
+      covered_requirement_count: {type: integer}
+      uncovered_requirement_count: {type: integer}
+      modules_with_safety_boundary: {type: integer}
+  safety_invariants:
+    type: object
+    required:
+      - real_trade_allowed
+      - broker_integration
+      - scope
+    properties:
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
+      scope: {type: string}
+  real_trade_allowed:
+    enum: [false]
+  broker_integration:
+    enum: [disabled]

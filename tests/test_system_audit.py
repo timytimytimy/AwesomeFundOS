@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from fundos.system_audit import run_system_audit
+from fundos.system_audit import REQUIRED_MODULE_PRDS, prd_requirement_matrix_check, run_system_audit
 
 ROOT = Path(__file__).resolve().parents[1]
 CLI = [sys.executable, '-m', 'fundos.cli']
@@ -66,8 +66,22 @@ class SystemAuditTests(unittest.TestCase):
         ]:
             self.assertIn(expected_module, module_details['required_modules'])
             self.assertIn(expected_module, module_details['present_modules'])
+        matrix_details = by_id['prd.acceptance_criteria_matrix_maps_to_evidence']['details']
+        self.assertEqual(by_id['prd.acceptance_criteria_matrix_maps_to_evidence']['status'], 'pass')
+        self.assertEqual(matrix_details['criterion_count'], 104)
+        self.assertEqual(matrix_details['covered_criterion_count'], 104)
+        self.assertEqual(matrix_details['missing_modules'], [])
+        self.assertEqual(matrix_details['criteria_without_evidence'], [])
+        self.assertEqual(matrix_details['criteria_without_verification'], [])
+        self.assertEqual(matrix_details['criteria_not_covered'], [])
+        self.assertEqual(matrix_details['missing_evidence_paths'], [])
+        self.assertEqual(matrix_details['mismatches'], [])
+        self.assertFalse(matrix_details['real_trade_allowed'])
+        self.assertEqual(matrix_details['broker_integration'], 'disabled')
+        self.assertEqual(len(matrix_details['modules_with_safety_boundary']), 10)
         for requirement_id in [
             'prd.overall_and_modules_exist',
+            'prd.acceptance_criteria_matrix_maps_to_evidence',
             'agents.all_roster_agents_have_cards_and_skills',
             'agents.all_roster_agents_have_context_tool_memory_policies',
             'agents.agent_os_assets_cross_reference_roster_contract',
@@ -109,6 +123,68 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(loaded['artifact_type'], 'system_requirement_coverage_audit')
             self.assertIn('Requirement Coverage Audit', md_path.read_text(encoding='utf-8'))
             self.assertEqual(report['output_paths']['yaml'], str(yaml_path))
+
+    def test_prd_requirement_matrix_check_fails_missing_evidence_paths(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / 'specs/audits').mkdir(parents=True)
+            (root / 'specs/schemas').mkdir(parents=True)
+            schema_text = (ROOT / 'specs/schemas/prd-requirement-matrix.schema.yaml').read_text(encoding='utf-8')
+            (root / 'specs/schemas/prd-requirement-matrix.schema.yaml').write_text(schema_text, encoding='utf-8')
+            modules = []
+            for module_id in sorted(REQUIRED_MODULE_PRDS):
+                evidence_path = 'specs/schemas/prd-requirement-matrix.schema.yaml'
+                if module_id == 'agent-system':
+                    evidence_path = 'missing/evidence.py'
+                modules.append({
+                    'module_id': module_id,
+                    'prd_path': f'docs/prd/modules/{module_id}-prd.md',
+                    'requirement_count': 1,
+                    'acceptance_criteria': [{
+                        'requirement_id': f'{module_id}.test-01',
+                        'source_section': 'Acceptance Criteria',
+                        'requirement_text': 'test requirement',
+                        'evidence_paths': [evidence_path],
+                        'verification_commands': ['python3 -m unittest'],
+                        'coverage_status': 'covered',
+                        'safety_boundary_relevant': True,
+                    }],
+                })
+            matrix = {
+                'artifact_type': 'prd_requirement_matrix',
+                'version': '0.1.0',
+                'source_prd_root': 'docs/prd',
+                'coverage_policy': {
+                    'every_acceptance_criterion_has_evidence_paths': True,
+                    'evidence_paths_must_exist': True,
+                    'implementation_evidence_required': True,
+                    'verification_evidence_required': True,
+                    'runtime_evidence_required_for_runtime_claims': True,
+                    'safety_boundary_required_for_every_module': True,
+                },
+                'modules': modules,
+                'coverage_summary': {
+                    'module_count': len(modules),
+                    'requirement_count': len(modules),
+                    'covered_requirement_count': len(modules),
+                    'uncovered_requirement_count': 0,
+                    'modules_with_safety_boundary': len(modules),
+                },
+                'safety_invariants': {
+                    'real_trade_allowed': False,
+                    'broker_integration': 'disabled',
+                    'scope': 'research_watchlist_paper_only',
+                },
+                'real_trade_allowed': False,
+                'broker_integration': 'disabled',
+            }
+            (root / 'specs/audits/prd-requirement-matrix.yaml').write_text(yaml.safe_dump(matrix, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            details = prd_requirement_matrix_check(root)
+
+            self.assertFalse(details['ok'])
+            self.assertIn('prd_requirement_matrix_missing_evidence_paths', details['blocking_issues'])
+            self.assertEqual(details['missing_evidence_paths'], [{'requirement_id': 'agent-system.test-01', 'path': 'missing/evidence.py'}])
 
     def test_system_audit_cli_outputs_summary_and_writes_reports(self):
         with tempfile.TemporaryDirectory() as d:

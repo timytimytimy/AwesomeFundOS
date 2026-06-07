@@ -1,0 +1,791 @@
+artifact_type: prd_requirement_matrix
+version: 0.1.0
+source_prd_root: docs/prd
+coverage_policy:
+  every_acceptance_criterion_has_evidence_paths: true
+  evidence_paths_must_exist: true
+  implementation_evidence_required: true
+  verification_evidence_required: true
+  runtime_evidence_required_for_runtime_claims: true
+  safety_boundary_required_for_every_module: true
+modules:
+  - module_id: agent-system
+    prd_path: docs/prd/modules/agent-system-prd.md
+    requirement_count: 12
+    acceptance_criteria:
+      - requirement_id: agent-system.zh-01
+        source_section: 验收标准
+        requirement_text: 能从默认 Roster 加载 19 个 Agent。
+        evidence_paths: [specs/agents/default-roster.yaml, fundos/cli.py, tests/test_system_audit.py, tests/test_agent_assets.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_assets.py' -q, python3 -m fundos.cli roster]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.zh-02
+        source_section: 验收标准
+        requirement_text: 每个 Agent 有 Profile、ContextPolicy、ModelPolicy、Skillset 和 Tool policy。
+        evidence_paths: [fundos/cli.py, specs/agents/agent-cards, specs/agents/context-policies, specs/agents/tool-policies, specs/agents/memory-policies, specs/agents/agent-skill-contract-manifest.yaml, tests/test_agent_assets.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_assets.py' -q, python3 -m fundos.cli init]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.zh-03
+        source_section: 验收标准
+        requirement_text: 每次 run 能动态选择 7-10 个 Agent，并记录选择原因。
+        evidence_paths: [fundos/cli.py, specs/agents/default-roster.yaml, tests/test_cli_unittest.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_cli_unittest.py' -q, python3 -m fundos.cli run --topic <topic>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.zh-04
+        source_section: 验收标准
+        requirement_text: 每个 Agent 输出都能绑定 context_pack_id、skill_versions、tool_versions、model_policy。
+        evidence_paths: [fundos/agent_outputs.py, fundos/context.py, fundos/agent_outputs.py, tests/test_agent_runtime_integration.py, tests/test_agent_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_runtime_integration.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.zh-05
+        source_section: 验收标准
+        requirement_text: 每次 run 的 run.yaml 必须为参与 Agent 写入 concrete model_records，且不得使用 stub 占位符。
+        evidence_paths: [fundos/cli.py, specs/schemas/run.schema.yaml, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_system_audit.py' -q, python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: agent-system.zh-06
+        source_section: 验收标准
+        requirement_text: Harness 能按 Agent 维度评分。
+        evidence_paths: [fundos/agent_harness.py, fundos/agent_performance.py, specs/schemas/agent-harness-report.schema.yaml, tests/test_agent_harness.py, tests/test_agent_performance.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.zh-07
+        source_section: 验收标准
+        requirement_text: Harness 能检查 Agent Card / Skill Contract / ContextPack / structured output 的一致性，并生成 harness/agent-harness.yaml。
+        evidence_paths: [fundos/agent_harness.py, specs/schemas/agent-harness-report.schema.yaml, tests/test_agent_harness.py, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.en-01
+        source_section: Acceptance Criteria
+        requirement_text: Every roster Agent has a source-controlled agent.md, runtime model record, ContextPolicy, ToolPolicy, MemoryPolicy, persistent Thread namespace, harness hooks and evolution path.
+        evidence_paths: [specs/agents/agent-cards, specs/skills, specs/agents/context-policies, specs/agents/tool-policies, specs/agents/memory-policies, fundos/agent_threads.py, fundos/evolution.py, fundos/system_audit.py, tests/test_agent_threads.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_threads.py' -q, python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Agent identity remains independent across Profile, Skills, Tools, Memory, Thread, Harness and Evolution artifacts.
+        evidence_paths: [specs/agents/agent-skill-contract-manifest.yaml, fundos/os_manifest.py, fundos/system_audit.py, tests/test_agent_assets.py, tests/test_module_boundaries.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_module_boundaries.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.en-03
+        source_section: Acceptance Criteria
+        requirement_text: Agent outputs must cite Evidence ID / Claim ID where factual conclusions are made and must preserve role boundaries.
+        evidence_paths: [fundos/agent_outputs.py, fundos/agent_harness.py, fundos/claim_graph.py, tests/test_agent_runtime_integration.py, tests/test_claim_graph.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_claim_graph.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: agent-system.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Long-term learning can only update controlled memory or capability registries after Harness / EvolutionGate approval.
+        evidence_paths: [fundos/evolution.py, fundos/memory.py, fundos/capability_apply.py, tests/test_evolution_gate.py, tests/test_memory_writeback.py, tests/test_capability_apply.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_evolution_gate.py' -q, python3 -m unittest discover -s tests -p 'test_capability_apply.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: agent-system.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, research / watchlist / paper-only.
+        evidence_paths: [fundos/system_audit.py, specs/agents/agent-skill-contract-manifest.yaml, specs/schemas/run.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: codex-runtime
+    prd_path: docs/prd/modules/codex-runtime-prd.md
+    requirement_count: 11
+    acceptance_criteria:
+      - requirement_id: codex-runtime.zh-01
+        source_section: 验收标准
+        requirement_text: 能用 CLI 创建 run workspace。
+        evidence_paths: [fundos/cli.py, specs/cli/commands.md, tests/test_cli_unittest.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_cli_unittest.py' -q, python3 -m fundos.cli run --topic <topic>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: codex-runtime.zh-02
+        source_section: 验收标准
+        requirement_text: 能加载默认 Agent roster。
+        evidence_paths: [fundos/cli.py, specs/agents/default-roster.yaml, tests/test_cli_unittest.py]
+        verification_commands: [python3 -m fundos.cli roster]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: codex-runtime.zh-03
+        source_section: 验收标准
+        requirement_text: 能生成 EvidencePack、ContextPack、Agent outputs、DecisionMemo、EvaluationReport。
+        evidence_paths: [fundos/evidence.py, fundos/context.py, fundos/agent_outputs.py, fundos/decision.py, fundos/harness.py, tests/test_agent_runtime_integration.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_runtime_integration.py' -q, python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: codex-runtime.zh-04
+        source_section: 验收标准
+        requirement_text: 能生成并在 eval/evolve 后刷新 system/operating-system-manifest.yaml，汇总运行资产、模型记录、演化阶段和安全边界。
+        evidence_paths: [fundos/os_manifest.py, fundos/cli.py, specs/schemas/operating-system-manifest.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_system_audit.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: codex-runtime.zh-05
+        source_section: 验收标准
+        requirement_text: 能将 run artifacts 归档。
+        evidence_paths: [fundos/cli.py, fundos/reporting.py, tests/test_reporting.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_reporting.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: codex-runtime.zh-06
+        source_section: 验收标准
+        requirement_text: 能以文件为接口支持 Codex 后续实现和调试。
+        evidence_paths: [README.md, specs/cli/commands.md, fundos/cli.py, specs/tasks/implementation-plan.md]
+        verification_commands: [python3 -m fundos.cli inspect --run <run>, python3 -m fundos.cli report first-version --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: codex-runtime.en-01
+        source_section: Acceptance Criteria
+        requirement_text: fundos init/run/eval/evolve/inspect/report/memory/capabilities/sources/cases/followups/threads/governance/system audit are exposed as local-first CLI workflows.
+        evidence_paths: [fundos/cli.py, specs/cli/commands.md, tests/test_cli_unittest.py, tests/test_memory_cli.py]
+        verification_commands: [python3 -m fundos.cli --help, python3 -m unittest discover -s tests -p 'test_cli_unittest.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: codex-runtime.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Each run writes run.yaml, selected agents, EvidencePack, ContextPacks, Agent outputs, final decision memo, harness artifacts, portfolio artifacts and operating-system-manifest.yaml.
+        evidence_paths: [fundos/cli.py, fundos/os_manifest.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: codex-runtime.en-03
+        source_section: Acceptance Criteria
+        requirement_text: run.yaml model_records must be concrete governance evidence and must never use stub model/tool version placeholders.
+        evidence_paths: [fundos/cli.py, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_system_audit.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: codex-runtime.en-04
+        source_section: Acceptance Criteria
+        requirement_text: system audit --strict must fail missing runtime model records, stale OS manifest summaries, schema violations or broker / real-trade leakage.
+        evidence_paths: [fundos/system_audit.py, tests/test_system_audit.py, specs/schemas/operating-system-manifest.schema.yaml]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_system_audit.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: codex-runtime.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, local_file_protocol only in V1.
+        evidence_paths: [fundos/system_audit.py, specs/schemas/run.schema.yaml, specs/schemas/operating-system-manifest.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: context-management
+    prd_path: docs/prd/modules/context-management-prd.md
+    requirement_count: 14
+    acceptance_criteria:
+      - requirement_id: context-management.zh-01
+        source_section: 验收标准
+        requirement_text: 每个 selected agent 均获得独立 ContextPack。
+        evidence_paths: [fundos/context.py, fundos/cli.py, specs/schemas/context-pack.schema.yaml, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.zh-02
+        source_section: 验收标准
+        requirement_text: ContextPack 能回链到 EvidencePack。
+        evidence_paths: [fundos/context.py, specs/schemas/context-pack.schema.yaml, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.zh-03
+        source_section: 验收标准
+        requirement_text: 压缩摘要不丢失关键争议和证据等级。
+        evidence_paths: [fundos/context.py, fundos/agent_harness.py, specs/agents/context-policies, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.zh-04
+        source_section: 验收标准
+        requirement_text: 不同角色获得明显不同的上下文内容和输出约束。
+        evidence_paths: [fundos/context.py, specs/agents/context-policies, tests/test_context_policies.py, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_policies.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.zh-05
+        source_section: 验收标准
+        requirement_text: Harness 能对 ContextPack 评分并指出缺陷。
+        evidence_paths: [fundos/agent_harness.py, specs/schemas/agent-harness-report.schema.yaml, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.zh-06
+        source_section: 验收标准
+        requirement_text: Harness 能把 ContextPack 评分纳入 agent_harness_quality。
+        evidence_paths: [fundos/harness.py, fundos/agent_harness.py, specs/schemas/evaluation-report.schema.yaml, tests/test_agent_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.zh-07
+        source_section: 验收标准
+        requirement_text: ContextPack 必须从 SKILL.md 抽取 Guardrails，并保持安全与 EvolutionGate 边界。
+        evidence_paths: [fundos/context.py, fundos/agent_outputs.py, specs/schemas/context-pack.schema.yaml, tests/test_context_management_harness.py, tests/test_agent_runtime_integration.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: context-management.zh-08
+        source_section: 验收标准
+        requirement_text: ContextPack 能在有 runtime thread 时纳入安全的 Thread summary，并保持 no-real-trade / broker-disabled 边界。
+        evidence_paths: [fundos/context.py, fundos/agent_threads.py, tests/test_agent_threads.py, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_threads.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: context-management.en-01
+        source_section: Acceptance Criteria
+        requirement_text: Every selected Agent receives a role-specific ContextPack, not a shared undifferentiated summary.
+        evidence_paths: [fundos/context.py, specs/agents/context-policies, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Every ContextPack contains included evidence, included claims, contradiction table, missing evidence, excluded evidence summary, Thread summary and output schema.
+        evidence_paths: [fundos/context.py, specs/schemas/context-pack.schema.yaml, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.en-03
+        source_section: Acceptance Criteria
+        requirement_text: ContextBudgetManifest records token budget, compression ratio, included/excluded items, drop reasons and loss accounting.
+        evidence_paths: [fundos/context.py, specs/schemas/context-pack.schema.yaml, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Thread memory summary is retrieval context only and cannot override current EvidencePack, ToolPolicy, MemoryPolicy or Harness results.
+        evidence_paths: [fundos/context.py, fundos/agent_threads.py, fundos/memory.py, tests/test_agent_threads.py, tests/test_memory_writeback.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_threads.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: context-management.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Harness scores context compression, role specificity, loss accounting, thread summary quality and memory lesson traceability.
+        evidence_paths: [fundos/agent_harness.py, fundos/harness.py, specs/schemas/agent-harness-report.schema.yaml, tests/test_context_management_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_management_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: context-management.en-06
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, no context path can grant trading authority.
+        evidence_paths: [fundos/context.py, fundos/system_audit.py, specs/schemas/context-pack.schema.yaml, tests/test_context_management_harness.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: evidence-system
+    prd_path: docs/prd/modules/evidence-system-prd.md
+    requirement_count: 13
+    acceptance_criteria:
+      - requirement_id: evidence-system.zh-01
+        source_section: 验收标准
+        requirement_text: 给定 topic / stock / question，系统能生成 EvidencePack。
+        evidence_paths: [fundos/evidence.py, fundos/cli.py, specs/schemas/evidence-pack.schema.yaml, tests/test_public_research.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_public_research.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.zh-02
+        source_section: 验收标准
+        requirement_text: EvidencePack 中每个 evidence item 有 source tier、timestamp、summary、claims。
+        evidence_paths: [fundos/evidence.py, specs/schemas/evidence-pack.schema.yaml, tests/test_public_research.py, tests/test_tool_runtime.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_tool_runtime.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.zh-03
+        source_section: 验收标准
+        requirement_text: 至少支持 source coverage report。
+        evidence_paths: [fundos/evidence.py, fundos/harness.py, specs/schemas/evidence-pack.schema.yaml, tests/test_public_research.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_public_research.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.zh-04
+        source_section: 验收标准
+        requirement_text: 能识别证据缺口和冲突。
+        evidence_paths: [fundos/evidence.py, fundos/context.py, fundos/claim_graph.py, tests/test_claim_graph.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_claim_graph.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.zh-05
+        source_section: 验收标准
+        requirement_text: 能为 Context Manager 提供按 Agent 过滤的证据索引。
+        evidence_paths: [fundos/context.py, fundos/evidence.py, specs/agents/context-policies, tests/test_context_policies.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_context_policies.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.zh-06
+        source_section: 验收标准
+        requirement_text: Tool Harness 能检查 adapter 覆盖、来源等级、KOL/社媒边界和高置信阻断。
+        evidence_paths: [fundos/tool_harness.py, specs/tools/tool-adapter-contracts.yaml, tests/test_tool_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_tool_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: evidence-system.zh-07
+        source_section: 验收标准
+        requirement_text: 每次 run 生成 public-research-manifest，并能用 cache/research 复现公开检索输入。
+        evidence_paths: [fundos/research_cache.py, fundos/public_research.py, tests/test_research_cache.py, tests/test_public_research.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_research_cache.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.en-01
+        source_section: Acceptance Criteria
+        requirement_text: A run can generate EvidencePack from public fixture/runtime retrieval without user-provided materials.
+        evidence_paths: [fundos/public_research.py, fundos/evidence.py, fundos/cli.py, tests/test_public_research.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli run --topic <topic> --research-fixture <fixture>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Each EvidenceItem declares source_type, source_tier, confidence, claims and retrievable provenance.
+        evidence_paths: [fundos/evidence.py, specs/schemas/evidence-pack.schema.yaml, tests/test_public_research.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_public_research.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.en-03
+        source_section: Acceptance Criteria
+        requirement_text: KOL, Serenity, books, courses and historical cases are methodology / hypothesis / checklist / case_pattern inputs, not direct factual or buy/sell evidence.
+        evidence_paths: [fundos/source_ingestion.py, fundos/tool_harness.py, fundos/learning.py, tests/test_source_ingestion.py, tests/test_tool_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_source_ingestion.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: evidence-system.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Public research manifest records adapter coverage, cache status, source hash and source tier/type distribution.
+        evidence_paths: [fundos/research_cache.py, fundos/research_cache.py, tests/test_research_cache.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_research_cache.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: evidence-system.en-05
+        source_section: Acceptance Criteria
+        requirement_text: High-confidence conclusions require tier_1_primary_fact or accepted cross-validated evidence.
+        evidence_paths: [fundos/harness.py, fundos/decision.py, fundos/tool_harness.py, tests/test_system_audit.py, tests/test_tool_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_tool_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: evidence-system.en-06
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, EvidencePack never contains broker actions.
+        evidence_paths: [fundos/evidence.py, fundos/system_audit.py, specs/schemas/evidence-pack.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: harness
+    prd_path: docs/prd/modules/harness-prd.md
+    requirement_count: 16
+    acceptance_criteria:
+      - requirement_id: harness.zh-01
+        source_section: 验收标准
+        requirement_text: fundos eval --run <run> 能生成 EvaluationReport。
+        evidence_paths: [fundos/cli.py, fundos/harness.py, specs/schemas/evaluation-report.schema.yaml, tests/test_cli_unittest.py]
+        verification_commands: [python3 -m fundos.cli eval --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.zh-02
+        source_section: 验收标准
+        requirement_text: fundos evolve --run <run> 能生成 EvolutionGateResult。
+        evidence_paths: [fundos/cli.py, fundos/evolution.py, specs/schemas/evolution-gate-result.schema.yaml, tests/test_evolution_gate.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_evolution_gate.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.zh-03
+        source_section: 验收标准
+        requirement_text: Harness 能给出维度分数和阻断项。
+        evidence_paths: [fundos/harness.py, specs/schemas/evaluation-report.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli eval --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.zh-04
+        source_section: 验收标准
+        requirement_text: Harness 能读取 Watchlist / Paper Portfolio Review，并输出 portfolio_review_quality。
+        evidence_paths: [fundos/harness.py, fundos/portfolio.py, tests/test_portfolio.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_portfolio.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.zh-05
+        source_section: 验收标准
+        requirement_text: Harness 能读取离线 Market Replay Outcome Tracking，并输出 outcome_tracking_quality。
+        evidence_paths: [fundos/harness.py, fundos/outcomes.py, tests/test_outcome_tracking.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_outcome_tracking.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.zh-06
+        source_section: 验收标准
+        requirement_text: Harness 能读取 per-agent Context / Skill / Role 评分，并输出 agent_harness_quality。
+        evidence_paths: [fundos/harness.py, fundos/agent_harness.py, fundos/skill_benchmark.py, tests/test_agent_harness.py, tests/test_skill_benchmark.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.zh-07
+        source_section: 验收标准
+        requirement_text: Harness 能读取工具和来源边界评分，并输出 tool_harness_quality。
+        evidence_paths: [fundos/harness.py, fundos/tool_harness.py, tests/test_tool_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_tool_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: harness.zh-08
+        source_section: 验收标准
+        requirement_text: Harness 能生成 learning/failure-patterns.yaml 并追加组织级错误模式。
+        evidence_paths: [fundos/failure_patterns.py, tests/test_failure_patterns.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_failure_patterns.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.zh-09
+        source_section: 验收标准
+        requirement_text: Harness 能拒绝低质量升级候选。
+        evidence_paths: [fundos/evolution.py, fundos/capability_regression.py, tests/test_evolution_gate.py, tests/test_capability_regression.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_capability_regression.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: harness.zh-10
+        source_section: 验收标准
+        requirement_text: 所有评分依据能引用 artifact / evidence / context / output id。
+        evidence_paths: [fundos/harness.py, fundos/agent_harness.py, fundos/tool_harness.py, fundos/claim_graph.py, tests/test_claim_graph.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_claim_graph.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.en-01
+        source_section: Acceptance Criteria
+        requirement_text: Every run writes EvaluationReport plus tool, agent, context, skill, case replay, claim graph, task DAG, portfolio, outcome, performance and governance harness artifacts when relevant workflows run.
+        evidence_paths: [fundos/cli.py, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Harness must produce blocking issues for missing primary evidence, role drift, missing risk review, missing bear case, unclosed high-priority evidence gaps, unsafe broker leakage or real trade language.
+        evidence_paths: [fundos/harness.py, fundos/agent_harness.py, fundos/tool_harness.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_system_audit.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: harness.en-03
+        source_section: Acceptance Criteria
+        requirement_text: agent-harness.yaml must bind Agent Card, Skill, ContextPack, ToolPolicy, MemoryPolicy, Thread summary and structured output quality.
+        evidence_paths: [fundos/agent_harness.py, specs/schemas/agent-harness-report.schema.yaml, tests/test_agent_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: harness.en-04
+        source_section: Acceptance Criteria
+        requirement_text: capability-regression.yaml must block capability apply if required regression artifacts are missing or safety boundaries are violated.
+        evidence_paths: [fundos/capability_regression.py, fundos/capability_apply.py, specs/schemas/capability-regression-report.schema.yaml, tests/test_capability_regression.py, tests/test_capability_apply.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_capability_apply.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: harness.en-05
+        source_section: Acceptance Criteria
+        requirement_text: system audit --strict must independently verify manifest schemas and runtime summaries against source artifacts.
+        evidence_paths: [fundos/system_audit.py, tests/test_system_audit.py, specs/schemas/operating-system-manifest.schema.yaml]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_system_audit.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: harness.en-06
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, harness never promotes real trading authority.
+        evidence_paths: [fundos/harness.py, fundos/evolution.py, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: investment-committee
+    prd_path: docs/prd/modules/investment-committee-prd.md
+    requirement_count: 5
+    acceptance_criteria:
+      - requirement_id: investment-committee.en-01
+        source_section: Acceptance Criteria
+        requirement_text: Every run produces debate, risk and decision artifacts when selected agents include those roles.
+        evidence_paths: [fundos/committee.py, fundos/decision.py, fundos/cli.py, tests/test_committee_protocol.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_committee_protocol.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: investment-committee.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Final decision memo validates against decision-memo.schema.yaml and links to Evidence ID / Claim ID.
+        evidence_paths: [fundos/decision.py, specs/schemas/decision-memo.schema.yaml, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: investment-committee.en-03
+        source_section: Acceptance Criteria
+        requirement_text: Bear case and risk review materially influence final memo fields or generate explicit unresolved issues.
+        evidence_paths: [fundos/committee.py, fundos/decision.py, tests/test_committee_protocol.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_committee_protocol.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: investment-committee.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Follow-up research gaps are routed to workflow/research-gap-tasks.yaml when evidence is insufficient.
+        evidence_paths: [fundos/task_dag.py, specs/workflows/research-task-dag.yaml, tests/test_task_dag.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_task_dag.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: investment-committee.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, no automatic order placement.
+        evidence_paths: [fundos/committee.py, fundos/decision.py, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: learning-evolution
+    prd_path: docs/prd/modules/learning-evolution-prd.md
+    requirement_count: 18
+    acceptance_criteria:
+      - requirement_id: learning-evolution.zh-01
+        source_section: 验收标准
+        requirement_text: 能从 run 生成 reflection 和 upgrade candidates。
+        evidence_paths: [fundos/cli.py, fundos/agent_learning.py, fundos/evolution.py, tests/test_agent_learning_candidates.py, tests/test_evolution_gate.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_learning_candidates.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.zh-02
+        source_section: 验收标准
+        requirement_text: 能为 run 生成 learning/source-registry.yaml，并把组织级 registry 物化到 memory/organization。
+        evidence_paths: [fundos/learning.py, fundos/learning.py, tests/test_learning_source_registry.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_learning_source_registry.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.zh-03
+        source_section: 验收标准
+        requirement_text: 能标注学习源和 source tier。
+        evidence_paths: [fundos/source_ingestion.py, fundos/learning.py, tests/test_source_ingestion.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_source_ingestion.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.zh-04
+        source_section: 验收标准
+        requirement_text: EvolutionGate 能读取 source registry gates；缺少必要 gates 的升级候选必须 quarantine，不能直接写入长期记忆。
+        evidence_paths: [fundos/evolution.py, fundos/learning.py, tests/test_evolution_gate.py, tests/test_memory_writeback.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_evolution_gate.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.zh-05
+        source_section: 验收标准
+        requirement_text: 能通过 EvolutionGate 输出 accept / reject / quarantine / needs_more_evidence。
+        evidence_paths: [fundos/evolution.py, specs/schemas/evolution-gate-result.schema.yaml, tests/test_evolution_gate.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_evolution_gate.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.zh-06
+        source_section: 验收标准
+        requirement_text: 被接受升级能版本化写入对应 Agent 的 memory 与 evolution-ledger；principles / skillset 的直接改写必须进入后续审批流。
+        evidence_paths: [fundos/evolution.py, fundos/memory.py, fundos/capabilities.py, tests/test_capability_versioning.py, tests/test_memory_writeback.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_capability_versioning.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.zh-07
+        source_section: 验收标准
+        requirement_text: 被接受的 principle / skill / checklist / workflow / tool policy 候选能进入 capability registry，并保持 pending_human_apply。
+        evidence_paths: [fundos/capabilities.py, fundos/evolution.py, tests/test_capability_versioning.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_capability_versioning.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.zh-08
+        source_section: 验收标准
+        requirement_text: EvolutionGate 后必须生成 harness/capability-regression.yaml，并把未通过回归测试的能力候选标记为 blocked_regression。
+        evidence_paths: [fundos/capability_regression.py, fundos/evolution.py, tests/test_capability_regression.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_capability_regression.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.zh-09
+        source_section: 验收标准
+        requirement_text: pending_human_apply 能通过 fundos capabilities apply 受控应用，缺少 approver 时必须拒绝。
+        evidence_paths: [fundos/capability_apply.py, fundos/cli.py, tests/test_capability_apply.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_capability_apply.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.zh-10
+        source_section: 验收标准
+        requirement_text: 能从 reflections、evaluation blocking issues 和 outcome tracking 中生成 failure-patterns 并追加组织级 failure-pattern-library。
+        evidence_paths: [fundos/failure_patterns.py, tests/test_failure_patterns.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_failure_patterns.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.zh-11
+        source_section: 验收标准
+        requirement_text: fundos failures summary 能汇总组织级 failure pattern 数量、category_counts 和 severity_counts。
+        evidence_paths: [fundos/cli.py, fundos/failure_patterns.py, tests/test_failure_patterns.py]
+        verification_commands: [python3 -m fundos.cli failures summary]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.zh-12
+        source_section: 验收标准
+        requirement_text: 被拒绝升级保留拒绝理由，不能删除。
+        evidence_paths: [fundos/evolution.py, specs/schemas/evolution-gate-result.schema.yaml, tests/test_evolution_gate.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_evolution_gate.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.en-01
+        source_section: Acceptance Criteria
+        requirement_text: Source registry records learning sources, source tiers, allowed outputs, forbidden outputs, required gates, adoption policy and boundary policy.
+        evidence_paths: [fundos/learning.py, fundos/learning.py, tests/test_learning_source_registry.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_learning_source_registry.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.en-02
+        source_section: Acceptance Criteria
+        requirement_text: EvolutionGate scores source quality, testability, overfitting risk, role drift risk and risk regression risk before any durable learning.
+        evidence_paths: [fundos/evolution.py, specs/schemas/evolution-gate-result.schema.yaml, tests/test_evolution_gate.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_evolution_gate.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.en-03
+        source_section: Acceptance Criteria
+        requirement_text: Accepted memory candidates write only reversible semantic memory and ledgers; capability candidates enter pending_human_apply and require regression plus human approver.
+        evidence_paths: [fundos/memory.py, fundos/capabilities.py, fundos/capability_apply.py, tests/test_memory_writeback.py, tests/test_capability_apply.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_memory_writeback.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Failure patterns from reflections, evaluation, Agent Harness and outcome tracking feed future candidates as negative examples.
+        evidence_paths: [fundos/failure_patterns.py, fundos/agent_learning.py, tests/test_agent_learning_candidates.py, tests/test_failure_patterns.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_failure_patterns.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: learning-evolution.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Source-controlled agent.md and SKILL.md are never mutated by automatic evolve/apply flows.
+        evidence_paths: [fundos/capability_apply.py, fundos/evolution.py, tests/test_capability_apply.py, tests/test_module_boundaries.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_capability_apply.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: learning-evolution.en-06
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, capability upgrades cannot open broker or real-trade permissions.
+        evidence_paths: [fundos/capability_apply.py, fundos/capability_regression.py, fundos/system_audit.py, tests/test_capability_apply.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: portfolio-outcome
+    prd_path: docs/prd/modules/portfolio-outcome-prd.md
+    requirement_count: 5
+    acceptance_criteria:
+      - requirement_id: portfolio-outcome.en-01
+        source_section: Acceptance Criteria
+        requirement_text: Runs produce watchlist and paper portfolio artifacts from the final decision memo.
+        evidence_paths: [fundos/portfolio.py, specs/schemas/watchlist.schema.yaml, specs/schemas/paper-portfolio.schema.yaml, tests/test_portfolio.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_portfolio.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: portfolio-outcome.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Portfolio review records reviewed actions, attribution items, learning candidates and safety controls.
+        evidence_paths: [fundos/portfolio.py, specs/schemas/portfolio-review.schema.yaml, tests/test_portfolio.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_portfolio.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: portfolio-outcome.en-03
+        source_section: Acceptance Criteria
+        requirement_text: Outcome tracking uses only offline market replay fixtures or records missing_market_replay; missing data cannot be treated as success.
+        evidence_paths: [fundos/outcomes.py, specs/schemas/outcome-tracking.schema.yaml, tests/test_outcome_tracking.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_outcome_tracking.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: portfolio-outcome.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Review candidates must pass EvolutionGate before becoming memory or capability updates.
+        evidence_paths: [fundos/portfolio.py, fundos/evolution.py, tests/test_portfolio.py, tests/test_evolution_gate.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_evolution_gate.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: portfolio-outcome.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, no broker order, no live position instruction.
+        evidence_paths: [fundos/portfolio.py, fundos/outcomes.py, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict --run <run>]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: system-governance-audit
+    prd_path: docs/prd/modules/system-governance-audit-prd.md
+    requirement_count: 5
+    acceptance_criteria:
+      - requirement_id: system-governance-audit.en-01
+        source_section: Acceptance Criteria
+        requirement_text: Repository audit reports required PRD modules and fails if any module is missing or too weak for implementation.
+        evidence_paths: [fundos/system_audit.py, docs/prd/overall-prd.md, docs/prd/modules, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: system-governance-audit.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Runtime strict audit fails stale OS manifest summaries, schema violations, missing artifacts, unsafe model records or broker / real-trade leakage.
+        evidence_paths: [fundos/system_audit.py, specs/schemas/operating-system-manifest.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_system_audit.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: system-governance-audit.en-03
+        source_section: Acceptance Criteria
+        requirement_text: Audit output includes YAML and Markdown reports with requirement IDs, evidence paths, details and blocking issues.
+        evidence_paths: [fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --out audit]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: system-governance-audit.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Audit itself is evidence-based; each pass must point to concrete files or runtime artifacts.
+        evidence_paths: [fundos/system_audit.py, specs/audits/prd-requirement-matrix.yaml, specs/schemas/prd-requirement-matrix.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: system-governance-audit.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, audit never grants permissions.
+        evidence_paths: [fundos/system_audit.py, specs/schemas/prd-requirement-matrix.schema.yaml, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict]
+        coverage_status: covered
+        safety_boundary_relevant: true
+  - module_id: tooling-data-adapters
+    prd_path: docs/prd/modules/tooling-data-adapters-prd.md
+    requirement_count: 5
+    acceptance_criteria:
+      - requirement_id: tooling-data-adapters.en-01
+        source_section: Acceptance Criteria
+        requirement_text: tool-adapter-contracts.yaml defines read-only adapter contracts and required output fields.
+        evidence_paths: [specs/tools/tool-adapter-contracts.yaml, fundos/tool_adapters.py, tests/test_tool_adapter_contracts.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_tool_adapter_contracts.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: tooling-data-adapters.en-02
+        source_section: Acceptance Criteria
+        requirement_text: Runtime can convert fixture or public retrieval results into EvidencePack items with source_type, source_tier, claims and provenance.
+        evidence_paths: [fundos/tool_runtime.py, fundos/evidence.py, fundos/public_research.py, tests/test_tool_runtime.py, tests/test_public_research.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_tool_runtime.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: tooling-data-adapters.en-03
+        source_section: Acceptance Criteria
+        requirement_text: Tool Harness flags missing public research, missing primary evidence, source tier misuse and KOL/social-signal boundary violations.
+        evidence_paths: [fundos/tool_harness.py, tests/test_tool_harness.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_tool_harness.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: true
+      - requirement_id: tooling-data-adapters.en-04
+        source_section: Acceptance Criteria
+        requirement_text: Adapter outputs can create research gaps instead of fabricating unavailable facts.
+        evidence_paths: [fundos/evidence.py, fundos/task_dag.py, fundos/tool_runtime.py, tests/test_task_dag.py]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_task_dag.py' -q]
+        coverage_status: covered
+        safety_boundary_relevant: false
+      - requirement_id: tooling-data-adapters.en-05
+        source_section: Acceptance Criteria
+        requirement_text: Safety boundary real_trade_allowed=false, broker_integration=disabled, adapters cannot access broker or order APIs.
+        evidence_paths: [specs/tools/tool-adapter-contracts.yaml, fundos/tool_runtime.py, fundos/system_audit.py, tests/test_system_audit.py]
+        verification_commands: [python3 -m fundos.cli system audit --strict]
+        coverage_status: covered
+        safety_boundary_relevant: true
+coverage_summary:
+  module_count: 10
+  requirement_count: 104
+  covered_requirement_count: 104
+  uncovered_requirement_count: 0
+  modules_with_safety_boundary: 10
+safety_invariants:
+  real_trade_allowed: false
+  broker_integration: disabled
+  scope: research_watchlist_paper_only
+real_trade_allowed: false
+broker_integration: disabled
