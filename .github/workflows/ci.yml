@@ -1,0 +1,30 @@
+name: AwesomeFundOS V1 Verification
+
+on:
+  push:
+    branches:
+      - main
+      - 'codex/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-v1:
+    name: V1 quality and safety gate
+    runs-on: ubuntu-latest
+    # Safety invariant: real_trade_allowed=false, broker_integration=disabled.
+    env:
+      real_trade_allowed: "false"
+      broker_integration: "disabled"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run V1 verification gate
+        run: scripts/verify_v1.sh

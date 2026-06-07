@@ -249,10 +249,17 @@ Implemented behavior:
 
 - `system audit --strict` validates PRD/module coverage, runtime artifacts, schemas, source ingestion quarantine artifacts, public research manifest integrity, OS manifest, safety invariants, learning/evolution/capability artifacts, and no-placeholder runtime records.
 - The PRD acceptance matrix maps all 104 acceptance criteria across 10 module PRDs to concrete evidence paths and verification commands.
+- `.github/workflows/ci.yml` runs the same V1 verification gate on push, pull request, and manual dispatch.
 
 ## 4. Required verification before claiming V1 readiness
 
 Run these commands from the implementation worktree:
+
+```bash
+scripts/verify_v1.sh
+```
+
+The script runs:
 
 ```bash
 python3 -m unittest discover -s tests -q
@@ -282,4 +289,4 @@ broker_integration=disabled
 2. Expand historical case replay coverage for fraud, policy cycles, failed breakouts, and KOL thesis failures.
 3. Add benchmark fixtures that compare capability versions before/after human apply.
 4. Add richer context stress tests for very dense EvidencePacks and cross-agent handoffs.
-5. Add GitHub CI using the verification commands above.
+5. Keep `.github/workflows/ci.yml` aligned with `scripts/verify_v1.sh` whenever quality gates change.

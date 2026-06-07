@@ -41,6 +41,16 @@ V1 聚焦 A 股主观投资研究场景，用户只输入投资议题、股票�
 - CLI 规格: `specs/cli/commands.md`
 - Codex 实现计划: `specs/tasks/implementation-plan.md`
 
+## V1 验证
+
+本地完整质量门：
+
+```bash
+scripts/verify_v1.sh
+```
+
+该脚本会运行全量 unittest、`fundos system audit --strict` 和 `git diff --check`，并显式校验 `real_trade_allowed=False` 与 `broker_integration=disabled`。GitHub Actions 使用同一个脚本作为 CI 入口。
+
 ## 合规边界
 
 V1 输出为模拟投委会研究决策备忘录、观察池动作和模拟组合观点，不构成投资建议，不接真实交易，不自动下单。
