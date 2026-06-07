@@ -106,6 +106,17 @@ class PublicResearchTests(unittest.TestCase):
         self.assertEqual(item["source_type"], "announcement")
         self.assertEqual(item["claims"][0]["confidence"], "high")
 
+    def test_make_evidence_pack_without_public_results_has_no_placeholder_primary_facts(self):
+        pack = make_evidence_pack("run1", "topic", "机器人产业链")
+
+        self.assertEqual(pack["source_coverage"]["public_research_items"], 0)
+        self.assertEqual(pack["source_coverage"]["primary_fact_items"], 0)
+        self.assertFalse(any(item["source_tier"] == "tier_1_primary_fact" for item in pack["evidence_items"]))
+        combined = "\n".join(item.get("title", "") + item.get("summary", "") for item in pack["evidence_items"])
+        self.assertNotIn("检索占位", combined)
+        self.assertTrue(any("No public research results" in gap for gap in pack["unresolved_gaps"]))
+        self.assertTrue(any(step.startswith("announcement:") for step in pack["retrieval_plan"]))
+
     def test_make_evidence_pack_builds_claim_index_source_coverage_and_validates_schema(self):
         results = [
             {"title": "机器人公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告验证机器人订单。"},

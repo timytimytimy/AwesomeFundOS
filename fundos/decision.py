@@ -23,9 +23,9 @@ def make_decision_memo(run_id: str, query: str, evidence_pack: dict[str, Any], a
     label = "continue_research" if has_public_primary else "needs_more_evidence"
     stance = "constructive" if has_public_primary else "neutral"
     conviction = "medium" if has_public_primary and not social_items else "low"
-    thesis = f"{query} 已有 {len(primary_public)} 条 fixture/public 一手证据线索和 {len(public_items)} 条公开检索结果进入 EvidencePack；仍需真实公告、财报、行情和案例回放继续验证。"
+    thesis = f"{query} 已有 {len(primary_public)} 条 fixture/public 一手证据线索和 {len(public_items)} 条公开检索结果进入 EvidencePack；仍需公告、财报、行情和案例回放继续验证。"
     if not public_items:
-        thesis = f"{query} 当前主要依赖 seed library 和占位事实源，需要接入真实公开资料后再判断。"
+        thesis = f"{query} 当前没有公开检索结果进入 EvidencePack，只能形成研究问题、证据缺口和方法论假设，不能升级为高置信结论。"
     protocol = load_committee_protocol()
     collaboration = collaboration_report or {}
     return {

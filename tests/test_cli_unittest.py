@@ -243,6 +243,10 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("source_coverage", evidence)
             self.assertTrue(evidence["schema_validation"]["valid"])
             self.assertEqual(evidence["schema_validation"]["error_count"], 0)
+            self.assertEqual(evidence["source_coverage"]["public_research_items"], 0)
+            self.assertFalse(any("检索占位" in item.get("title", "") or "检索占位" in item.get("summary", "") for item in evidence["evidence_items"]))
+            self.assertFalse(any("占位事实源" in item.get("title", "") or "占位事实源" in item.get("summary", "") for item in evidence["evidence_items"]))
+            self.assertFalse(any(item["source_tier"] == "tier_1_primary_fact" and item.get("source_id") != "fixture_tool_runtime" for item in evidence["evidence_items"]))
             first_claim = evidence["evidence_items"][0]["claims"][0]
             self.assertIn(first_claim["claim_id"], evidence["claim_index"])
             self.assertEqual(evidence["claim_index"][first_claim["claim_id"]]["evidence_id"], evidence["evidence_items"][0]["id"])
@@ -276,7 +280,7 @@ class FundosCliTests(unittest.TestCase):
             tool_harness = yaml.safe_load((run_path / "harness/tool-harness.yaml").read_text())
             self.assertIn("adapter_coverage", tool_harness)
             self.assertIn("source_boundary_quality", tool_harness)
-            self.assertGreaterEqual(tool_harness["source_tier_counts"].get("tier_1_primary_fact", 0), 6)
+            self.assertEqual(tool_harness["source_tier_counts"].get("tier_1_primary_fact", 0), evidence["source_coverage"]["primary_fact_items"])
             tool_runtime = yaml.safe_load((run_path / "tools/tool-runtime-report.yaml").read_text())
             self.assertEqual(tool_runtime["artifact_type"], "tool_runtime_report")
             self.assertGreaterEqual(tool_runtime["tool_call_count"], 5)
@@ -1203,6 +1207,7 @@ class FundosCliTests(unittest.TestCase):
             report = yaml.safe_load((tmp_path / run_rel / "evaluations" / "evaluation-report.yaml").read_text())
             self.assertGreaterEqual(report["dimension_scores"]["evidence_quality"], 75)
             self.assertNotIn("真实公开数据检索工具尚未接入，当前为 EvidencePack stub。", report["blocking_issues"])
+            self.assertNotIn("缺少 tier_1_primary_fact，不能形成高置信结论。", report["blocking_issues"])
             self.assertIn("source_coverage", report)
             self.assertGreaterEqual(report["source_coverage"]["public_research_items"], 1)
 

@@ -1466,7 +1466,7 @@ def safety_boundary_present(root: Path) -> bool:
 
 def contains_stub_gap(rows: list[Any]) -> bool:
     text = "\n".join(str(row) for row in rows)
-    return "public retrieval interface stub" in text or "EvidencePack stub" in text or "真实公开数据检索工具尚未接入" in text
+    return "public retrieval interface stub" in text or "EvidencePack stub" in text or "真实公开数据检索工具尚未接入" in text or "检索占位" in text or "占位事实源" in text
 
 
 def tool_harness_ok(report: Any) -> bool:

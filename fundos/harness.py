@@ -39,7 +39,7 @@ def make_evaluation_for_run(run_id: str, selected: list[dict[str, str]], evidenc
     overall = round((evidence_quality + 70 + 82 + 72 + 75 + tool_usage_quality + 80) / 7, 1)
     blocking = []
     if not public_items:
-        blocking.append("真实公开数据检索工具尚未接入，当前为 EvidencePack stub。")
+        blocking.append("缺少公开检索结果，当前仅可生成研究缺口和方法论假设。")
     if primary_count == 0:
         blocking.append("缺少 tier_1_primary_fact，不能形成高置信结论。")
     if low_count > primary_count:

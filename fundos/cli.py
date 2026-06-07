@@ -475,8 +475,8 @@ def command_run(args: argparse.Namespace) -> int:
     run_skill_benchmark(run_path)
     collaboration_report = write_committee_artifacts(run_path, run_id, value, selected, agent_outputs, evidence_pack)
     pm_competition_report = write_pm_competition(run_path, run_id, value, evidence_pack, selected, agent_outputs)
-    (run_path / "risk" / "risk-review.md").write_text(f"# Risk Review\n\n真实数据工具未接入，模拟仓位为 0%。\n\n{DISCLAIMER}\n", encoding="utf-8")
-    write_yaml(run_path / "risk" / "position-risk.yaml", {"hypothetical_max_position": "0%", "reason": "stub evidence only"})
+    (run_path / "risk" / "risk-review.md").write_text(f"# Risk Review\n\n证据链未通过投委会和 Harness 前，模拟仓位为 0%。\n\n{DISCLAIMER}\n", encoding="utf-8")
+    write_yaml(run_path / "risk" / "position-risk.yaml", {"hypothetical_max_position": "0%", "reason": "evidence_not_sufficient_for_risk_budget"})
 
     memo = make_decision_memo(run_id, value, evidence_pack, agent_outputs=agent_outputs, collaboration_report=collaboration_report)
     write_yaml(run_path / "decision" / "final-decision-memo.yaml", memo)

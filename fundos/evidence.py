@@ -5,7 +5,7 @@ from typing import Any
 
 from fundos.io import REPO_ROOT, read_yaml
 from fundos.learning import load_learning_patterns
-from fundos.public_research import tool_result_to_evidence
+from fundos.public_research import build_research_plan, tool_result_to_evidence
 
 
 def now_iso() -> str:
@@ -26,11 +26,7 @@ def source_by_id(source_id: str) -> dict[str, Any]:
 def make_evidence_pack(run_id: str, input_type: str, value: str, public_results: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     retrieved_at = now_iso()
     base_relevance = ["industry", "company", "trading", "risk", "bear_case"]
-    items = [
-        evidence_item("E001", "policy", "tier_1_primary_fact", "A股公开政策与监管材料检索占位", "公开政策和交易所材料应作为事实验证的一手来源。", "政策和监管口径必须优先于市场传言。", "fact", retrieved_at, ["industry", "risk"]),
-        evidence_item("E002", "financial_report", "tier_1_primary_fact", "公司公告与财报检索占位", "公司公告、定期报告、互动记录用于验证产品、订单、收入和治理。", "公司层面判断必须回到公告和财报。", "fact", retrieved_at, ["company", "risk"]),
-        evidence_item("E003", "market_data", "tier_1_primary_fact", "行情与量价摘要占位", "价格、成交额、相对强弱和波动用于交易结构判断。", "交易判断必须和量价结构绑定。", "fact", retrieved_at, ["trading", "risk"]),
-    ]
+    items: list[dict[str, Any]] = []
     seed_claims = [
         ("E004", "serenity_aleabitoreddit", "practitioner_source", "学习 secular trend、supply-chain chokepoint、research gap、anti-consensus 和 falsification。", "Serenity 可用于方法论蒸馏，不能直接作为 A 股买卖依据。", "opinion", ["industry", "bear_case"]),
         ("E005", "lihai_a_share", "practitioner_source", "学习市场状态、情绪周期、买卖点、仓位和复盘纪律。", "交易计划需要市场状态和仓位纪律约束。", "opinion", ["trading", "risk"]),
@@ -56,20 +52,30 @@ def make_evidence_pack(run_id: str, input_type: str, value: str, public_results:
         "market": "CN_A_SHARE",
         "query": value,
         "retrieved_at": retrieved_at,
-        "retrieval_plan": [
-            "search primary announcements and filings",
-            "search policy and news sources",
-            "query market data summary",
-            "load seed practitioner and historical case library",
-        ] + (["public_research"] if public_results else []),
+        "retrieval_plan": retrieval_plan_steps(value, input_type, bool(public_results)),
         "evidence_items": items,
-        "unresolved_gaps": [
-            "V1 当前为 public retrieval interface stub，后续需接入真实公告、行情、新闻和网页检索工具。"
-        ],
+        "unresolved_gaps": unresolved_research_gaps(public_results),
     }
     pack["research_plan_coverage"] = build_research_plan_coverage(public_results)
     enrich_evidence_pack(pack)
     return pack
+
+
+def retrieval_plan_steps(value: str, input_type: str, has_public_results: bool) -> list[str]:
+    planned = [f"{step['category']}: {step['purpose']} -> {step['query']}" for step in build_research_plan(value, input_type)]
+    planned.append("load seed practitioner and historical case library as methodology-only context")
+    if has_public_results:
+        planned.append("public_research")
+        planned.append("normalize public_research results into EvidencePack items")
+    return planned
+
+
+def unresolved_research_gaps(public_results: list[dict[str, Any]] | None) -> list[str]:
+    if public_results:
+        return []
+    return [
+        "No public research results were retrieved or supplied; high-confidence conclusions require primary public evidence before any upgrade.",
+    ]
 
 
 def enrich_evidence_pack(pack: dict[str, Any]) -> dict[str, Any]:
