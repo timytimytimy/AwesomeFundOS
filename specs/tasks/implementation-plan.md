@@ -30,6 +30,7 @@ python3 -m fundos.cli capabilities list
 python3 -m fundos.cli capabilities apply <candidate_id> --approver <human>
 python3 -m fundos.cli performance show --agent tech_growth_analyst
 python3 -m fundos.cli failures summary
+python3 -m fundos.cli skills export --out ./skills
 python3 -m fundos.cli sources ingest --run runs/<run_id> --fixture <source-candidates.yaml>
 python3 -m fundos.cli cases list
 python3 -m fundos.cli followups list --run runs/<run_id>

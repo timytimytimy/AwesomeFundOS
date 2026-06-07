@@ -20,6 +20,7 @@ fundos capabilities list
 fundos capabilities apply cand_2026-06-05-robotics_002 --approver human-name
 fundos performance show --agent tech_growth_analyst
 fundos failures summary
+fundos skills export --out ./skills
 fundos sources ingest --run runs/2026-06-05-robotics --fixture examples/fixtures/source-candidates.yaml
 fundos cases list
 fundos followups list --run runs/2026-06-05-robotics
@@ -29,6 +30,15 @@ fundos followups close --run runs/2026-06-05-robotics --task-id 2026-06-05-robot
 fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
 ```
+
+### 1.1 `fundos skills export --out <dir>`
+
+把 source-controlled `specs/skills/*/SKILL.md` 导出为 Codex 可发现的 Skill 目录：
+
+- 输出目录结构为 `<dir>/fundos-{agent_id}/SKILL.md`。
+- 同步写入 `<dir>/awesomefundos-skills-manifest.yaml`，记录 agent_id、skill_name、source_path、target_path 和安全边界。
+- 不改变 `agent.md`、Profile、Memory、Tool Permission 或风险限制。
+- 导出后的 Skill 仍保持 `real_trade_allowed=false`、`broker_integration=disabled`，仅用于 research / watchlist / Paper Portfolio。
 
 ## 2. `fundos init`
 

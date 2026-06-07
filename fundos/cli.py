@@ -237,6 +237,58 @@ def command_roster_list(args: argparse.Namespace) -> int:
         print(f"- {agent['id']} | {agent['role']} | {agent.get('category', '')}")
     return 0
 
+
+def command_skills_export(args: argparse.Namespace) -> int:
+    out_dir = Path(args.out).expanduser()
+    if not out_dir.is_absolute():
+        out_dir = Path.cwd() / out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    roster = load_roster()
+    exported: list[dict[str, Any]] = []
+    for agent in roster.get("agents", []):
+        agent_id = agent["id"]
+        source_skill = REPO_ROOT / "specs" / "skills" / agent_id / "SKILL.md"
+        if not source_skill.exists():
+            print(f"missing source skill: {source_skill}", file=sys.stderr)
+            return 1
+        skill_name = f"fundos-{agent_id}"
+        target_dir = out_dir / skill_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_skill = target_dir / "SKILL.md"
+        shutil.copyfile(source_skill, target_skill)
+        exported.append(
+            {
+                "agent_id": agent_id,
+                "skill_name": skill_name,
+                "role": agent.get("role"),
+                "source_path": str(source_skill.relative_to(REPO_ROOT)),
+                "target_path": str(target_skill),
+                "agent_card_path": f"specs/agents/agent-cards/{agent_id}/agent.md",
+                "real_trade_allowed": False,
+                "broker_integration": "disabled",
+            }
+        )
+
+    manifest = {
+        "artifact_type": "codex_skill_export_manifest",
+        "export_root": str(out_dir),
+        "source_root": "specs/skills",
+        "skill_count": len(exported),
+        "skills": exported,
+        "usage_note": "Point Codex skill discovery at export_root or copy these folders under $CODEX_HOME/skills.",
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+    write_yaml(out_dir / "awesomefundos-skills-manifest.yaml", manifest)
+
+    print(f"export_root={out_dir}")
+    print(f"exported_skills={len(exported)}")
+    print(f"manifest={out_dir / 'awesomefundos-skills-manifest.yaml'}")
+    print("real_trade_allowed=False")
+    print("broker_integration=disabled")
+    return 0
+
 def infer_input(args: argparse.Namespace) -> tuple[str, str]:
     provided = [("topic", args.topic), ("stock", args.stock), ("question", args.question)]
     non_empty = [(k, v) for k, v in provided if v]
@@ -1000,6 +1052,12 @@ def build_parser() -> argparse.ArgumentParser:
     roster_sub = p_roster.add_subparsers(dest="roster_command", required=True)
     p_roster_list = roster_sub.add_parser("list")
     p_roster_list.set_defaults(func=command_roster_list)
+
+    p_skills = sub.add_parser("skills")
+    skills_sub = p_skills.add_subparsers(dest="skills_command", required=True)
+    p_skills_export = skills_sub.add_parser("export")
+    p_skills_export.add_argument("--out", default="skills", help="Directory where Codex-compatible skill folders should be written")
+    p_skills_export.set_defaults(func=command_skills_export)
 
     p_memory = sub.add_parser("memory")
     memory_sub = p_memory.add_subparsers(dest="memory_command", required=True)

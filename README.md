@@ -51,6 +51,16 @@ scripts/verify_v1.sh
 
 该脚本会运行全量 unittest、`fundos system audit --strict` 和 `git diff --check`，并显式校验 `real_trade_allowed=False` 与 `broker_integration=disabled`。GitHub Actions 使用同一个脚本作为 CI 入口。
 
+## Codex Skill 导出
+
+仓库内的 canonical Skills 位于 `specs/skills/*/SKILL.md`。如果需要把 AwesomeFundOS 的 19 个 Agent Skills 导出为 Codex 可发现的 Skill 目录，可以运行：
+
+```bash
+python3 -m fundos.cli skills export --out ./skills
+```
+
+该命令会生成 `./skills/fundos-*/SKILL.md` 和 `./skills/awesomefundos-skills-manifest.yaml`。导出的 Skills 仍保持 `real_trade_allowed=false` 与 `broker_integration=disabled`，只用于研究、观察池和 Paper Portfolio 工作流。
+
 ## 合规边界
 
 V1 输出为模拟投委会研究决策备忘录、观察池动作和模拟组合观点，不构成投资建议，不接真实交易，不自动下单。

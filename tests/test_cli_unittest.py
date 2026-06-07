@@ -42,6 +42,33 @@ class FundosCliTests(unittest.TestCase):
         self.assertIn("fund_manager", result.stdout)
         self.assertIn("19 agents", result.stdout)
 
+    def test_skills_export_materializes_codex_skill_folders(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+            out_dir = tmp_path / "codex-skills"
+
+            result = run_cli(["skills", "export", "--out", str(out_dir)], tmp_path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("exported_skills=19", result.stdout)
+            self.assertIn("real_trade_allowed=False", result.stdout)
+            self.assertIn("broker_integration=disabled", result.stdout)
+            manifest_path = out_dir / "awesomefundos-skills-manifest.yaml"
+            self.assertTrue(manifest_path.exists())
+            manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["artifact_type"], "codex_skill_export_manifest")
+            self.assertEqual(manifest["skill_count"], 19)
+            self.assertFalse(manifest["real_trade_allowed"])
+            self.assertEqual(manifest["broker_integration"], "disabled")
+            skill_names = {row["skill_name"] for row in manifest["skills"]}
+            self.assertIn("fundos-fund_manager", skill_names)
+            exported_skill = out_dir / "fundos-fund_manager" / "SKILL.md"
+            self.assertTrue(exported_skill.exists())
+            exported_text = exported_skill.read_text(encoding="utf-8")
+            self.assertIn("name: fundos-fund_manager", exported_text)
+            self.assertIn("real_trade_allowed=false", exported_text)
+            self.assertIn("broker_integration=disabled", exported_text)
+
     def test_run_topic_creates_complete_workspace(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)
