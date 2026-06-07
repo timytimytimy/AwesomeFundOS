@@ -107,6 +107,8 @@ class ContextManagementHarnessTests(unittest.TestCase):
         schema = read_yaml(REPO_ROOT / "specs" / "schemas" / "context-pack.schema.yaml")
 
         for required in [
+            "included_claims",
+            "compressed_summaries",
             "context_budget_manifest",
             "context_loss_accounting",
             "thread_memory_summary",
@@ -114,6 +116,8 @@ class ContextManagementHarnessTests(unittest.TestCase):
             "broker_integration",
         ]:
             self.assertIn(required, schema["required"])
+        self.assertIn("included_claims", schema["properties"])
+        self.assertIn("compressed_summaries", schema["properties"])
         manifest_props = schema["properties"]["context_budget_manifest"]["properties"]
         for field in [
             "token_budget",
@@ -133,6 +137,30 @@ class ContextManagementHarnessTests(unittest.TestCase):
             self.assertIn(field, thread_props)
         self.assertEqual(schema["properties"]["real_trade_allowed"]["enum"], [False])
         self.assertEqual(schema["properties"]["broker_integration"]["enum"], ["disabled"])
+
+    def test_context_pack_exposes_included_claims_and_compressed_summaries_as_first_class_artifacts(self):
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        trader = next(item for item in roster["agents"] if item["id"] == "position_trend_trader")
+        pack = dense_evidence_pack("ctx-first-class-claims-run")
+
+        context = make_context_pack("ctx-first-class-claims-run", trader, pack)
+
+        self.assertIn("included_claims", context)
+        self.assertIn("compressed_summaries", context)
+        included_evidence_ids = {item["evidence_id"] for item in context["included_evidence"]}
+        allowed_claim_ids = {claim_id for item in context["included_evidence"] for claim_id in item["allowed_claims"]}
+        self.assertEqual({row["evidence_id"] for row in context["compressed_summaries"]}, included_evidence_ids)
+        self.assertEqual({row["claim_id"] for row in context["included_claims"]}, allowed_claim_ids)
+        for row in context["included_claims"]:
+            self.assertIn(row["evidence_id"], included_evidence_ids)
+            self.assertIn("claim_text", row)
+            self.assertIn("source_tier", row)
+            self.assertIn("claim_type", row)
+            self.assertIn("relevant_to", row)
+        for row in context["compressed_summaries"]:
+            self.assertIn("compressed_summary", row)
+            self.assertIn("source_tier", row)
+            self.assertIn("allowed_claims", row)
 
     def test_context_pack_includes_agent_thread_memory_summary_when_runtime_root_provided(self):
         with tempfile.TemporaryDirectory() as d:

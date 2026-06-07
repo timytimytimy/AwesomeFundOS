@@ -52,6 +52,8 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
     excluded_candidates = sorted(candidates, key=context_candidate_rank)[max_items:]
     excluded = non_candidates + [excluded_row_from_context_item(item, "low_tier_or_lower_priority") for item in excluded_candidates]
     role_contract = make_role_context_contract(agent_id, role, policy)
+    included_claims = make_included_claims(included, evidence_pack)
+    compressed_summaries = make_compressed_summaries(included)
     manifest = make_context_budget_manifest(agent_id, policy, candidates, included, excluded, focus, role_contract)
     loss_accounting = make_context_loss_accounting(included, excluded, role_contract)
     thread_memory_summary = load_thread_memory_summary(runtime_root, agent_id)
@@ -84,6 +86,8 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "context_budget_manifest": manifest,
         "role_context_contract": role_contract,
         "included_evidence": included,
+        "included_claims": included_claims,
+        "compressed_summaries": compressed_summaries,
         "contradiction_table": [
             {
                 "issue": "方法论来源不能替代一手事实",
@@ -105,6 +109,47 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }
+
+
+def make_included_claims(included: list[dict[str, Any]], evidence_pack: dict[str, Any]) -> list[dict[str, Any]]:
+    by_evidence_id = {item.get("id") or item.get("evidence_id"): item for item in evidence_pack.get("evidence_items", [])}
+    rows: list[dict[str, Any]] = []
+    for item in included:
+        evidence_id = item.get("evidence_id")
+        source = by_evidence_id.get(evidence_id, {}) or {}
+        allowed = set(item.get("allowed_claims", []) or [])
+        for claim in source.get("claims", []) or []:
+            claim_id = claim.get("claim_id")
+            if claim_id not in allowed:
+                continue
+            rows.append({
+                "claim_id": claim_id,
+                "evidence_id": evidence_id,
+                "source_id": item.get("source_id", ""),
+                "source_tier": item.get("source_tier", ""),
+                "source_type": item.get("source_type", ""),
+                "claim_text": claim.get("claim_text", ""),
+                "claim_type": claim.get("claim_type", ""),
+                "confidence": claim.get("confidence", source.get("confidence", "")),
+                "relevant_to": claim.get("relevant_to", []),
+            })
+    return rows
+
+
+def make_compressed_summaries(included: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "evidence_id": item.get("evidence_id"),
+            "source_id": item.get("source_id", ""),
+            "source_tier": item.get("source_tier", ""),
+            "source_type": item.get("source_type", ""),
+            "compressed_summary": item.get("compressed_summary", ""),
+            "allowed_claims": item.get("allowed_claims", []),
+            "retained_context_dimensions": item.get("retained_context_dimensions", []),
+            "estimated_tokens": item.get("estimated_tokens", 0),
+        }
+        for item in included
+    ]
 
 
 def load_thread_memory_summary(runtime_root: Path | None, agent_id: str, max_items: int = 5) -> dict[str, Any]:

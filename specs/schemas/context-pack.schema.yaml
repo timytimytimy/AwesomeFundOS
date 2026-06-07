@@ -10,6 +10,8 @@ required:
   - context_budget_manifest
   - role_context_contract
   - included_evidence
+  - included_claims
+  - compressed_summaries
   - contradiction_table
   - missing_evidence
   - excluded_evidence_summary
@@ -151,6 +153,54 @@ properties:
         context_dimension_trace:
           type: array
           items: {type: object}
+        estimated_tokens: {type: integer}
+  included_claims:
+    type: array
+    items:
+      type: object
+      required:
+        - claim_id
+        - evidence_id
+        - source_tier
+        - source_type
+        - claim_text
+        - claim_type
+        - confidence
+        - relevant_to
+      properties:
+        claim_id: {type: string}
+        evidence_id: {type: string}
+        source_id: {type: string}
+        source_tier: {type: string}
+        source_type: {type: string}
+        claim_text: {type: string}
+        claim_type: {type: string}
+        confidence: {type: string}
+        relevant_to:
+          type: array
+          items: {type: string}
+  compressed_summaries:
+    type: array
+    items:
+      type: object
+      required:
+        - evidence_id
+        - source_tier
+        - source_type
+        - compressed_summary
+        - allowed_claims
+      properties:
+        evidence_id: {type: string}
+        source_id: {type: string}
+        source_tier: {type: string}
+        source_type: {type: string}
+        compressed_summary: {type: string}
+        allowed_claims:
+          type: array
+          items: {type: string}
+        retained_context_dimensions:
+          type: array
+          items: {type: string}
         estimated_tokens: {type: integer}
   contradiction_table:
     type: array
