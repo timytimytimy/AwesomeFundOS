@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -918,6 +919,10 @@ def module_prd_coverage(root: Path) -> dict[str, Any]:
     }
 
 
+def contains_placeholder_token(command: str) -> bool:
+    return bool(re.search(r"<[^>]+>", command))
+
+
 def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
     matrix_path = root / "specs" / "audits" / "prd-requirement-matrix.yaml"
     schema_path = root / "specs" / "schemas" / "prd-requirement-matrix.schema.yaml"
@@ -945,6 +950,7 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
     missing_evidence_paths: list[dict[str, str]] = []
     criteria_without_evidence: list[str] = []
     criteria_without_verification: list[str] = []
+    placeholder_verification_commands: list[dict[str, str]] = []
     criteria_not_covered: list[str] = []
     module_counts: dict[str, int] = {}
     safety_modules: set[str] = set()
@@ -971,6 +977,9 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
                 criteria_without_evidence.append(requirement_id)
             if not verification_commands:
                 criteria_without_verification.append(requirement_id)
+            for command in verification_commands:
+                if contains_placeholder_token(str(command)):
+                    placeholder_verification_commands.append({"requirement_id": requirement_id, "command": str(command)})
             if criterion.get("safety_boundary_relevant"):
                 safety_modules.add(module_id)
             for rel_path in evidence_paths:
@@ -1006,6 +1015,8 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
         blocking_issues.append("prd_requirement_matrix_criteria_without_evidence")
     if criteria_without_verification:
         blocking_issues.append("prd_requirement_matrix_criteria_without_verification")
+    if placeholder_verification_commands:
+        blocking_issues.append("prd_requirement_matrix_placeholder_verification_commands")
     if criteria_not_covered:
         blocking_issues.append("prd_requirement_matrix_uncovered_criteria")
     if missing_evidence_paths:
@@ -1026,6 +1037,7 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
         "covered_criterion_count": covered_count,
         "criteria_without_evidence": criteria_without_evidence,
         "criteria_without_verification": criteria_without_verification,
+        "placeholder_verification_commands": placeholder_verification_commands,
         "criteria_not_covered": criteria_not_covered,
         "missing_evidence_paths": missing_evidence_paths,
         "module_counts": module_counts,
