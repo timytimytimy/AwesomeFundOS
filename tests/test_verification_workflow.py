@@ -16,6 +16,7 @@ class VerificationWorkflowTests(unittest.TestCase):
         text = script.read_text(encoding="utf-8")
 
         self.assertIn("set -euo pipefail", text)
+        self.assertIn("python3 -m pip install -e .", text)
         self.assertIn("python3 -m unittest discover -s tests -q", text)
         self.assertIn("python3 -m fundos.cli system audit --strict", text)
         self.assertIn("git diff --check", text)

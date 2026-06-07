@@ -16,6 +16,13 @@ This file is the current Codex implementation handoff plan for V1. It replaces t
 
 The local CLI is implemented under `fundos/` and supports these workflows:
 
+Install the editable local console command first when desired:
+
+```bash
+python3 -m pip install -e .
+fundos --help
+```
+
 ```bash
 python3 -m fundos.cli init
 python3 -m fundos.cli run --topic "机器人产业链投资机会"

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "awesomefundos"
+version = "0.1.0"
+description = "Local-first Codex multi-agent discretionary investment organization OS"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [
+  { name = "AwesomeFundOS" }
+]
+dependencies = [
+  "PyYAML>=6.0"
+]
+
+[project.scripts]
+fundos = "fundos.cli:main"
+
+[tool.setuptools]
+packages = ["fundos"]
+
+[tool.setuptools.package-data]
+fundos = []

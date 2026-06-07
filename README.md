@@ -43,6 +43,13 @@ V1 聚焦 A 股主观投资研究场景，用户只输入投资议题、股票�
 
 ## V1 验证
 
+本地安装 CLI：
+
+```bash
+python3 -m pip install -e .
+fundos --help
+```
+
 本地完整质量门：
 
 ```bash

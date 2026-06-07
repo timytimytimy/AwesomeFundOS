@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 echo "[AwesomeFundOS] running unit test suite"
+python3 -m pip install -e . >/dev/null
 python3 -m unittest discover -s tests -q
 
 echo "[AwesomeFundOS] running strict system audit"
