@@ -17,7 +17,7 @@ modules:
         source_section: 验收标准
         requirement_text: 能从默认 Roster 加载 19 个 Agent。
         evidence_paths: [specs/agents/default-roster.yaml, fundos/cli.py, tests/test_system_audit.py, tests/test_agent_assets.py]
-        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_assets.py' -q, python3 -m fundos.cli roster]
+        verification_commands: [python3 -m unittest discover -s tests -p 'test_agent_assets.py' -q, python3 -m fundos.cli roster list]
         coverage_status: covered
         safety_boundary_relevant: false
       - requirement_id: agent-system.zh-02
@@ -112,7 +112,7 @@ modules:
         source_section: 验收标准
         requirement_text: 能加载默认 Agent roster。
         evidence_paths: [fundos/cli.py, specs/agents/default-roster.yaml, tests/test_cli_unittest.py]
-        verification_commands: [python3 -m fundos.cli roster]
+        verification_commands: [python3 -m fundos.cli roster list]
         coverage_status: covered
         safety_boundary_relevant: false
       - requirement_id: codex-runtime.zh-03

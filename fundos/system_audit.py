@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -923,6 +924,42 @@ def contains_placeholder_token(command: str) -> bool:
     return bool(re.search(r"<[^>]+>", command))
 
 
+CLI_COMMANDS_REQUIRING_SUBCOMMAND = {
+    "capabilities",
+    "cases",
+    "failures",
+    "followups",
+    "governance",
+    "memory",
+    "performance",
+    "roster",
+    "skills",
+    "sources",
+    "system",
+    "threads",
+}
+
+
+def invalid_fundos_cli_verification_reason(command: str) -> str | None:
+    try:
+        parts = shlex.split(command)
+    except ValueError as exc:
+        return f"unparseable_command:{exc}"
+    marker = ["-m", "fundos.cli"]
+    for idx in range(len(parts) - 1):
+        if parts[idx : idx + 2] == marker:
+            args = parts[idx + 2 :]
+            if not args:
+                return "missing_cli_command"
+            if args[0] in {"-h", "--help"}:
+                return None
+            command_name = args[0]
+            if command_name in CLI_COMMANDS_REQUIRING_SUBCOMMAND and len(args) < 2:
+                return f"missing_required_subcommand:{command_name}"
+            return None
+    return None
+
+
 def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
     matrix_path = root / "specs" / "audits" / "prd-requirement-matrix.yaml"
     schema_path = root / "specs" / "schemas" / "prd-requirement-matrix.schema.yaml"
@@ -951,6 +988,7 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
     criteria_without_evidence: list[str] = []
     criteria_without_verification: list[str] = []
     placeholder_verification_commands: list[dict[str, str]] = []
+    invalid_verification_commands: list[dict[str, str]] = []
     criteria_not_covered: list[str] = []
     module_counts: dict[str, int] = {}
     safety_modules: set[str] = set()
@@ -980,6 +1018,9 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
             for command in verification_commands:
                 if contains_placeholder_token(str(command)):
                     placeholder_verification_commands.append({"requirement_id": requirement_id, "command": str(command)})
+                invalid_reason = invalid_fundos_cli_verification_reason(str(command))
+                if invalid_reason:
+                    invalid_verification_commands.append({"requirement_id": requirement_id, "command": str(command), "reason": invalid_reason})
             if criterion.get("safety_boundary_relevant"):
                 safety_modules.add(module_id)
             for rel_path in evidence_paths:
@@ -1017,6 +1058,8 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
         blocking_issues.append("prd_requirement_matrix_criteria_without_verification")
     if placeholder_verification_commands:
         blocking_issues.append("prd_requirement_matrix_placeholder_verification_commands")
+    if invalid_verification_commands:
+        blocking_issues.append("prd_requirement_matrix_invalid_verification_commands")
     if criteria_not_covered:
         blocking_issues.append("prd_requirement_matrix_uncovered_criteria")
     if missing_evidence_paths:
@@ -1038,6 +1081,7 @@ def prd_requirement_matrix_check(root: Path) -> dict[str, Any]:
         "criteria_without_evidence": criteria_without_evidence,
         "criteria_without_verification": criteria_without_verification,
         "placeholder_verification_commands": placeholder_verification_commands,
+        "invalid_verification_commands": invalid_verification_commands,
         "criteria_not_covered": criteria_not_covered,
         "missing_evidence_paths": missing_evidence_paths,
         "module_counts": module_counts,

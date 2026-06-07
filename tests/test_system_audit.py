@@ -73,6 +73,7 @@ class SystemAuditTests(unittest.TestCase):
         self.assertEqual(matrix_details['missing_modules'], [])
         self.assertEqual(matrix_details['criteria_without_evidence'], [])
         self.assertEqual(matrix_details['criteria_without_verification'], [])
+        self.assertEqual(matrix_details['invalid_verification_commands'], [])
         self.assertEqual(matrix_details['criteria_not_covered'], [])
         self.assertEqual(matrix_details['missing_evidence_paths'], [])
         self.assertEqual(matrix_details['mismatches'], [])
@@ -250,6 +251,73 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(details['placeholder_verification_commands'], [{
                 'requirement_id': 'agent-system.test-01',
                 'command': 'python3 -m fundos.cli system audit --strict --run <run>',
+            }])
+
+    def test_prd_requirement_matrix_check_fails_incomplete_cli_verification_commands(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / 'specs/audits').mkdir(parents=True)
+            (root / 'specs/schemas').mkdir(parents=True)
+            schema_text = (ROOT / 'specs/schemas/prd-requirement-matrix.schema.yaml').read_text(encoding='utf-8')
+            (root / 'specs/schemas/prd-requirement-matrix.schema.yaml').write_text(schema_text, encoding='utf-8')
+            evidence_path = 'specs/schemas/prd-requirement-matrix.schema.yaml'
+            modules = []
+            for module_id in sorted(REQUIRED_MODULE_PRDS):
+                command = 'python3 -m unittest discover -s tests -q'
+                if module_id == 'agent-system':
+                    command = 'python3 -m fundos.cli roster'
+                modules.append({
+                    'module_id': module_id,
+                    'prd_path': f'docs/prd/modules/{module_id}-prd.md',
+                    'requirement_count': 1,
+                    'acceptance_criteria': [{
+                        'requirement_id': f'{module_id}.test-01',
+                        'source_section': 'Acceptance Criteria',
+                        'requirement_text': 'test requirement',
+                        'evidence_paths': [evidence_path],
+                        'verification_commands': [command],
+                        'coverage_status': 'covered',
+                        'safety_boundary_relevant': True,
+                    }],
+                })
+            matrix = {
+                'artifact_type': 'prd_requirement_matrix',
+                'version': '0.1.0',
+                'source_prd_root': 'docs/prd',
+                'coverage_policy': {
+                    'every_acceptance_criterion_has_evidence_paths': True,
+                    'evidence_paths_must_exist': True,
+                    'implementation_evidence_required': True,
+                    'verification_evidence_required': True,
+                    'runtime_evidence_required_for_runtime_claims': True,
+                    'safety_boundary_required_for_every_module': True,
+                },
+                'modules': modules,
+                'coverage_summary': {
+                    'module_count': len(modules),
+                    'requirement_count': len(modules),
+                    'covered_requirement_count': len(modules),
+                    'uncovered_requirement_count': 0,
+                    'modules_with_safety_boundary': len(modules),
+                },
+                'safety_invariants': {
+                    'real_trade_allowed': False,
+                    'broker_integration': 'disabled',
+                    'scope': 'research_watchlist_paper_only',
+                },
+                'real_trade_allowed': False,
+                'broker_integration': 'disabled',
+            }
+            (root / 'specs/audits/prd-requirement-matrix.yaml').write_text(yaml.safe_dump(matrix, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            details = prd_requirement_matrix_check(root)
+
+            self.assertFalse(details['ok'])
+            self.assertIn('prd_requirement_matrix_invalid_verification_commands', details['blocking_issues'])
+            self.assertEqual(details['invalid_verification_commands'], [{
+                'requirement_id': 'agent-system.test-01',
+                'command': 'python3 -m fundos.cli roster',
+                'reason': 'missing_required_subcommand:roster',
             }])
 
     def test_system_audit_cli_outputs_summary_and_writes_reports(self):
