@@ -1,255 +1,285 @@
-# AwesomeFundOS Codex Implementation Plan
+# AwesomeFundOS V1 Implementation & Verification Plan
+
+This file is the current Codex implementation handoff plan for V1. It replaces the earlier scaffold-only plan: the repository now contains a local-first runtime, schemas, tests, audit gates, PRDs, agent cards, skills, memory/evolution flows, and harness artifacts.
 
-## 1. 实现原则
+## 1. Non-negotiable invariants
 
-- 先实现 Local-first CLI 和文件协议，不先做 Web App。
-- 先实现可运行的最小闭环，再扩展真实数据源和更复杂 Harness。
-- 所有 artifacts 使用 Markdown + YAML/JSON，便于 Codex 读取和修改。
-- 所有重要结论必须可追溯到 Evidence ID / Claim ID。
-- V1 输出模拟投委会研究备忘录，不输出真实投资建议。
+- `real_trade_allowed=false` everywhere.
+- `broker_integration=disabled` everywhere.
+- Outputs are research, watchlist, and Paper Portfolio only.
+- No personalized investment advice.
+- No automatic order placement.
+- KOLs, famous traders, books, courses, Serenity, 里海, and historical cases are methodology or hypothesis sources only, never direct buy/sell evidence.
+- Durable learning must pass quarantine, Evaluation, EvolutionGate, regression, and approval controls before capability application.
 
-## 2. Phase 0: Repo Scaffold
+## 2. Current V1 runtime surface
 
-目标：创建运行时目录和基础配置。
+The local CLI is implemented under `fundos/` and supports these workflows:
 
-任务：
+```bash
+python3 -m fundos.cli init
+python3 -m fundos.cli run --topic "机器人产业链投资机会"
+python3 -m fundos.cli run --topic "机器人产业链投资机会" --research-fixture examples/fixtures/robotics-public-research.json
+python3 -m fundos.cli eval --run runs/<run_id>
+python3 -m fundos.cli evolve --run runs/<run_id>
+python3 -m fundos.cli inspect --run runs/<run_id>
+python3 -m fundos.cli report --run runs/<run_id>
+python3 -m fundos.cli roster list
+python3 -m fundos.cli memory show --agent fund_manager
+python3 -m fundos.cli capabilities list
+python3 -m fundos.cli capabilities apply <candidate_id> --approver <human>
+python3 -m fundos.cli performance show --agent tech_growth_analyst
+python3 -m fundos.cli failures summary
+python3 -m fundos.cli sources ingest --run runs/<run_id> --fixture <source-candidates.yaml>
+python3 -m fundos.cli cases list
+python3 -m fundos.cli followups list --run runs/<run_id>
+python3 -m fundos.cli threads show --agent fund_manager
+python3 -m fundos.cli governance summary --run runs/<run_id>
+python3 -m fundos.cli system audit --strict
+```
 
-1. 创建目录：
-   - `agents/`
-   - `configs/`
-   - `harness/`
-   - `memory/`
-   - `runs/`
-   - `skills/`
-   - `tools/`
-2. 将 `specs/agents/default-roster.yaml` 转为可加载配置。
-3. 增加基础 README 和开发说明。
-4. 选择实现语言。建议：Python 优先，便于 CLI、YAML、文件处理和后续工具集成。
+## 3. Implemented module checklist
 
-验收：
+### 3.1 Repo scaffold and runtime directories
 
-- `fundos init` 可创建目录且幂等。
-- 能读取默认 roster 并打印 Agent 列表。
+Evidence:
 
-## 3. Phase 1: Core CLI and Run Workspace
+- `fundos/cli.py`
+- `specs/agents/default-roster.yaml`
+- `tests/test_cli_unittest.py`
 
-目标：实现 `fundos run` 的文件级骨架。
+Implemented behavior:
 
-任务：
+- `init` is idempotent.
+- Runtime directories are created without overwriting user files.
+- Default roster is readable and exposes 19 source-controlled agents.
 
-1. 实现 CLI 入口。
-2. 支持 `--topic`、`--stock`、`--question`。
-3. 创建 run_id 和 run workspace。
-4. 写入 `run.yaml` 和 `task-brief.md`。
-5. 实现 Agent Staffing 的规则引擎第一版。
-6. 写入 `selected-agents.yaml`。
+### 3.2 Core run workspace
 
-验收：
+Evidence:
 
-- 命令能创建完整 run 目录。
-- 不联网也能生成任务简报和选人结果。
+- `fundos/cli.py`
+- `fundos/os_manifest.py`
+- `specs/schemas/run.schema.yaml`
+- `tests/test_cli_unittest.py`
+- `tests/test_system_audit.py`
 
-## 4. Phase 2: EvidencePack Stub + Public Retrieval Interface
+Implemented behavior:
 
-目标：先实现 EvidencePack 数据结构和工具接口，再逐步接真实数据源。
+- `run` accepts topic, stock, and question inputs.
+- Each run writes `run.yaml`, task brief, selected agents, EvidencePack, ContextPacks, agent outputs, committee artifacts, portfolio artifacts, harness reports, memory/thread artifacts, evolution artifacts, and operating-system manifest.
+- `run.yaml` writes concrete model records using local file protocol governance records, not placeholder model or tool versions.
 
-任务：
+### 3.3 Evidence and public research
 
-1. 实现 EvidencePack schema validator。
-2. 实现 ToolResult -> EvidenceItem 转换器。
-3. 实现占位工具：
-   - web_search
-   - news_search
-   - announcement_search
-   - financial_report_parser
-   - market_data_query
-   - case_library_reader
-4. 为每个 EvidenceItem 打 source_tier。
-5. 抽取 Claim。
-6. 生成 Public Research Cache 和 run-scoped Manifest。
+Evidence:
 
-验收：
+- `fundos/evidence.py`
+- `fundos/public_research.py`
+- `fundos/research_cache.py`
+- `fundos/tool_runtime.py`
+- `specs/schemas/evidence-pack.schema.yaml`
+- `specs/schemas/public-research-manifest.schema.yaml`
+- `tests/test_public_research.py`
+- `tests/test_research_cache.py`
+- `tests/test_tool_runtime.py`
 
-- 给定 mock tool results 能生成合法 EvidencePack。
-- EvidencePack 中每个 claim 有 id、type、confidence。
-- `evidence/public-research-manifest.yaml` 能记录 adapter、cache status、source hash 和来源等级分布。
+Implemented behavior:
 
-## 5. Phase 3: Context Manager
+- Tool/public-research results become source-tiered EvidenceItems with Claim IDs.
+- Runs write `evidence/evidence-pack.yaml` and `evidence/public-research-manifest.yaml`.
+- Strict audit checks manifest result counts, source hashes, and research plan coverage.
+- If no public result is supplied or retrieved, the system records explicit evidence gaps instead of inventing primary facts.
 
-目标：实现 EvidencePack -> Agent-specific ContextPack。
+### 3.4 Context manager
 
-任务：
+Evidence:
 
-1. 定义 ContextPolicy 配置。
-2. 实现按 source_type / source_tier / relevant_to / task_stage 过滤。
-3. 实现压缩摘要接口。
-4. 生成每个 selected agent 的 ContextPack。
-5. 保留 contradiction_table 和 missing_evidence。
+- `fundos/context.py`
+- `specs/agents/context-policies/*.yaml`
+- `specs/schemas/context-pack.schema.yaml`
+- `tests/test_context_policies.py`
+- `tests/test_context_management_harness.py`
 
-验收：
+Implemented behavior:
 
-- 每个 selected agent 都有 ContextPack。
-- 行业、公司、交易、风控、反方获得不同上下文。
-- ContextPack 能回链 Evidence ID / Claim ID。
-- `harness/agent-harness.yaml` 能评估 ContextPack 的压缩、追溯、矛盾保留和噪声控制。
+- Every selected agent receives a role-specific ContextPack.
+- ContextPack now exposes `included_evidence`, first-class `included_claims`, first-class `compressed_summaries`, contradiction table, missing evidence, excluded evidence summary, Thread summary, output schema, budget manifest, role context contract, and loss accounting.
+- Context compression preserves Evidence IDs, Claim IDs, source tiers, required vertical context dimensions, thread summary boundaries, and no-real-trade safety fields.
 
-## 6. Phase 4: Agent Output Protocol
+### 3.5 Agent cards, skills, and structured outputs
 
-目标：先用文件协议定义 Agent 输出，不急于接复杂并发 Agent Runtime。
+Evidence:
 
-任务：
+- `specs/agents/agent-cards/*/agent.md`
+- `specs/skills/*/SKILL.md`
+- `fundos/agent_outputs.py`
+- `fundos/agent_harness.py`
+- `tests/test_agent_assets.py`
+- `tests/test_agent_runtime_integration.py`
+- `tests/test_agent_harness.py`
 
-1. 为每类 Agent 定义输出模板。
-2. 实现 prompt/render 层，将 Profile + ContextPack + OutputSchema 组合成任务指令。
-3. 支持 Codex SDK 或本地 LLM 调用占位接口。
-4. 保存 `agent_work/{agent_id}.md` 和 `.structured.yaml`。
-5. 检查输出是否引用证据。
+Implemented behavior:
 
-验收：
+- V1 contains 19 source-controlled independent Agent Cards and 19 matching Skills.
+- Each agent has Profile, ContextPolicy, ToolPolicy, MemoryPolicy, ModelPolicy, Thread namespace, Harness hooks, and Evolution path.
+- Agent output binds context pack, Skill contract, ToolPolicy, MemoryPolicy, model policy, Evidence IDs, Claim IDs, role checklist, guardrails, reasoning layers, and thread-memory influence.
 
-- 每个 selected agent 可生成结构化输出文件。
-- 输出违反角色边界时能被标记。
-- Agent-level Harness 能检查 Agent Card、Skill Contract、Role Checklist、Evidence Rules 和 structured output 的一致性。
+### 3.6 Debate, risk review, committee memo
 
-## 7. Phase 5: Debate, Risk Review, Final Memo
+Evidence:
 
-目标：完成模拟投委会主流程。
+- `fundos/committee.py`
+- `fundos/decision.py`
+- `specs/protocols/debate-protocol.yaml`
+- `specs/protocols/investment-committee-protocol.yaml`
+- `specs/schemas/decision-memo.schema.yaml`
+- `tests/test_committee_protocol.py`
 
-任务：
+Implemented behavior:
 
-1. BearDebater 读取研究输出并生成 issue table。
-2. RiskManager 生成 risk review。
-3. FundManager 读取所有输出并生成 final decision memo。
-4. 使用 `decision-memo.schema.yaml` 校验结构化备忘录。
-5. 输出 disclaimer。
+- Bear case, risk review, disagreement tables, and final decision memo are generated.
+- Decisions remain watchlist / Paper Portfolio oriented and include risk, trigger, invalidation, evidence, and disclaimer fields.
 
-验收：
+### 3.7 Harness and evaluation
 
-- 每次 run 都生成 final decision memo。
-- Memo 包含决策标签、触发条件、kill criteria、证据引用。
+Evidence:
 
-## 8. Phase 6: Harness V1
+- `fundos/harness.py`
+- `fundos/agent_harness.py`
+- `fundos/tool_harness.py`
+- `fundos/claim_graph.py`
+- `fundos/task_dag.py`
+- `specs/schemas/evaluation-report.schema.yaml`
+- `tests/test_agent_harness.py`
+- `tests/test_tool_harness.py`
+- `tests/test_claim_graph.py`
+- `tests/test_task_dag.py`
 
-目标：实现 Runtime Quality + Context Quality + Evolution Gate 的基础评分。
+Implemented behavior:
 
-任务：
+- Runtime evaluation scores evidence, role, context, skill, tool/source boundary, portfolio, outcome, claim graph, task DAG, case replay, performance, and governance signals when relevant artifacts exist.
+- Blocking issues cover missing evidence, missing risk review, missing bear case, role drift, unsafe broker leakage, real trade language, unclosed evidence gaps, and low-quality upgrades.
+- Agent Harness scores context compression, role-specific context management, thread summary quality, memory lesson traceability, reasoning layer separation, policy contracts, skill invocation, tool policy, memory policy, and role consistency.
 
-1. 实现 EvaluationReport schema validator。
-2. 实现规则型检查：
-   - source coverage
-   - tool / source adapter coverage
-   - missing evidence
-   - role consistency keywords / schema checks
-   - forbidden investment advice language
-   - context traceability
-3. 实现 LLM-as-judge 接口，用于推理质量、协作质量和决策质量评分。
-4. 输出 EvaluationReport。
-5. 实现 blocking issue 机制。
+### 3.8 Learning, source ingestion, and EvolutionGate
 
-验收：
+Evidence:
 
-- `fundos eval --run` 可生成评分报告。
-- `harness/tool-harness.yaml` 能评估 public research、一手来源覆盖、KOL/社媒边界和高置信阻断。
-- 缺来源、缺反方、缺风控、真实交易指令等问题会被阻断。
+- `fundos/source_ingestion.py`
+- `fundos/learning.py`
+- `fundos/evolution.py`
+- `fundos/memory.py`
+- `specs/learning/*`
+- `specs/schemas/source-candidate.schema.yaml`
+- `specs/schemas/pattern-candidate.schema.yaml`
+- `tests/test_source_ingestion.py`
+- `tests/test_evolution_gate.py`
+- `tests/test_memory_writeback.py`
 
-## 9. Phase 7: Reflection and EvolutionGate
+Implemented behavior:
 
-V1 增加 Learning Source Registry：
+- Famous investors, KOLs, Serenity/里海, books, courses, and historical cases enter through controlled source candidates and quarantine artifacts.
+- Source candidates, quarantine rows, and pattern candidates are schema-validated by strict audit.
+- EvolutionGate accepts, rejects, or quarantines candidates and prevents unsafe source-tier promotion, direct trading signals, untestable lessons, and protected mutations.
+- Accepted memory is written only through controlled ledgers with reversible metadata and safety boundaries.
 
-- `fundos init` 物化 `memory/organization/learning-source-registry.yaml`。
-- `fundos run` 物化 `learning/source-registry.yaml`。
-- EvolutionGate 读取 registry 中的 `required_gates_for_evolution`，引用 KOL / 大V / 书籍 / 课程 / 案例的候选如果缺少必要 gate，必须 quarantine。
+### 3.9 Capability regression and human apply
 
-目标：实现 Agent 自我复盘和受控进化。
+Evidence:
 
-任务：
+- `fundos/capabilities.py`
+- `fundos/capability_regression.py`
+- `fundos/capability_apply.py`
+- `specs/schemas/capability-*.schema.yaml`
+- `tests/test_capability_regression.py`
+- `tests/test_capability_apply.py`
+- `tests/test_capability_versioning.py`
 
-1. 为每个 Agent 生成 reflection。
-2. 提取 evolution candidates。
-3. 实现 EvolutionGate 规则：
-   - source_quality
-   - testability
-   - overfitting_risk
-   - role_drift_risk
-   - risk_regression_risk
-4. 将 accepted / rejected / quarantined 结果写入 evolution 目录。
-5. accepted 后只写入非核心能力文件，不改 core profile。
+Implemented behavior:
 
-验收：
+- Accepted principle, skill, checklist, workflow, and tool-policy candidates enter capability registries.
+- Capability regression can block unsafe or unverified candidates.
+- Human apply requires explicit `--approver` and writes only controlled runtime artifacts or managed blocks.
+- Core source-controlled Agent Cards, Profiles, risk limits, and tool permissions are not silently mutated.
 
-- `fundos evolve --run` 能处理 candidates。
-- 低质量或不可测试候选会被拒绝。
-- 被接受候选有版本记录。
+### 3.10 Watchlist, Paper Portfolio, and outcomes
 
-## 10. Phase 8: Watchlist / Paper Portfolio Review
+Evidence:
 
-目标：追踪后验，不做真实交易。
+- `fundos/portfolio.py`
+- `fundos/outcomes.py`
+- `specs/schemas/watchlist.schema.yaml`
+- `specs/schemas/paper-portfolio.schema.yaml`
+- `specs/schemas/outcome-tracking.schema.yaml`
+- `tests/test_portfolio.py`
+- `tests/test_outcome_tracking.py`
 
-任务：
+Implemented behavior:
 
-1. 定义 WatchlistItem schema。
-2. 定义 PaperPortfolioAction schema。
-3. 从 DecisionMemo 写入观察池动作。
-4. 支持后续 review_date。
-5. 生成 Portfolio Review、Attribution JSONL 和 Review Learning Candidates。
-6. outcome tracking 支持离线 market replay fixture，V1 记录 return、drawdown、MFE/MAE、missed opportunity / risk review，不接真实交易。
+- Decision memos can produce watchlist and Paper Portfolio artifacts.
+- Portfolio review and outcome tracking remain offline/replay based and paper-only.
+- Harness exposes portfolio and outcome quality without implying real returns, real orders, or personalized advice.
 
-验收：
+### 3.11 Failure pattern library
 
-- simulated_long_candidate / watchlist 等结果能写入 stub。
-- `portfolio/portfolio-review.yaml`、`portfolio/attribution.jsonl`、`portfolio/review-candidates.jsonl` 能随 run / eval 生成。
-- Harness 输出 `portfolio_review_quality`。
-- Harness 输出 `outcome_tracking_quality`。
-- 不产生真实下单指令。
+Evidence:
 
-## 11. Phase 9: Capability Regression / Human Apply
+- `fundos/failure_patterns.py`
+- `specs/schemas/failure-pattern-report.schema.yaml`
+- `tests/test_failure_patterns.py`
 
-目标：让 Agent 能力可以自我学习并升级，但升级前必须通过回归测试和人工审批。
+Implemented behavior:
 
-任务：
+- Reflections, Harness blocking issues, Agent Harness findings, and outcome tracking can generate run-level and organization-level failure patterns.
+- Failure patterns feed learning candidates as negative examples while preserving paper-only and broker-disabled boundaries.
 
-1. EvolutionGate 接受的 principle / skill / checklist / workflow / tool_policy 候选进入 capability registry。
-2. 生成 `harness/capability-regression.yaml`，检查 required_tests 对应的 historical case replay、agent harness、evidence quality 等产物。
-3. 未通过回归的候选标记为 `blocked_regression`，并追加 follow-up tests。
-4. 通过回归的候选保持 `pending_human_apply`。
-5. `fundos capabilities apply <candidate_id> --approver <human>` 只允许人工审批后受控写入 runtime managed block 或 `applied-capabilities.yaml`。
+### 3.12 System governance and audit
 
-验收：
+Evidence:
 
-- `fundos evolve --run` 生成 capability registry 和 `harness/capability-regression.yaml`。
-- 缺少 required_tests artifact 的候选不能被 apply。
-- 缺少 `--approver` 时 apply 返回非 0。
-- 不改写 source-controlled `agent.md` / `SKILL.md`，不改写核心 profile / risk limit / tool permission。
-- 不开启真实交易或券商集成。
+- `fundos/system_audit.py`
+- `docs/prd/overall-prd.md`
+- `docs/prd/modules/*.md`
+- `specs/audits/prd-requirement-matrix.yaml`
+- `specs/schemas/prd-requirement-matrix.schema.yaml`
+- `tests/test_system_audit.py`
 
-## 12. Phase 10: Failure Pattern Library
+Implemented behavior:
 
-目标：让组织不仅学习成功经验，也系统沉淀失败模式、证据缺口、工具错误、偏见和后验错失。
+- `system audit --strict` validates PRD/module coverage, runtime artifacts, schemas, source ingestion quarantine artifacts, public research manifest integrity, OS manifest, safety invariants, learning/evolution/capability artifacts, and no-placeholder runtime records.
+- The PRD acceptance matrix maps all 104 acceptance criteria across 10 module PRDs to concrete evidence paths and verification commands.
 
-任务：
+## 4. Required verification before claiming V1 readiness
 
-1. 从 `reflections/*.reflection.yaml` 抽取 missed_evidence、reasoning_errors、tool_usage_errors、bias_detected。
-2. 从 `evaluations/evaluation-report.yaml` 抽取 blocking_issues。
-3. 从 `portfolio/outcome-tracking.yaml` 抽取 missed_opportunity_review 和 risk_control_review。
-4. 生成 run 级 `learning/failure-patterns.yaml`。
-5. 追加组织级 `memory/organization/failure-pattern-library.jsonl`，按 pattern_id 幂等去重。
-6. 提供 `fundos failures summary` 汇总 pattern_count、category_counts、severity_counts。
-7. 在报告中展示 failure_patterns，并保持 `real_trade_allowed=false`、`broker_integration=disabled`。
+Run these commands from the implementation worktree:
 
-验收：
+```bash
+python3 -m unittest discover -s tests -q
+python3 -m fundos.cli system audit --strict
+git diff --check
+```
 
-- `fundos run` 和 `fundos evolve --run` 均能生成 `learning/failure-patterns.yaml`。
-- 组织级 failure pattern library 可重复追加且不重复写入相同 pattern_id。
-- `fundos failures summary` 能读取组织级 library。
-- Failure Pattern Library 不产生真实买卖信号，不改写核心 Profile / Risk Limit / Tool Permission。
+Expected safety fields in audit output:
 
-## 13. 后续 V2
+```text
+overall_coverage_score=100.0
+failed_requirements=0
+real_trade_allowed=False
+broker_integration=disabled
+```
 
-- 接入稳定公开数据源；
-- Codex App Server dashboard；
-- 更完整的历史案例库；
-- 多市场 Market Adapter；
-- 更细粒度 Skill version regression benchmark；
-- 更完整的 Agent promotion / demotion 审批、席位竞争和长期绩效归因；
-- 多 FundManager 风格竞争；
-- 组合级 Paper Portfolio performance attribution。
+## 5. Known V1 limits
+
+- V1 is local-first and file-protocol based.
+- Public retrieval is fixture/cache/tool-adapter oriented; stable production-grade live data providers remain a V2 integration task.
+- Outputs are not financial advice and cannot be used for real trading automation.
+- App Server dashboard, full web UI, and multi-market production adapters are outside V1.
+
+## 6. Suggested next hardening tasks
+
+1. Add more fixture-backed public research examples across industries and market regimes.
+2. Expand historical case replay coverage for fraud, policy cycles, failed breakouts, and KOL thesis failures.
+3. Add benchmark fixtures that compare capability versions before/after human apply.
+4. Add richer context stress tests for very dense EvidencePacks and cross-agent handoffs.
+5. Add GitHub CI using the verification commands above.

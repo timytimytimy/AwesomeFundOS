@@ -11,7 +11,7 @@ PYTHONPATH=<repo> python3 -m fundos.cli init
 PYTHONPATH=<repo> python3 -m fundos.cli run --topic "机器人产业链投资机会"
 ```
 
-The sample is intentionally a V1 stub result: it demonstrates Agent staffing, EvidencePack, role-specific ContextPacks, agent work artifacts, a simulated decision memo, evaluation report, reflections, and evolution candidates. It is not investment advice and does not use live market data yet.
+The sample is a legacy V1 demonstration artifact. Current runtime validation should be performed by generating a fresh run with `python3 -m fundos.cli run ...` and then running `python3 -m fundos.cli system audit --strict`. It is not investment advice and does not imply live trading or broker integration.
 
 ## robotics-fixture-run
 
