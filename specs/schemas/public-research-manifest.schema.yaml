@@ -1,0 +1,87 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - query
+  - adapter_name
+  - cache_root
+  - result_count
+  - cache_status_counts
+  - source_tier_counts
+  - source_type_counts
+  - research_plan_coverage
+  - research_plan
+  - results
+  - boundary_controls
+properties:
+  version: {type: string}
+  artifact_type: {enum: [public_research_manifest]}
+  query: {type: string}
+  adapter_name: {type: string}
+  cache_root: {type: string}
+  result_count: {type: integer}
+  cache_status_counts: {type: object}
+  source_tier_counts: {type: object}
+  source_type_counts: {type: object}
+  research_plan_coverage:
+    type: object
+    required:
+      - planned_categories
+      - categories_covered
+      - missing_categories
+      - category_counts
+      - plan_step_count
+    properties:
+      planned_categories: {type: integer}
+      categories_covered: {type: integer}
+      missing_categories:
+        type: array
+        items: {type: string}
+      category_counts: {type: object}
+      plan_step_count: {type: integer}
+  research_plan:
+    type: array
+    items:
+      type: object
+      required: [plan_id, category, query, required_source_tier, purpose]
+      properties:
+        plan_id: {type: string}
+        category:
+          enum: [announcement, policy, news, market_data, social_signal, case_library]
+        query: {type: string}
+        required_source_tier:
+          enum: [tier_1_primary_fact, tier_2_canonical_framework, tier_3_verified_public_practitioner, tier_4_expert_opinion, tier_5_social_signal, tier_6_unverified]
+        purpose: {type: string}
+  results:
+    type: array
+    items:
+      type: object
+      required:
+        - retrieval_id
+        - title
+        - url
+        - source_type
+        - source_tier
+        - source_hash
+        - cache_status
+        - research_plan_id
+        - research_category
+        - research_query
+      properties:
+        retrieval_id: {type: string}
+        title: {type: string}
+        url: {type: string}
+        source_type:
+          enum: [announcement, financial_report, news, market_data, policy, web, case, memory, practitioner_source, book_summary, course_summary, learning_pattern, runtime, evidence, writing, portfolio, risk, harness]
+        source_tier:
+          enum: [tier_1_primary_fact, tier_2_canonical_framework, tier_3_verified_public_practitioner, tier_4_expert_opinion, tier_5_social_signal, tier_6_unverified]
+        source_hash: {type: string}
+        cache_status: {type: string}
+        research_plan_id: {type: string}
+        research_category:
+          enum: [announcement, policy, news, market_data, social_signal, case_library]
+        research_query: {type: string}
+  boundary_controls:
+    type: array
+    items: {type: string}

@@ -243,6 +243,7 @@ class SystemAuditTests(unittest.TestCase):
             self.assertEqual(core_schema_details['schema_errors_by_artifact'], {})
             self.assertEqual(core_schema_details['missing_artifacts'], [])
             self.assertGreaterEqual(core_schema_details['evidence_items'], 1)
+            self.assertGreaterEqual(core_schema_details['public_research_manifest_results'], 1)
             self.assertGreaterEqual(core_schema_details['claim_count'], 1)
             self.assertGreaterEqual(core_schema_details['evidence_references'], 1)
             self.assertFalse(core_schema_details['real_trade_allowed'])
@@ -1122,6 +1123,35 @@ class SystemAuditTests(unittest.TestCase):
             self.assertIn('label', memo_errors)
             mismatches = '\n'.join(details['mismatches'])
             self.assertIn('final_decision_memo.real_trade_allowed', mismatches)
+
+    def test_system_audit_strict_mode_fails_public_research_manifest_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            write_fixture(fixture)
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            manifest_yaml = run_path / 'evidence' / 'public-research-manifest.yaml'
+            manifest = yaml.safe_load(manifest_yaml.read_text(encoding='utf-8'))
+            manifest['result_count'] = 999
+            manifest['results'][0].pop('source_hash', None)
+            manifest['research_plan_coverage'].pop('planned_categories', None)
+            manifest_yaml.write_text(yaml.safe_dump(manifest, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.core_run_evidence_decision_artifacts_match_schemas']['status'], 'fail')
+            details = by_id['runtime.core_run_evidence_decision_artifacts_match_schemas']['details']
+            manifest_errors = '\n'.join(details['schema_errors_by_artifact']['public-research-manifest.yaml'])
+            self.assertIn('source_hash', manifest_errors)
+            self.assertIn('planned_categories', manifest_errors)
+            mismatches = '\n'.join(details['mismatches'])
+            self.assertIn('public_research_manifest.result_count', mismatches)
 
     def test_system_audit_strict_mode_fails_operating_system_manifest_schema_violation(self):
         with tempfile.TemporaryDirectory() as d:

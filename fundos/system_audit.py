@@ -66,6 +66,7 @@ def run_system_audit(repo_root: Path, out_dir: Path | None = None, run_path: Pat
 
 def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str, Any]]:
     evidence = load_yaml(run_path / "evidence" / "evidence-pack.yaml", {})
+    public_research_manifest = load_yaml(run_path / "evidence" / "public-research-manifest.yaml", {})
     evaluation = load_yaml(run_path / "evaluations" / "evaluation-report.yaml", {})
     tool_harness = load_yaml(run_path / "harness" / "tool-harness.yaml", {})
     agent_tool_use = load_yaml(run_path / "harness" / "agent-tool-use.yaml", {})
@@ -143,7 +144,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     model_record_check = runtime_model_records_check(run_doc)
     manifest_schema_check = validate_operating_system_manifest_schema(repo_root, os_manifest)
     evaluation_schema_check = validate_evaluation_report_schema(repo_root, evaluation)
-    core_artifact_schema_check = runtime_core_artifact_schema_check(repo_root, run_path, run_doc, evidence, decision_memo)
+    core_artifact_schema_check = runtime_core_artifact_schema_check(repo_root, run_path, run_doc, evidence, decision_memo, public_research_manifest)
     manifest_summary_check = operating_system_manifest_runtime_summary_check(os_manifest, agent_performance, agent_governance, evaluation)
     manifest_source_check = operating_system_manifest_source_provenance_check(os_manifest, source_registry, source_ingestion, evidence)
     manifest_evolution_learning_check = operating_system_manifest_evolution_learning_check(
@@ -245,6 +246,7 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             [
                 repo_root / "specs/schemas/run.schema.yaml",
                 repo_root / "specs/schemas/evidence-pack.schema.yaml",
+                repo_root / "specs/schemas/public-research-manifest.schema.yaml",
                 repo_root / "specs/schemas/decision-memo.schema.yaml",
                 run_path / "run.yaml",
                 run_path / "evidence/evidence-pack.yaml",
@@ -1740,7 +1742,7 @@ def runtime_agent_maturity_contract_check(run_path: Path, agent_ids: list[str]) 
     }
 
 
-def runtime_core_artifact_schema_check(repo_root: Path, run_path: Path, run_doc: Any, evidence: Any, decision_memo: Any) -> dict[str, Any]:
+def runtime_core_artifact_schema_check(repo_root: Path, run_path: Path, run_doc: Any, evidence: Any, decision_memo: Any, public_research_manifest: Any | None = None) -> dict[str, Any]:
     artifacts = {
         "run.yaml": {
             "schema": repo_root / "specs" / "schemas" / "run.schema.yaml",
@@ -1751,6 +1753,11 @@ def runtime_core_artifact_schema_check(repo_root: Path, run_path: Path, run_doc:
             "schema": repo_root / "specs" / "schemas" / "evidence-pack.schema.yaml",
             "path": run_path / "evidence" / "evidence-pack.yaml",
             "value": evidence,
+        },
+        "public-research-manifest.yaml": {
+            "schema": repo_root / "specs" / "schemas" / "public-research-manifest.schema.yaml",
+            "path": run_path / "evidence" / "public-research-manifest.yaml",
+            "value": public_research_manifest if public_research_manifest is not None else load_yaml(run_path / "evidence" / "public-research-manifest.yaml", {}),
         },
         "final-decision-memo.yaml": {
             "schema": repo_root / "specs" / "schemas" / "decision-memo.schema.yaml",
@@ -1778,6 +1785,7 @@ def runtime_core_artifact_schema_check(repo_root: Path, run_path: Path, run_doc:
     selected_agents = run_doc.get("selected_agents", []) if isinstance(run_doc, dict) and isinstance(run_doc.get("selected_agents", []), list) else []
     model_records = run_doc.get("model_records", []) if isinstance(run_doc, dict) and isinstance(run_doc.get("model_records", []), list) else []
     evidence_items = evidence.get("evidence_items", []) if isinstance(evidence, dict) and isinstance(evidence.get("evidence_items", []), list) else []
+    manifest = public_research_manifest if isinstance(public_research_manifest, dict) else {}
     claim_ids: set[str] = set()
     evidence_ids: set[str] = set()
     for item_idx, item in enumerate(evidence_items):
@@ -1802,6 +1810,19 @@ def runtime_core_artifact_schema_check(repo_root: Path, run_path: Path, run_doc:
     validation = evidence.get("schema_validation", {}) if isinstance(evidence, dict) and isinstance(evidence.get("schema_validation", {}), dict) else {}
     if validation.get("valid") is not True:
         mismatches.append(f"evidence_pack.schema_validation.valid: expected True, got {validation.get('valid')!r}")
+    if manifest:
+        manifest_results = manifest.get("results", []) if isinstance(manifest.get("results", []), list) else []
+        if manifest.get("result_count") != len(manifest_results):
+            mismatches.append(f"public_research_manifest.result_count: expected {len(manifest_results)}, got {manifest.get('result_count')!r}")
+        manifest_public_hashes = {str(row.get("source_hash")) for row in manifest_results if row.get("source_hash")}
+        evidence_public_hashes = {str(item.get("source_hash")) for item in evidence_items if isinstance(item, dict) and item.get("source_id") == "public_research" and item.get("source_hash")}
+        if manifest_public_hashes != evidence_public_hashes:
+            mismatches.append(f"public_research_manifest.source_hashes mismatch EvidencePack public hashes: manifest={sorted(manifest_public_hashes)!r}, evidence={sorted(evidence_public_hashes)!r}")
+        coverage = manifest.get("research_plan_coverage", {}) if isinstance(manifest.get("research_plan_coverage", {}), dict) else {}
+        plan = manifest.get("research_plan", []) if isinstance(manifest.get("research_plan", []), list) else []
+        categories = {str(step.get("category")) for step in plan if isinstance(step, dict) and step.get("category")}
+        if coverage.get("planned_categories") != len(categories):
+            mismatches.append(f"public_research_manifest.research_plan_coverage.planned_categories: expected {len(categories)}, got {coverage.get('planned_categories')!r}")
 
     memo_refs = decision_memo.get("evidence_references", []) if isinstance(decision_memo, dict) and isinstance(decision_memo.get("evidence_references", []), list) else []
     for idx, ref in enumerate(memo_refs):
@@ -1839,6 +1860,7 @@ def runtime_core_artifact_schema_check(repo_root: Path, run_path: Path, run_doc:
         "evidence_items": len(evidence_items),
         "claim_count": len(claim_ids),
         "evidence_references": len(memo_refs),
+        "public_research_manifest_results": len(manifest.get("results", []) or []) if isinstance(manifest, dict) else 0,
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

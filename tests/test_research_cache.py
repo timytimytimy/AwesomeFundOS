@@ -5,8 +5,10 @@ from pathlib import Path
 
 import yaml
 
-from fundos.public_research import PublicResearchClient
+from fundos.public_research import PublicResearchClient, build_research_plan
 from fundos.research_cache import load_research_manifest, write_run_research_manifest
+from fundos.io import REPO_ROOT
+from fundos.system_audit import validate_runtime_schema
 
 
 class ResearchCacheTests(unittest.TestCase):
@@ -40,11 +42,11 @@ class ResearchCacheTests(unittest.TestCase):
             root = Path(d)
             run_path = root / "runs" / "run-cache"
             results = [
-                {"title": "公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告", "source_type": "announcement", "source_tier": "tier_1_primary_fact", "retrieval_id": "pr_001", "cache_status": "stored"},
-                {"title": "大V", "url": "https://x.com/example/status/1", "snippet": "观点", "source_type": "web", "source_tier": "tier_5_social_signal", "retrieval_id": "pr_002", "cache_status": "stored"},
+                {"title": "公告", "url": "https://www.cninfo.com.cn/new/disclosure/detail", "snippet": "公告", "source_type": "announcement", "source_tier": "tier_1_primary_fact", "retrieval_id": "pr_001", "source_hash": "h001", "cache_status": "stored", "research_plan_id": "rq_001", "research_category": "announcement", "research_query": "机器人产业链 公告"},
+                {"title": "大V", "url": "https://x.com/example/status/1", "snippet": "观点", "source_type": "web", "source_tier": "tier_5_social_signal", "retrieval_id": "pr_002", "source_hash": "h002", "cache_status": "stored", "research_plan_id": "rq_005", "research_category": "social_signal", "research_query": "机器人产业链 大V"},
             ]
 
-            manifest = write_run_research_manifest(run_path, query="机器人产业链", results=results, adapter_name="fixture", cache_root=root / "cache" / "research")
+            manifest = write_run_research_manifest(run_path, query="机器人产业链", results=results, adapter_name="fixture", cache_root=root / "cache" / "research", research_plan=build_research_plan("机器人产业链"))
 
             self.assertEqual(manifest["artifact_type"], "public_research_manifest")
             self.assertEqual(manifest["query"], "机器人产业链")
@@ -52,6 +54,8 @@ class ResearchCacheTests(unittest.TestCase):
             self.assertEqual(manifest["source_tier_counts"]["tier_1_primary_fact"], 1)
             self.assertEqual(manifest["source_tier_counts"]["tier_5_social_signal"], 1)
             self.assertIn("social_signal_never_direct_buy", manifest["boundary_controls"])
+            schema_result = validate_runtime_schema(REPO_ROOT / "specs" / "schemas" / "public-research-manifest.schema.yaml", manifest)
+            self.assertTrue(schema_result["ok"], schema_result)
             self.assertTrue((run_path / "evidence" / "public-research-manifest.yaml").exists())
             loaded = load_research_manifest(run_path)
             self.assertEqual(loaded["result_count"], 2)
