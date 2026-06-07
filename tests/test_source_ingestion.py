@@ -6,7 +6,9 @@ from pathlib import Path
 import yaml
 
 from fundos.harness import make_evaluation_for_run
+from fundos.io import REPO_ROOT
 from fundos.source_ingestion import ingest_source_candidates, load_ingestion_report
+from fundos.system_audit import validate_runtime_schema
 
 
 class SourceIngestionTests(unittest.TestCase):
@@ -86,6 +88,14 @@ class SourceIngestionTests(unittest.TestCase):
             evolution_rows = read_jsonl(run_path / "evolution" / "candidates.jsonl")
 
             self.assertEqual(len(source_rows), 2)
+            source_schema = REPO_ROOT / "specs" / "schemas" / "source-candidate.schema.yaml"
+            pattern_schema = REPO_ROOT / "specs" / "schemas" / "pattern-candidate.schema.yaml"
+            for row in source_rows + quarantine_rows:
+                schema_result = validate_runtime_schema(source_schema, row)
+                self.assertTrue(schema_result["ok"], schema_result)
+            for row in pattern_rows:
+                schema_result = validate_runtime_schema(pattern_schema, row)
+                self.assertTrue(schema_result["ok"], schema_result)
             serenity = next(row for row in source_rows if row["source_id"] == "serenity_x_thread_robotics")
             self.assertEqual(serenity["source_tier"], "tier_3_verified_public_practitioner")
             self.assertIn("research_lens", serenity["allowed_learning_outputs"])

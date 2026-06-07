@@ -99,6 +99,9 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     case_replay = load_yaml(run_path / "harness" / "historical-case-replay.yaml", {})
     source_registry = load_yaml(run_path / "learning" / "source-registry.yaml", {})
     source_ingestion = load_yaml(run_path / "learning" / "source-ingestion-report.yaml", {})
+    source_candidate_rows = load_jsonl(run_path / "learning" / "source-candidates.jsonl")
+    source_quarantine_rows = load_jsonl(run_path / "learning" / "source-quarantine.jsonl")
+    pattern_candidate_rows = load_jsonl(run_path / "learning" / "pattern-candidates.jsonl")
     agent_learning = load_yaml(run_path / "learning" / "agent-learning-report.yaml", {})
     agent_learning_candidates = load_jsonl(run_path / "learning" / "agent-learning-candidates.jsonl")
     evolution_candidates = load_jsonl(run_path / "evolution" / "candidates.jsonl")
@@ -120,6 +123,9 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
         runtime_root,
         source_registry,
         source_ingestion,
+        source_candidate_rows,
+        source_quarantine_rows,
+        pattern_candidate_rows,
         agent_learning,
         agent_learning_candidates,
         evolution_candidates,
@@ -2786,6 +2792,9 @@ def runtime_learning_evolution_capability_schema_check(
     runtime_root: Path,
     source_registry: Any,
     source_ingestion: Any,
+    source_candidate_rows: list[dict[str, Any]],
+    source_quarantine_rows: list[dict[str, Any]],
+    pattern_candidate_rows: list[dict[str, Any]],
     agent_learning: Any,
     agent_learning_rows: list[dict[str, Any]],
     evolution_rows: list[dict[str, Any]],
@@ -2802,6 +2811,9 @@ def runtime_learning_evolution_capability_schema_check(
     schemas = {
         "source-registry.yaml": repo_root / "specs" / "schemas" / "learning-source-registry.schema.yaml",
         "source-ingestion-report.yaml": repo_root / "specs" / "schemas" / "source-ingestion-report.schema.yaml",
+        "source-candidates.jsonl": repo_root / "specs" / "schemas" / "source-candidate.schema.yaml",
+        "source-quarantine.jsonl": repo_root / "specs" / "schemas" / "source-candidate.schema.yaml",
+        "pattern-candidates.jsonl": repo_root / "specs" / "schemas" / "pattern-candidate.schema.yaml",
         "agent-learning-report.yaml": repo_root / "specs" / "schemas" / "agent-learning-report.schema.yaml",
         "agent-learning-candidates.jsonl": repo_root / "specs" / "schemas" / "agent-learning-candidate.schema.yaml",
         "evolution-candidates.jsonl": repo_root / "specs" / "schemas" / "evolution-candidate.schema.yaml",
@@ -2821,6 +2833,9 @@ def runtime_learning_evolution_capability_schema_check(
     artifacts = {
         "source-registry.yaml": run_path / "learning" / "source-registry.yaml",
         "source-ingestion-report.yaml": run_path / "learning" / "source-ingestion-report.yaml",
+        "source-candidates.jsonl": run_path / "learning" / "source-candidates.jsonl",
+        "source-quarantine.jsonl": run_path / "learning" / "source-quarantine.jsonl",
+        "pattern-candidates.jsonl": run_path / "learning" / "pattern-candidates.jsonl",
         "agent-learning-report.yaml": run_path / "learning" / "agent-learning-report.yaml",
         "agent-learning-candidates.jsonl": run_path / "learning" / "agent-learning-candidates.jsonl",
         "evolution-candidates.jsonl": run_path / "evolution" / "candidates.jsonl",
@@ -2847,6 +2862,9 @@ def runtime_learning_evolution_capability_schema_check(
         "capability-regression.yaml": capability_regression,
     }
     row_sets = {
+        "source-candidates.jsonl": source_candidate_rows,
+        "source-quarantine.jsonl": source_quarantine_rows,
+        "pattern-candidates.jsonl": pattern_candidate_rows,
         "agent-learning-candidates.jsonl": agent_learning_rows,
         "evolution-candidates.jsonl": evolution_rows,
         "evolution-gate-results.jsonl": gate_rows,
@@ -2867,6 +2885,9 @@ def runtime_learning_evolution_capability_schema_check(
             schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
     optional_artifacts = {
         "source-ingestion-report.yaml",
+        "source-candidates.jsonl",
+        "source-quarantine.jsonl",
+        "pattern-candidates.jsonl",
         "evolution-gate-results.jsonl",
         "accepted.jsonl",
         "quarantine.jsonl",
@@ -2928,6 +2949,32 @@ def runtime_learning_evolution_capability_schema_check(
     compare_value(mismatches, "memory_writeback.memory_writes", int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else None, len(row_sets["evolution-ledger.jsonl"]))
     if isinstance(agent_learning, dict):
         compare_value(mismatches, "agent_learning.candidate_count", int(agent_learning.get("candidate_count", 0) or 0), len(agent_learning_rows))
+    if isinstance(source_ingestion, dict) and source_ingestion.get("status") != "missing":
+        compare_value(mismatches, "source_ingestion.ingested_sources", int(source_ingestion.get("ingested_sources", 0) or 0), len(source_candidate_rows))
+        compare_value(mismatches, "source_ingestion.quarantined_sources", int(source_ingestion.get("quarantined_sources", 0) or 0), len(source_quarantine_rows))
+        compare_value(mismatches, "source_ingestion.pattern_candidates", int(source_ingestion.get("pattern_candidates", 0) or 0), len(pattern_candidate_rows))
+        source_ids = {str(row.get("source_id")) for row in source_candidate_rows if isinstance(row, dict) and row.get("source_id")}
+        quarantine_ids = {str(row.get("source_id")) for row in source_quarantine_rows if isinstance(row, dict) and row.get("source_id")}
+        if not quarantine_ids.issubset(source_ids):
+            mismatches.append(f"source_quarantine.ids_not_in_source_candidates: {sorted(quarantine_ids - source_ids)!r}")
+        for idx, row in enumerate(source_candidate_rows):
+            if not isinstance(row, dict):
+                continue
+            forbidden_overlap = set(row.get("allowed_learning_outputs", []) or []) & set(row.get("not_allowed_outputs", []) or [])
+            if forbidden_overlap:
+                mismatches.append(f"source-candidates.jsonl[{idx}].allowed_learning_outputs overlaps not_allowed_outputs: {sorted(forbidden_overlap)!r}")
+            if row.get("classification_status") != "quarantine":
+                mismatches.append(f"source-candidates.jsonl[{idx}].classification_status: expected quarantine, got {row.get('classification_status')!r}")
+        pattern_source_ids = {str(row.get("source_id")) for row in pattern_candidate_rows if isinstance(row, dict) and row.get("source_id")}
+        if not pattern_source_ids.issubset(source_ids - quarantine_ids):
+            mismatches.append(f"pattern_candidates.unsafe_or_unknown_source_ids: {sorted(pattern_source_ids - (source_ids - quarantine_ids))!r}")
+        for idx, row in enumerate(pattern_candidate_rows):
+            if not isinstance(row, dict):
+                continue
+            if row.get("status") != "quarantine":
+                mismatches.append(f"pattern-candidates.jsonl[{idx}].status: expected quarantine, got {row.get('status')!r}")
+            if row.get("memory_write_allowed") is not False:
+                mismatches.append(f"pattern-candidates.jsonl[{idx}].memory_write_allowed: expected False, got {row.get('memory_write_allowed')!r}")
     if isinstance(capability_summary, dict):
         approved_capability_rows = [row for row in capability_rows if isinstance(row, dict) and row.get("status") == "approved_candidate"]
         compare_value(mismatches, "capability_summary.approved_candidates", int(capability_summary.get("approved_candidates", 0) or 0), len(approved_capability_rows))
@@ -3001,6 +3048,9 @@ def runtime_learning_evolution_capability_schema_check(
         "schema_paths": {name: str(path) for name, path in schemas.items()},
         "artifact_paths": {name: str(path) for name, path in artifacts.items()},
         "agent_learning_candidates": len(agent_learning_rows),
+        "source_candidates": len(source_candidate_rows),
+        "source_quarantine_rows": len(source_quarantine_rows),
+        "pattern_candidates": len(pattern_candidate_rows),
         "evolution_candidates": len(evolution_rows),
         "gate_result_count": len(gate_rows),
         "accepted_count": len(accepted_rows),

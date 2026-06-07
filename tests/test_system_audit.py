@@ -1153,6 +1153,62 @@ class SystemAuditTests(unittest.TestCase):
             mismatches = '\n'.join(details['mismatches'])
             self.assertIn('public_research_manifest.result_count', mismatches)
 
+    def test_system_audit_strict_mode_fails_source_ingestion_quarantine_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            write_fixture(fixture)
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            source_fixture = cwd / 'source-candidates.yaml'
+            source_fixture.write_text(yaml.safe_dump({'candidates': [
+                {
+                    'source_id': 'serenity_x_thread_robotics',
+                    'display_name': 'Serenity robotics X thread',
+                    'source_type': 'public_practitioner',
+                    'summary': '机器人产业链瓶颈研究思路',
+                    'claims': ['先从系统架构找瓶颈，再映射公司'],
+                    'requested_outputs': ['research_lens', 'checklist'],
+                    'target_agents': ['tech_growth_analyst'],
+                },
+                {
+                    'source_id': 'unknown_hot_tip',
+                    'source_type': 'social_signal',
+                    'summary': '直接买入某股票',
+                    'claims': ['直接买入'],
+                    'requested_outputs': ['direct_buy_signal'],
+                },
+            ]}, allow_unicode=True), encoding='utf-8')
+            ingest_result = run_cli(['sources', 'ingest', '--run', str(run_path), '--fixture', str(source_fixture)], cwd)
+            self.assertEqual(ingest_result.returncode, 0, ingest_result.stderr)
+            source_path = run_path / 'learning' / 'source-candidates.jsonl'
+            source_rows = [json.loads(line) for line in source_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            source_rows[0]['classification_status'] = 'accepted_without_review'
+            source_rows[0]['allowed_learning_outputs'].append('direct_buy_signal')
+            source_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in source_rows), encoding='utf-8')
+            pattern_path = run_path / 'learning' / 'pattern-candidates.jsonl'
+            pattern_rows = [json.loads(line) for line in pattern_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            pattern_rows[0]['memory_write_allowed'] = True
+            pattern_rows[0]['source_id'] = 'unknown_hot_tip'
+            pattern_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in pattern_rows), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', run_rel, '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.learning_evolution_capability_artifacts_match_schemas']['status'], 'fail')
+            details = by_id['runtime.learning_evolution_capability_artifacts_match_schemas']['details']
+            source_errors = '\n'.join(details['schema_errors_by_artifact']['source-candidates.jsonl:1'])
+            pattern_errors = '\n'.join(details['schema_errors_by_artifact']['pattern-candidates.jsonl:1'])
+            self.assertIn('classification_status', source_errors)
+            self.assertIn('memory_write_allowed', pattern_errors)
+            mismatches = '\n'.join(details['mismatches'])
+            self.assertIn('allowed_learning_outputs overlaps not_allowed_outputs', mismatches)
+            self.assertIn('pattern_candidates.unsafe_or_unknown_source_ids', mismatches)
+
     def test_system_audit_strict_mode_fails_operating_system_manifest_schema_violation(self):
         with tempfile.TemporaryDirectory() as d:
             cwd = Path(d)

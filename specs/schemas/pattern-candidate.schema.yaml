@@ -1,0 +1,44 @@
+version: 0.1.0
+type: object
+required:
+  - pattern_id
+  - source_id
+  - source_tier
+  - source_type
+  - name
+  - summary
+  - claims_to_validate
+  - target_agents
+  - allowed_learning_outputs
+  - not_allowed_outputs
+  - required_gates
+  - status
+  - memory_write_allowed
+  - real_trade_allowed
+properties:
+  pattern_id: {type: string}
+  source_id: {type: string}
+  source_tier:
+    enum: [tier_1_primary_fact, tier_2_canonical_framework, tier_3_verified_public_practitioner, tier_4_expert_opinion, tier_5_social_signal, tier_6_unverified]
+  source_type:
+    enum: [public_practitioner, canonical_framework, book, course, historical_case, social_signal, unknown]
+  name: {type: string}
+  summary: {type: string}
+  claims_to_validate:
+    type: array
+    items: {type: string}
+  target_agents:
+    type: array
+    items: {type: string}
+  allowed_learning_outputs:
+    type: array
+    items: {type: string}
+  not_allowed_outputs:
+    type: array
+    items: {type: string}
+  required_gates:
+    type: array
+    items: {type: string}
+  status: {enum: [quarantine]}
+  memory_write_allowed: {enum: [false]}
+  real_trade_allowed: {enum: [false]}
