@@ -1,0 +1,58 @@
+version: 0.1.0
+type: object
+required:
+  - candidate_id
+  - run_id
+  - source_agent
+  - target_agent
+  - capability_kind
+  - candidate_type
+  - target_scope
+  - proposal
+  - source_basis
+  - required_tests
+  - scores
+  - approval_snapshot
+  - approval_mode
+  - controls
+  - adoption_route
+  - memory_write_policy
+  - human_approval_required
+  - protected_mutation_allowed
+  - reversible
+  - mutated_agent_card
+  - mutated_runtime_skill
+  - mutated_core_profile
+  - real_trade_allowed
+  - broker_integration
+properties:
+  candidate_id: {type: string}
+  run_id: {type: string}
+  source_agent: {type: string}
+  target_agent: {type: string}
+  capability_kind: {type: string}
+  candidate_type: {type: string}
+  target_scope: {type: string}
+  proposal: {type: string}
+  source_basis:
+    type: array
+    items: {type: object}
+  required_tests:
+    type: array
+    items: {type: string}
+  scores: {type: object}
+  approval_snapshot: {type: object}
+  approval_mode: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  adoption_route: {type: [string, 'null']}
+  memory_write_policy: {type: [string, 'null']}
+  human_approval_required: {enum: [true]}
+  protected_mutation_allowed: {enum: [false]}
+  reversible: {enum: [true]}
+  mutated_agent_card: {enum: [false]}
+  mutated_runtime_skill: {enum: [false]}
+  mutated_core_profile: {enum: [false]}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

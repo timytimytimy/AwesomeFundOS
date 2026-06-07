@@ -355,6 +355,9 @@ def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: st
         "risk_notes": "需要更多案例回放验证。",
         "required_tests": ["historical_case_replay", "role_drift_check", "evidence_quality_check"],
         "status": "proposed",
+        "controls": ["requires_evolution_gate", "no_direct_profile_mutation", "no_real_trade_action", "broker_integration_disabled"],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
     skill_candidate = {
         "candidate_id": f"cand_{run_id}_002",
@@ -369,6 +372,9 @@ def write_reflections(run_path: Path, selected: list[dict[str, str]], run_id: st
         "risk_notes": "仅进入 capability candidate，不直接改写 agent.md 或 SKILL.md。",
         "required_tests": ["historical_case_replay", "role_drift_check", "evidence_quality_check"],
         "status": "proposed",
+        "controls": ["requires_evolution_gate", "no_direct_profile_mutation", "no_real_trade_action", "broker_integration_disabled"],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
     evo = run_path / "evolution" / "candidates.jsonl"
     evo.parent.mkdir(parents=True, exist_ok=True)

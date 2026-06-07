@@ -1,0 +1,31 @@
+version: 0.1.0
+type: object
+required:
+  - artifact_type
+  - ingested_sources
+  - quarantined_sources
+  - pattern_candidates
+  - evolution_candidates
+  - direct_trade_signal_blocked
+  - copyright_violation_blocked
+  - real_trade_allowed
+  - broker_integration
+  - controls
+properties:
+  version: {type: string}
+  artifact_type: {enum: [source_ingestion_report]}
+  status: {type: string}
+  purpose: {type: string}
+  ingested_sources: {type: integer}
+  quarantined_sources: {type: integer}
+  pattern_candidates: {type: integer}
+  evolution_candidates: {type: integer}
+  direct_trade_signal_blocked: {type: boolean}
+  copyright_violation_blocked: {type: boolean}
+  all_patterns_start_quarantined: {type: boolean}
+  controls:
+    type: array
+    items: {type: string}
+  artifacts: {type: object}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

@@ -18,6 +18,8 @@ CAPABILITY_TYPES = {
     "tool_policy_update": "tool_policy",
 }
 SUMMARY_DEFAULT = {
+    "version": CAPABILITY_VERSION,
+    "artifact_type": "capability_version_summary",
     "approved_candidates": 0,
     "quarantined_candidates": 0,
     "rejected_candidates": 0,
@@ -26,6 +28,19 @@ SUMMARY_DEFAULT = {
     "agent_versions": {},
     "written_paths": [],
     "approval_mode": APPROVAL_MODE,
+    "controls": [
+        "evolution_gate_before_capability_registry",
+        "capability_regression_required",
+        "human_approval_before_apply",
+        "no_direct_profile_mutation",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    ],
+    "direct_profile_mutation_allowed": False,
+    "direct_skill_mutation_allowed": False,
+    "direct_tool_mutation_allowed": False,
+    "real_trade_allowed": False,
+    "broker_integration": "disabled",
 }
 
 
@@ -67,6 +82,7 @@ def apply_capability_versions(run_path: Path, results: list[dict[str, Any]], roo
     summary: dict[str, Any] = dict(SUMMARY_DEFAULT)
     summary["agent_versions"] = {}
     summary["written_paths"] = []
+    summary["controls"] = list(SUMMARY_DEFAULT["controls"])
 
     for result in results:
         if not is_capability_candidate(result):

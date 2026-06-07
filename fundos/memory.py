@@ -9,6 +9,8 @@ from fundos.io import read_yaml, write_yaml
 
 APPROVAL_MODE = "evolution_gate_v1_auto_controlled"
 SUMMARY_DEFAULT = {
+    "version": "0.1.0",
+    "artifact_type": "memory_writeback_summary",
     "memory_writes": 0,
     "agent_writes": {},
     "skipped_non_accepted": 0,
@@ -16,6 +18,21 @@ SUMMARY_DEFAULT = {
     "skipped_existing": 0,
     "approval_mode": APPROVAL_MODE,
     "written_paths": [],
+    "controls": [
+        "evolution_gate_required",
+        "quarantine_before_memory_write",
+        "no_direct_profile_mutation",
+        "no_direct_skill_mutation",
+        "no_direct_tool_mutation",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+        "paper_portfolio_only",
+    ],
+    "direct_profile_mutation_allowed": False,
+    "direct_skill_mutation_allowed": False,
+    "direct_tool_mutation_allowed": False,
+    "real_trade_allowed": False,
+    "broker_integration": "disabled",
 }
 
 
@@ -95,15 +112,10 @@ def apply_evolution_results(run_path: Path, results: list[dict[str, Any]], memor
     tool permissions, risk limits, or organization structure.
     """
     root = memory_root or infer_runtime_root(run_path)
-    summary: dict[str, Any] = {
-        "memory_writes": 0,
-        "agent_writes": {},
-        "skipped_non_accepted": 0,
-        "skipped_unsafe": 0,
-        "skipped_existing": 0,
-        "approval_mode": APPROVAL_MODE,
-        "written_paths": [],
-    }
+    summary: dict[str, Any] = dict(SUMMARY_DEFAULT)
+    summary["agent_writes"] = {}
+    summary["written_paths"] = []
+    summary["controls"] = list(SUMMARY_DEFAULT["controls"])
     for result in results:
         if result.get("decision") != "accept":
             summary["skipped_non_accepted"] += 1

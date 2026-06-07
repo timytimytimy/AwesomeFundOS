@@ -20,6 +20,10 @@ def run_cli(args, cwd):
     return subprocess.run(CLI + args, cwd=cwd, text=True, capture_output=True, env=env)
 
 
+def write_fixture(path: Path) -> None:
+    path.write_text('[\n        {"title":"机器人公告","url":"https://www.cninfo.com.cn/new/disclosure/detail","snippet":"公告验证机器人订单。"},\n        {"title":"机器人政策","url":"https://www.gov.cn/zhengce/content/test.htm","snippet":"政策支持机器人。"},\n        {"title":"机器人新闻","url":"https://example.com/news","snippet":"新闻关注机器人。","fixture_category":"news"},\n        {"title":"机器人行情","url":"https://example.com/market","snippet":"行情成交摘要。","source_type":"market_data","source_tier":"tier_1_primary_fact"},\n        {"title":"机器人热度","url":"https://x.com/example/status/1","snippet":"社媒热度。"},\n        {"title":"机器人案例","url":"https://example.com/case","snippet":"历史案例复盘。","source_type":"case","source_tier":"tier_2_canonical_framework"}\n    ]', encoding='utf-8')
+
+
 class SystemAuditTests(unittest.TestCase):
     def test_system_audit_covers_original_organization_requirements(self):
         report = run_system_audit(ROOT)
@@ -321,6 +325,90 @@ class SystemAuditTests(unittest.TestCase):
             manifest_evidence = '\n'.join(by_id['runtime.operating_system_manifest_links_agent_os_assets']['evidence'])
             self.assertIn('system/operating-system-manifest.yaml', manifest_evidence)
             self.assertIn('system/operating-system-manifest.md', manifest_evidence)
+
+    def test_system_audit_strict_mode_validates_learning_evolution_capability_artifacts(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            write_fixture(fixture)
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            evolve_result = run_cli(['evolve', '--run', str(run_path)], cwd)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(run_path), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.learning_evolution_capability_artifacts_match_schemas']['status'], 'pass')
+            details = by_id['runtime.learning_evolution_capability_artifacts_match_schemas']['details']
+            self.assertEqual(details['schema_errors_by_artifact'], {})
+            self.assertEqual(details['missing_artifacts'], [])
+            self.assertGreaterEqual(details['agent_learning_candidates'], 1)
+            self.assertGreaterEqual(details['evolution_candidates'], 1)
+            self.assertEqual(details['gate_result_count'], details['accepted_count'] + details['quarantine_count'] + details['rejected_count'])
+            self.assertEqual(details['memory_writes'], details['organization_evolution_ledger_entries'])
+            self.assertGreaterEqual(details['capability_candidate_count'], 1)
+            self.assertEqual(details['capability_regression_candidates'], details['passed_capability_regressions'] + details['blocked_capability_regressions'])
+            self.assertGreaterEqual(details['agent_capability_ledger_agents'], 1)
+            self.assertIn('quarantine_before_adoption', details['controls'])
+            self.assertIn('evolution_gate_required', details['controls'])
+            self.assertIn('capability_regression_required', details['controls'])
+            self.assertIn('human_approval_before_apply', details['controls'])
+            self.assertIn('no_direct_profile_mutation', details['controls'])
+            self.assertIn('no_real_trade_action', details['controls'])
+            self.assertIn('broker_integration_disabled', details['controls'])
+            self.assertFalse(details['direct_profile_mutation_allowed'])
+            self.assertFalse(details['direct_skill_mutation_allowed'])
+            self.assertFalse(details['direct_tool_mutation_allowed'])
+            self.assertFalse(details['real_trade_allowed'])
+            self.assertEqual(details['broker_integration'], 'disabled')
+
+    def test_system_audit_strict_mode_fails_learning_evolution_capability_schema_violation(self):
+        with tempfile.TemporaryDirectory() as d:
+            cwd = Path(d)
+            fixture = cwd / 'research.json'
+            write_fixture(fixture)
+            run_result = run_cli(['run', '--topic', '机器人产业链投资机会', '--research-fixture', str(fixture)], cwd)
+            self.assertEqual(run_result.returncode, 0, run_result.stderr)
+            run_rel = [line for line in run_result.stdout.splitlines() if line.startswith('run_path=')][-1].split('=', 1)[1]
+            run_path = cwd / run_rel
+            evolve_result = run_cli(['evolve', '--run', str(run_path)], cwd)
+            self.assertEqual(evolve_result.returncode, 0, evolve_result.stderr)
+
+            gate_path = run_path / 'evolution' / 'evolution-gate-results.jsonl'
+            gate_rows = [json.loads(line) for line in gate_path.read_text(encoding='utf-8').splitlines() if line.strip()]
+            self.assertTrue(gate_rows)
+            gate_rows[0]['broker_integration'] = 'enabled'
+            gate_path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in gate_rows), encoding='utf-8')
+
+            memory_summary_path = run_path / 'evolution' / 'memory-writeback-summary.yaml'
+            memory_summary = yaml.safe_load(memory_summary_path.read_text(encoding='utf-8'))
+            memory_summary['memory_writes'] = int(memory_summary['memory_writes']) + 1
+            memory_summary['direct_profile_mutation_allowed'] = True
+            memory_summary_path.write_text(yaml.safe_dump(memory_summary, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            regression_path = run_path / 'harness' / 'capability-regression.yaml'
+            regression = yaml.safe_load(regression_path.read_text(encoding='utf-8'))
+            regression['candidate_results'][0]['application_status_after_regression'] = 'applied_without_human'
+            regression_path.write_text(yaml.safe_dump(regression, allow_unicode=True, sort_keys=False), encoding='utf-8')
+
+            result = run_cli(['system', 'audit', '--repo', str(ROOT), '--run', str(run_path), '--out', 'audit-output', '--strict'], cwd)
+
+            self.assertNotEqual(result.returncode, 0)
+            report = yaml.safe_load((cwd / 'audit-output/system-audit.yaml').read_text(encoding='utf-8'))
+            by_id = {row['requirement_id']: row for row in report['requirements']}
+            self.assertEqual(by_id['runtime.learning_evolution_capability_artifacts_match_schemas']['status'], 'fail')
+            details = by_id['runtime.learning_evolution_capability_artifacts_match_schemas']['details']
+            rendered = yaml.safe_dump(details, allow_unicode=True, sort_keys=False)
+            self.assertIn('evolution-gate-results.jsonl:1', rendered)
+            self.assertIn('broker_integration', rendered)
+            self.assertIn('memory_writeback.memory_writes', rendered)
+            self.assertIn('memory-writeback-summary.yaml.direct_profile_mutation_allowed', rendered)
+            self.assertIn('capability-regression.yaml.candidate_results[0].application_status_after_regression', rendered)
 
     def test_system_audit_strict_mode_fails_tool_runtime_harness_schema_violation(self):
         with tempfile.TemporaryDirectory() as d:

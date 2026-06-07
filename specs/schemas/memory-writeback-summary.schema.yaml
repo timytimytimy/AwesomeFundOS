@@ -1,0 +1,38 @@
+version: 0.1.0
+type: object
+required:
+  - version
+  - artifact_type
+  - memory_writes
+  - agent_writes
+  - skipped_non_accepted
+  - skipped_unsafe
+  - skipped_existing
+  - approval_mode
+  - written_paths
+  - controls
+  - direct_profile_mutation_allowed
+  - direct_skill_mutation_allowed
+  - direct_tool_mutation_allowed
+  - real_trade_allowed
+  - broker_integration
+properties:
+  version: {type: string}
+  artifact_type: {enum: [memory_writeback_summary]}
+  memory_writes: {type: integer}
+  agent_writes: {type: object}
+  skipped_non_accepted: {type: integer}
+  skipped_unsafe: {type: integer}
+  skipped_existing: {type: integer}
+  approval_mode: {enum: [evolution_gate_v1_auto_controlled]}
+  written_paths:
+    type: array
+    items: {type: string}
+  controls:
+    type: array
+    items: {type: string}
+  direct_profile_mutation_allowed: {enum: [false]}
+  direct_skill_mutation_allowed: {enum: [false]}
+  direct_tool_mutation_allowed: {enum: [false]}
+  real_trade_allowed: {enum: [false]}
+  broker_integration: {enum: [disabled]}

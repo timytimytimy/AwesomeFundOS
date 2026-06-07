@@ -112,6 +112,25 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
     capability_apply_ledger = load_jsonl(runtime_root / "memory" / "organization" / "capability-apply-ledger.jsonl")
     failure_pattern_library = load_jsonl(runtime_root / "memory" / "organization" / "failure-pattern-library.jsonl")
     capability_regression = load_yaml(run_path / "harness" / "capability-regression.yaml", {})
+    learning_evolution_capability_schema_check = runtime_learning_evolution_capability_schema_check(
+        repo_root,
+        run_path,
+        runtime_root,
+        source_registry,
+        source_ingestion,
+        agent_learning,
+        agent_learning_candidates,
+        evolution_candidates,
+        gate_results,
+        accepted_evolution,
+        quarantined_evolution,
+        rejected_evolution,
+        memory_writeback,
+        capability_candidates,
+        capability_summary,
+        agent_capability_ledger,
+        capability_regression,
+    )
     os_manifest = load_yaml(run_path / "system" / "operating-system-manifest.yaml", {})
     run_doc = load_yaml(run_path / "run.yaml", {})
     items = evidence.get("evidence_items", []) if isinstance(evidence, dict) else []
@@ -386,6 +405,46 @@ def build_runtime_requirements(repo_root: Path, run_path: Path) -> list[dict[str
             ],
             manifest_agent_capability_ledger_check["ok"],
             details=manifest_agent_capability_ledger_check,
+        ),
+        requirement(
+            "runtime.learning_evolution_capability_artifacts_match_schemas",
+            "learning_evolution",
+            "Learning registry, agent learning candidates, EvolutionGate partitions, memory writeback, capability lifecycle, and regression artifacts match source-controlled schemas and preserve safe self-upgrade controls.",
+            [
+                repo_root / "specs/schemas/learning-source-registry.schema.yaml",
+                repo_root / "specs/schemas/source-ingestion-report.schema.yaml",
+                repo_root / "specs/schemas/agent-learning-report.schema.yaml",
+                repo_root / "specs/schemas/agent-learning-candidate.schema.yaml",
+                repo_root / "specs/schemas/evolution-candidate.schema.yaml",
+                repo_root / "specs/schemas/evolution-gate-result.schema.yaml",
+                repo_root / "specs/schemas/memory-writeback-summary.schema.yaml",
+                repo_root / "specs/schemas/capability-candidate.schema.yaml",
+                repo_root / "specs/schemas/capability-version-summary.schema.yaml",
+                repo_root / "specs/schemas/agent-capability-ledger.schema.yaml",
+                repo_root / "specs/schemas/capability-regression-report.schema.yaml",
+                repo_root / "specs/schemas/evolution-ledger-row.schema.yaml",
+                repo_root / "specs/schemas/capability-ledger-row.schema.yaml",
+                repo_root / "specs/schemas/capability-apply-ledger-row.schema.yaml",
+                run_path / "learning" / "source-registry.yaml",
+                run_path / "learning" / "source-ingestion-report.yaml",
+                run_path / "learning" / "agent-learning-report.yaml",
+                run_path / "learning" / "agent-learning-candidates.jsonl",
+                run_path / "evolution" / "candidates.jsonl",
+                run_path / "evolution" / "evolution-gate-results.jsonl",
+                run_path / "evolution" / "accepted.jsonl",
+                run_path / "evolution" / "quarantine.jsonl",
+                run_path / "evolution" / "rejected.jsonl",
+                run_path / "evolution" / "memory-writeback-summary.yaml",
+                run_path / "evolution" / "capability-candidates.jsonl",
+                run_path / "evolution" / "capability-version-summary.yaml",
+                run_path / "evolution" / "agent-capability-ledger.yaml",
+                run_path / "harness" / "capability-regression.yaml",
+                infer_runtime_root(run_path) / "memory" / "organization" / "evolution-ledger.jsonl",
+                infer_runtime_root(run_path) / "memory" / "organization" / "capability-ledger.jsonl",
+                infer_runtime_root(run_path) / "memory" / "organization" / "capability-apply-ledger.jsonl",
+            ],
+            learning_evolution_capability_schema_check["ok"],
+            details=learning_evolution_capability_schema_check,
         ),
         requirement(
             "runtime.operating_system_manifest_context_management_matches_harness",
@@ -2552,6 +2611,368 @@ def runtime_agent_organization_harness_schema_check(
         "collaboration_veto_count": int(collaboration_harness.get("veto_count", 0) or 0) if isinstance(collaboration_harness, dict) else 0,
         "market_subject_count": len(subject_states),
         "controls": sorted(controls),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def runtime_learning_evolution_capability_schema_check(
+    repo_root: Path,
+    run_path: Path,
+    runtime_root: Path,
+    source_registry: Any,
+    source_ingestion: Any,
+    agent_learning: Any,
+    agent_learning_rows: list[dict[str, Any]],
+    evolution_rows: list[dict[str, Any]],
+    gate_rows: list[dict[str, Any]],
+    accepted_rows: list[dict[str, Any]],
+    quarantine_rows: list[dict[str, Any]],
+    rejected_rows: list[dict[str, Any]],
+    memory_writeback: Any,
+    capability_rows: list[dict[str, Any]],
+    capability_summary: Any,
+    agent_capability_ledger: Any,
+    capability_regression: Any,
+) -> dict[str, Any]:
+    schemas = {
+        "source-registry.yaml": repo_root / "specs" / "schemas" / "learning-source-registry.schema.yaml",
+        "source-ingestion-report.yaml": repo_root / "specs" / "schemas" / "source-ingestion-report.schema.yaml",
+        "agent-learning-report.yaml": repo_root / "specs" / "schemas" / "agent-learning-report.schema.yaml",
+        "agent-learning-candidates.jsonl": repo_root / "specs" / "schemas" / "agent-learning-candidate.schema.yaml",
+        "evolution-candidates.jsonl": repo_root / "specs" / "schemas" / "evolution-candidate.schema.yaml",
+        "evolution-gate-results.jsonl": repo_root / "specs" / "schemas" / "evolution-gate-result.schema.yaml",
+        "accepted.jsonl": repo_root / "specs" / "schemas" / "evolution-gate-result.schema.yaml",
+        "quarantine.jsonl": repo_root / "specs" / "schemas" / "evolution-gate-result.schema.yaml",
+        "rejected.jsonl": repo_root / "specs" / "schemas" / "evolution-gate-result.schema.yaml",
+        "memory-writeback-summary.yaml": repo_root / "specs" / "schemas" / "memory-writeback-summary.schema.yaml",
+        "capability-candidates.jsonl": repo_root / "specs" / "schemas" / "capability-candidate.schema.yaml",
+        "capability-version-summary.yaml": repo_root / "specs" / "schemas" / "capability-version-summary.schema.yaml",
+        "agent-capability-ledger.yaml": repo_root / "specs" / "schemas" / "agent-capability-ledger.schema.yaml",
+        "capability-regression.yaml": repo_root / "specs" / "schemas" / "capability-regression-report.schema.yaml",
+        "evolution-ledger.jsonl": repo_root / "specs" / "schemas" / "evolution-ledger-row.schema.yaml",
+        "capability-ledger.jsonl": repo_root / "specs" / "schemas" / "capability-ledger-row.schema.yaml",
+        "capability-apply-ledger.jsonl": repo_root / "specs" / "schemas" / "capability-apply-ledger-row.schema.yaml",
+    }
+    artifacts = {
+        "source-registry.yaml": run_path / "learning" / "source-registry.yaml",
+        "source-ingestion-report.yaml": run_path / "learning" / "source-ingestion-report.yaml",
+        "agent-learning-report.yaml": run_path / "learning" / "agent-learning-report.yaml",
+        "agent-learning-candidates.jsonl": run_path / "learning" / "agent-learning-candidates.jsonl",
+        "evolution-candidates.jsonl": run_path / "evolution" / "candidates.jsonl",
+        "evolution-gate-results.jsonl": run_path / "evolution" / "evolution-gate-results.jsonl",
+        "accepted.jsonl": run_path / "evolution" / "accepted.jsonl",
+        "quarantine.jsonl": run_path / "evolution" / "quarantine.jsonl",
+        "rejected.jsonl": run_path / "evolution" / "rejected.jsonl",
+        "memory-writeback-summary.yaml": run_path / "evolution" / "memory-writeback-summary.yaml",
+        "capability-candidates.jsonl": run_path / "evolution" / "capability-candidates.jsonl",
+        "capability-version-summary.yaml": run_path / "evolution" / "capability-version-summary.yaml",
+        "agent-capability-ledger.yaml": run_path / "evolution" / "agent-capability-ledger.yaml",
+        "capability-regression.yaml": run_path / "harness" / "capability-regression.yaml",
+        "evolution-ledger.jsonl": runtime_root / "memory" / "organization" / "evolution-ledger.jsonl",
+        "capability-ledger.jsonl": runtime_root / "memory" / "organization" / "capability-ledger.jsonl",
+        "capability-apply-ledger.jsonl": runtime_root / "memory" / "organization" / "capability-apply-ledger.jsonl",
+    }
+    docs = {
+        "source-registry.yaml": source_registry,
+        "source-ingestion-report.yaml": source_ingestion,
+        "agent-learning-report.yaml": agent_learning,
+        "memory-writeback-summary.yaml": memory_writeback,
+        "capability-version-summary.yaml": capability_summary,
+        "agent-capability-ledger.yaml": agent_capability_ledger,
+        "capability-regression.yaml": capability_regression,
+    }
+    row_sets = {
+        "agent-learning-candidates.jsonl": agent_learning_rows,
+        "evolution-candidates.jsonl": evolution_rows,
+        "evolution-gate-results.jsonl": gate_rows,
+        "accepted.jsonl": accepted_rows,
+        "quarantine.jsonl": quarantine_rows,
+        "rejected.jsonl": rejected_rows,
+        "capability-candidates.jsonl": capability_rows,
+        "evolution-ledger.jsonl": load_jsonl(artifacts["evolution-ledger.jsonl"]),
+        "capability-ledger.jsonl": load_jsonl(artifacts["capability-ledger.jsonl"]),
+        "capability-apply-ledger.jsonl": load_jsonl(artifacts["capability-apply-ledger.jsonl"]),
+    }
+    missing_artifacts: list[str] = []
+    schema_errors_by_artifact: dict[str, list[str]] = {}
+    mismatches: list[str] = []
+
+    for name, schema_path in schemas.items():
+        if not schema_path.exists():
+            schema_errors_by_artifact[name] = [f"missing_schema:{schema_path}"]
+    optional_artifacts = {
+        "source-ingestion-report.yaml",
+        "evolution-gate-results.jsonl",
+        "accepted.jsonl",
+        "quarantine.jsonl",
+        "rejected.jsonl",
+        "memory-writeback-summary.yaml",
+        "capability-candidates.jsonl",
+        "capability-version-summary.yaml",
+        "capability-regression.yaml",
+        "evolution-ledger.jsonl",
+        "capability-ledger.jsonl",
+        "capability-apply-ledger.jsonl",
+    }
+    for name, path in artifacts.items():
+        if name in optional_artifacts:
+            continue
+        if not path.exists():
+            missing_artifacts.append(name)
+    for name, doc in docs.items():
+        if name in missing_artifacts:
+            continue
+        if name == "source-ingestion-report.yaml" and not artifacts[name].exists():
+            doc = source_ingestion_missing_report()
+        if name == "memory-writeback-summary.yaml" and not artifacts[name].exists():
+            doc = memory_writeback_missing_summary()
+        if name == "capability-version-summary.yaml" and not artifacts[name].exists():
+            doc = capability_version_missing_summary()
+        if name == "capability-regression.yaml" and not artifacts[name].exists():
+            doc = capability_regression_missing_report()
+        if name == "agent-capability-ledger.yaml" and not artifacts[name].exists():
+            doc = agent_capability_missing_ledger(run_path.name)
+        if not isinstance(doc, dict):
+            missing_artifacts.append(name)
+            continue
+        schema_path = schemas[name]
+        if schema_path.exists():
+            result = validate_runtime_schema(schema_path, doc)
+            if not result["ok"]:
+                schema_errors_by_artifact[name] = result["schema_errors"]
+
+    for name, rows in row_sets.items():
+        if name in missing_artifacts:
+            continue
+        if name in optional_artifacts and not artifacts[name].exists():
+            continue
+        schema_path = schemas[name]
+        if not schema_path.exists():
+            continue
+        for idx, row in enumerate(rows):
+            result = validate_runtime_schema(schema_path, row)
+            if not result["ok"]:
+                schema_errors_by_artifact[f"{name}:{idx + 1}"] = result["schema_errors"]
+
+    accepted_from_gate = [row for row in gate_rows if isinstance(row, dict) and row.get("decision") == "accept"]
+    quarantined_from_gate = [row for row in gate_rows if isinstance(row, dict) and row.get("decision") == "quarantine"]
+    rejected_from_gate = [row for row in gate_rows if isinstance(row, dict) and row.get("decision") == "reject"]
+    compare_value(mismatches, "evolution_gate.accepted_partition_count", len(accepted_rows), len(accepted_from_gate))
+    compare_value(mismatches, "evolution_gate.quarantine_partition_count", len(quarantine_rows), len(quarantined_from_gate))
+    compare_value(mismatches, "evolution_gate.rejected_partition_count", len(rejected_rows), len(rejected_from_gate))
+    compare_value(mismatches, "memory_writeback.memory_writes", int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else None, len(row_sets["evolution-ledger.jsonl"]))
+    if isinstance(agent_learning, dict):
+        compare_value(mismatches, "agent_learning.candidate_count", int(agent_learning.get("candidate_count", 0) or 0), len(agent_learning_rows))
+    if isinstance(capability_summary, dict):
+        approved_capability_rows = [row for row in capability_rows if isinstance(row, dict) and row.get("status") == "approved_candidate"]
+        compare_value(mismatches, "capability_summary.approved_candidates", int(capability_summary.get("approved_candidates", 0) or 0), len(approved_capability_rows))
+    if isinstance(capability_regression, dict):
+        regression_results = capability_regression.get("candidate_results", []) if isinstance(capability_regression.get("candidate_results", []), list) else []
+        compare_value(mismatches, "capability_regression.candidates_total", int(capability_regression.get("candidates_total", 0) or 0), len(regression_results))
+        compare_value(mismatches, "capability_regression.passed_candidates", int(capability_regression.get("passed_candidates", 0) or 0), sum(1 for row in regression_results if isinstance(row, dict) and row.get("regression_status") == "passed"))
+        compare_value(mismatches, "capability_regression.blocked_candidates", int(capability_regression.get("blocked_candidates", 0) or 0), sum(1 for row in regression_results if isinstance(row, dict) and row.get("regression_status") == "blocked"))
+
+    controls: set[str] = {
+        "quarantine_before_adoption",
+        "evolution_gate_required",
+        "capability_regression_required",
+        "human_approval_before_apply",
+        "no_direct_profile_mutation",
+        "no_direct_skill_mutation",
+        "no_direct_tool_mutation",
+        "no_real_trade_action",
+        "broker_integration_disabled",
+    }
+    for doc in [source_registry, source_ingestion, agent_learning, memory_writeback, capability_summary, agent_capability_ledger, capability_regression]:
+        if isinstance(doc, dict):
+            controls.update(str(control) for control in doc.get("controls", []) if control)
+            if doc.get("real_trade_allowed") not in {False, None}:
+                mismatches.append(f"{doc.get('artifact_type', 'artifact')}.real_trade_allowed: expected False, got {doc.get('real_trade_allowed')!r}")
+            if doc.get("broker_integration") not in {"disabled", None}:
+                mismatches.append(f"{doc.get('artifact_type', 'artifact')}.broker_integration: expected 'disabled', got {doc.get('broker_integration')!r}")
+    invariant_docs = {
+        "memory-writeback-summary.yaml": memory_writeback if isinstance(memory_writeback, dict) and "direct_profile_mutation_allowed" in memory_writeback else memory_writeback_missing_summary(),
+        "capability-version-summary.yaml": capability_summary if isinstance(capability_summary, dict) and "direct_profile_mutation_allowed" in capability_summary else capability_version_missing_summary(),
+    }
+    for name, doc in invariant_docs.items():
+        for field in ["direct_profile_mutation_allowed", "direct_skill_mutation_allowed", "direct_tool_mutation_allowed"]:
+            if doc.get(field) is not False:
+                mismatches.append(f"{name}.{field}: expected False, got {doc.get(field)!r}")
+    for name, rows in row_sets.items():
+        for idx, row in enumerate(rows):
+            if not isinstance(row, dict):
+                mismatches.append(f"{name}[{idx}]: expected object")
+                continue
+            controls.update(str(control) for control in row.get("controls", []) if control)
+            if row.get("real_trade_allowed") is not False:
+                mismatches.append(f"{name}[{idx}].real_trade_allowed: expected False, got {row.get('real_trade_allowed')!r}")
+            if row.get("broker_integration") != "disabled":
+                mismatches.append(f"{name}[{idx}].broker_integration: expected 'disabled', got {row.get('broker_integration')!r}")
+            if row.get("protected_mutation_allowed") is True:
+                mismatches.append(f"{name}[{idx}].protected_mutation_allowed: expected False")
+            if row.get("auto_apply_allowed") is True:
+                mismatches.append(f"{name}[{idx}].auto_apply_allowed: expected False")
+            if name == "capability-candidates.jsonl":
+                if row.get("mutated_agent_card") is not False:
+                    mismatches.append(f"capability-candidates.jsonl[{idx}].mutated_agent_card: expected False, got {row.get('mutated_agent_card')!r}")
+                if row.get("mutated_core_profile") is not False:
+                    mismatches.append(f"capability-candidates.jsonl[{idx}].mutated_core_profile: expected False, got {row.get('mutated_core_profile')!r}")
+            if name == "capability-regression.yaml":
+                pass
+    regression_results = capability_regression.get("candidate_results", []) if isinstance(capability_regression, dict) and isinstance(capability_regression.get("candidate_results", []), list) else []
+    for idx, row in enumerate(regression_results):
+        if row.get("application_status_after_regression") not in {"pending_human_apply", "blocked_regression"}:
+            mismatches.append(
+                "capability-regression.yaml.candidate_results"
+                f"[{idx}].application_status_after_regression: expected pending_human_apply or blocked_regression, got {row.get('application_status_after_regression')!r}"
+            )
+
+    agents = agent_capability_ledger.get("agents", {}) if isinstance(agent_capability_ledger, dict) and isinstance(agent_capability_ledger.get("agents", {}), dict) else {}
+    return {
+        "ok": not missing_artifacts and not schema_errors_by_artifact and not mismatches,
+        "schema_errors_by_artifact": schema_errors_by_artifact,
+        "missing_artifacts": sorted(set(missing_artifacts)),
+        "mismatches": mismatches,
+        "schema_paths": {name: str(path) for name, path in schemas.items()},
+        "artifact_paths": {name: str(path) for name, path in artifacts.items()},
+        "agent_learning_candidates": len(agent_learning_rows),
+        "evolution_candidates": len(evolution_rows),
+        "gate_result_count": len(gate_rows),
+        "accepted_count": len(accepted_rows),
+        "quarantine_count": len(quarantine_rows),
+        "rejected_count": len(rejected_rows),
+        "memory_writes": int(memory_writeback.get("memory_writes", 0) or 0) if isinstance(memory_writeback, dict) else 0,
+        "organization_evolution_ledger_entries": len(row_sets["evolution-ledger.jsonl"]),
+        "capability_candidate_count": len(capability_rows),
+        "capability_regression_candidates": int(capability_regression.get("candidates_total", 0) or 0) if isinstance(capability_regression, dict) else 0,
+        "passed_capability_regressions": int(capability_regression.get("passed_candidates", 0) or 0) if isinstance(capability_regression, dict) else 0,
+        "blocked_capability_regressions": int(capability_regression.get("blocked_candidates", 0) or 0) if isinstance(capability_regression, dict) else 0,
+        "agent_capability_ledger_agents": len(agents),
+        "capability_ledger_entries": len(row_sets["capability-ledger.jsonl"]),
+        "capability_apply_ledger_entries": len(row_sets["capability-apply-ledger.jsonl"]),
+        "controls": sorted(controls),
+        "direct_profile_mutation_allowed": False,
+        "direct_skill_mutation_allowed": False,
+        "direct_tool_mutation_allowed": False,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def source_ingestion_missing_report() -> dict[str, Any]:
+    return {
+        "version": "0.1.0",
+        "artifact_type": "source_ingestion_report",
+        "status": "missing",
+        "ingested_sources": 0,
+        "quarantined_sources": 0,
+        "pattern_candidates": 0,
+        "evolution_candidates": 0,
+        "direct_trade_signal_blocked": False,
+        "copyright_violation_blocked": False,
+        "all_patterns_start_quarantined": False,
+        "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def memory_writeback_missing_summary() -> dict[str, Any]:
+    return {
+        "version": "0.1.0",
+        "artifact_type": "memory_writeback_summary",
+        "memory_writes": 0,
+        "agent_writes": {},
+        "skipped_non_accepted": 0,
+        "skipped_unsafe": 0,
+        "skipped_existing": 0,
+        "approval_mode": "evolution_gate_v1_auto_controlled",
+        "written_paths": [],
+        "controls": [
+            "evolution_gate_required",
+            "quarantine_before_memory_write",
+            "no_direct_profile_mutation",
+            "no_direct_skill_mutation",
+            "no_direct_tool_mutation",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+            "paper_portfolio_only",
+        ],
+        "direct_profile_mutation_allowed": False,
+        "direct_skill_mutation_allowed": False,
+        "direct_tool_mutation_allowed": False,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def capability_version_missing_summary() -> dict[str, Any]:
+    return {
+        "version": "0.1.0",
+        "artifact_type": "capability_version_summary",
+        "approved_candidates": 0,
+        "quarantined_candidates": 0,
+        "rejected_candidates": 0,
+        "pending_human_apply": 0,
+        "skipped_existing": 0,
+        "agent_versions": {},
+        "written_paths": [],
+        "approval_mode": "evolution_gate_v1_capability_candidate",
+        "controls": [
+            "evolution_gate_before_capability_registry",
+            "capability_regression_required",
+            "human_approval_before_apply",
+            "no_direct_profile_mutation",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
+        "direct_profile_mutation_allowed": False,
+        "direct_skill_mutation_allowed": False,
+        "direct_tool_mutation_allowed": False,
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def capability_regression_missing_report() -> dict[str, Any]:
+    return {
+        "version": "0.1.0",
+        "artifact_type": "capability_regression_report",
+        "run_id": "missing",
+        "regression_status": "missing",
+        "candidates_total": 0,
+        "passed_candidates": 0,
+        "blocked_candidates": 0,
+        "candidate_results": [],
+        "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def agent_capability_missing_ledger(run_id: str) -> dict[str, Any]:
+    return {
+        "version": "0.1.0",
+        "artifact_type": "agent_capability_ledger",
+        "run_id": run_id,
+        "candidate_count": 0,
+        "agent_count": 0,
+        "pending_human_apply": 0,
+        "applied": 0,
+        "blocked_regression": 0,
+        "needs_more_evidence": 0,
+        "not_applicable": 0,
+        "agents": {},
+        "controls": [
+            "capability_lifecycle_per_agent_required",
+            "evolution_gate_before_capability_registry",
+            "capability_regression_before_apply",
+            "human_approval_before_apply",
+            "no_direct_profile_mutation",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     }

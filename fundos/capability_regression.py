@@ -57,6 +57,8 @@ def default_report() -> dict[str, Any]:
         "blocked_candidates": 0,
         "candidate_results": [],
         "controls": [],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
 
 
@@ -80,7 +82,12 @@ def run_capability_regression(run_path: Path, root: Path | None = None) -> dict[
             "no_direct_profile_mutation",
             "no_real_trade_action",
             "artifact_backed_required_tests",
+            "capability_regression_required",
+            "human_approval_before_apply",
+            "broker_integration_disabled",
         ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
     }
     write_yaml(run_path / "harness" / "capability-regression.yaml", report)
     update_capability_registries(runtime_root, results)
