@@ -57,6 +57,20 @@ harness_checks:
 - context_budget_respected
 - must_preserve_satisfied
 - role_focus_alignment
+- role_context_contract_satisfied
 - no_real_trade_action
 real_trade_allowed: false
 broker_integration: false
+required_context_dimensions:
+- source_tier
+- pattern_scope
+- validation_gate
+- anti_overfit
+forbidden_drop_list:
+- risk_blockers
+- source_tiers
+- validation_gate
+- quarantine
+- evolution_gate
+- evidence_ids
+- claim_ids

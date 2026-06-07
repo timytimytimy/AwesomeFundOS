@@ -142,6 +142,16 @@ def evaluate_context_management(context: dict[str, Any]) -> dict[str, Any]:
     retained_claims = loss.get("retained_claim_ids", [])
     dropped_claims = loss.get("dropped_claim_ids", [])
     compression_style = manifest.get("compression_style", [])
+    role_contract = context.get("role_context_contract", {}) or {}
+    contract_controls = set(role_contract.get("controls", []) or [])
+    required_dimensions = set(role_contract.get("required_context_dimensions", []) or [])
+    retained_dimensions = set(loss.get("retained_context_dimensions", []) or [])
+    omitted_dimensions = set(loss.get("omitted_context_dimensions", []) or [])
+    forbidden_drop_violations = loss.get("forbidden_drop_violations", []) or []
+    role_context_contract_present = bool(role_contract) and bool(required_dimensions) and bool(role_contract.get("forbidden_drop_list"))
+    required_context_dimensions_covered = bool(required_dimensions) and required_dimensions <= retained_dimensions
+    forbidden_drop_list_respected = not forbidden_drop_violations
+    retained_omitted_dimensions_traced = isinstance(loss.get("retained_context_dimensions", []), list) and isinstance(loss.get("omitted_context_dimensions", []), list)
     budget_manifest_present = bool(manifest)
     token_budget_respected = bool(token_budget) and estimated_after <= token_budget
     loss_accounting_present = bool(loss) and all(row.get("reason") for row in excluded)
@@ -161,6 +171,12 @@ def evaluate_context_management(context: dict[str, Any]) -> dict[str, Any]:
         score += 15
     if candidate_counted:
         score += 10
+    if role_context_contract_present:
+        score += 10
+    if required_context_dimensions_covered:
+        score += 10
+    if forbidden_drop_list_respected and retained_omitted_dimensions_traced:
+        score += 5
     return {
         "score": min(100, score),
         "budget_manifest_present": budget_manifest_present,
@@ -175,6 +191,16 @@ def evaluate_context_management(context: dict[str, Any]) -> dict[str, Any]:
         "estimated_tokens_after": estimated_after,
         "compression_ratio": manifest.get("compression_ratio", 0),
         "compression_style": compression_style,
+        "role_context_contract_present": role_context_contract_present,
+        "required_context_dimensions_covered": required_context_dimensions_covered,
+        "forbidden_drop_list_respected": forbidden_drop_list_respected,
+        "retained_omitted_dimensions_traced": retained_omitted_dimensions_traced,
+        "required_context_dimensions": sorted(required_dimensions),
+        "retained_context_dimensions": sorted(retained_dimensions),
+        "omitted_context_dimensions": sorted(omitted_dimensions),
+        "missing_required_context_dimensions": sorted(required_dimensions - retained_dimensions),
+        "forbidden_drop_violations": forbidden_drop_violations,
+        "role_context_controls_present": sorted(contract_controls),
         "drop_reasons": sorted({row.get("reason") for row in excluded if row.get("reason")}),
     }
 
@@ -851,6 +877,12 @@ def blocking_issues(*quality_docs: dict[str, Any]) -> list[str]:
             or not doc.get("safety_boundaries_respected")
         ):
             issues.append("policy_contract_missing_or_unapplied")
+        if doc.get("role_context_contract_present") is False:
+            issues.append("role_context_contract_missing")
+        if doc.get("required_context_dimensions_covered") is False:
+            issues.append("required_context_dimensions_missing")
+        if doc.get("forbidden_drop_list_respected") is False:
+            issues.append("forbidden_drop_list_violated")
         if doc.get("score", 0) < 60:
             score_below_60 = True
     if score_below_60:

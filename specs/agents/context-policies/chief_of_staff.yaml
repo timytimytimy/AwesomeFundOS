@@ -57,6 +57,20 @@ harness_checks:
 - context_budget_respected
 - must_preserve_satisfied
 - role_focus_alignment
+- role_context_contract_satisfied
 - no_real_trade_action
 real_trade_allowed: false
 broker_integration: false
+required_context_dimensions:
+- task_intent
+- agent_staffing
+- artifact_routing
+- handoff_blockers
+forbidden_drop_list:
+- risk_blockers
+- task_intent
+- handoff_blockers
+- artifact_paths
+- source_tiers
+- evidence_ids
+- claim_ids

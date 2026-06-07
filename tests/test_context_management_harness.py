@@ -41,6 +41,68 @@ class ContextManagementHarnessTests(unittest.TestCase):
         self.assertIn("retained_claim_ids", loss)
         self.assertIn("dropped_claim_ids", loss)
 
+    def test_context_pack_carries_vertical_role_context_contract_and_retained_omitted_trace(self):
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        pack = vertical_contract_evidence_pack("ctx-vertical-contract-run")
+        expectations = {
+            "position_trend_trader": ["market_state", "price_volume", "position_sizing", "invalidation"],
+            "tech_growth_analyst": ["industry_structure", "supply_chain_chokepoint", "technology_cycle", "primary_validation"],
+            "risk_manager": ["downside_scenario", "liquidity", "concentration", "kill_criteria"],
+            "bear_debater": ["core_assumption", "contradiction", "missing_evidence", "alternative_explanation"],
+        }
+
+        for agent_id, required_dimensions in expectations.items():
+            with self.subTest(agent_id=agent_id):
+                agent = next(row for row in roster["agents"] if row["id"] == agent_id)
+                context = make_context_pack("ctx-vertical-contract-run", agent, pack)
+                contract = context["role_context_contract"]
+                manifest_contract = context["context_budget_manifest"]["role_context_contract"]
+                loss = context["context_loss_accounting"]
+
+                self.assertEqual(contract["agent_id"], agent_id)
+                self.assertEqual(contract["role_family"], context["context_policy"]["role_family"])
+                self.assertEqual(contract["required_context_dimensions"], required_dimensions)
+                self.assertEqual(manifest_contract["required_context_dimensions"], required_dimensions)
+                self.assertIn("forbidden_drop_list", contract)
+                self.assertIn("risk_blockers", contract["forbidden_drop_list"])
+                self.assertIn("evidence_priority_policy", contract)
+                self.assertTrue(contract["evidence_priority_policy"]["prefer_primary_sources"])
+                self.assertIn("compression_strategy", contract)
+                self.assertIn("loss_accounting_contract", contract)
+                self.assertIn("retained_context_dimensions", loss)
+                self.assertIn("omitted_context_dimensions", loss)
+                self.assertIn("forbidden_drop_violations", loss)
+                self.assertFalse(loss["forbidden_drop_violations"])
+                self.assertGreaterEqual(set(loss["retained_context_dimensions"]), set(required_dimensions))
+                for item in context["included_evidence"]:
+                    self.assertIn("retained_context_dimensions", item)
+                    self.assertIn("context_dimension_trace", item)
+                self.assertIn("role_context_contract_loaded", context["context_budget_manifest"]["controls"])
+                self.assertIn("vertical_required_dimensions_traced", context["context_budget_manifest"]["controls"])
+
+    def test_agent_harness_scores_role_specific_context_contract_quality_and_fails_missing_required_dimensions(self):
+        roster = read_yaml(REPO_ROOT / "specs" / "agents" / "default-roster.yaml")
+        agent = next(row for row in roster["agents"] if row["id"] == "position_trend_trader")
+        context = make_context_pack("ctx-role-contract-harness-run", agent, vertical_contract_evidence_pack("ctx-role-contract-harness-run"))
+        output = minimal_output(agent, context)
+
+        result = evaluate_agent_harness_for_context(agent, context, output)
+
+        quality = result["context_management_quality"]
+        self.assertGreaterEqual(quality["score"], 90)
+        self.assertTrue(quality["role_context_contract_present"])
+        self.assertTrue(quality["required_context_dimensions_covered"])
+        self.assertTrue(quality["forbidden_drop_list_respected"])
+        self.assertEqual(quality["missing_required_context_dimensions"], [])
+
+        broken = yaml.safe_load(yaml.safe_dump(context, allow_unicode=True))
+        broken["context_loss_accounting"]["retained_context_dimensions"] = ["market_state"]
+        broken_result = evaluate_agent_harness_for_context(agent, broken, output)
+        broken_quality = broken_result["context_management_quality"]
+        self.assertFalse(broken_quality["required_context_dimensions_covered"])
+        self.assertIn("price_volume", broken_quality["missing_required_context_dimensions"])
+        self.assertIn("required_context_dimensions_missing", broken_result["blocking_issues"])
+
     def test_context_pack_schema_requires_budget_loss_thread_and_safety_contract(self):
         schema = read_yaml(REPO_ROOT / "specs" / "schemas" / "context-pack.schema.yaml")
 
@@ -324,6 +386,34 @@ def minimal_output(agent: dict, context: dict) -> dict:
         "forbidden_tool_actions": [],
         "tool_permission_checks": {"forbidden_tools_respected": True, "real_trade_allowed": False, "broker_integration": False},
     }
+
+
+def vertical_contract_evidence_pack(run_id: str) -> dict:
+    retrieved_at = now_iso()
+    specs = [
+        ("E101", "market_data", "tier_1_primary_fact", ["trading", "risk"], "市场状态、价格成交量、相对强弱、仓位和失效条件。", "market_state price_volume position_sizing invalidation liquidity kill_criteria"),
+        ("E102", "policy", "tier_1_primary_fact", ["industry", "risk"], "政策路径、需求验证和产业采用阶段。", "industry_structure policy_to_demand adoption_stage primary_validation"),
+        ("E103", "supply_chain", "tier_1_primary_fact", ["industry", "company"], "产业链瓶颈、技术周期和关键零部件验证。", "supply_chain_chokepoint technology_cycle industry_structure primary_validation"),
+        ("E104", "financial_report", "tier_1_primary_fact", ["company", "risk"], "财务质量、估值脆弱性、集中度和下行情景。", "financial_quality valuation downside_scenario concentration liquidity"),
+        ("E105", "case", "tier_2_canonical_framework", ["bear_case", "risk", "company"], "核心假设、矛盾证据、替代解释和失败类比。", "core_assumption contradiction missing_evidence alternative_explanation failed_analogy"),
+        ("E106", "news", "tier_4_expert_opinion", ["industry", "company"], "低优先级新闻噪音。", "theme_story"),
+    ]
+    items = []
+    for eid, source_type, tier, relevant_to, summary, claim_text in specs:
+        items.append(evidence_item(eid, source_type, tier, eid, summary, claim_text, "fact" if tier == "tier_1_primary_fact" else "inference", retrieved_at, relevant_to))
+    return {
+        "run_id": run_id,
+        "market": "CN_A_SHARE",
+        "query": "vertical context contract pack",
+        "retrieved_at": retrieved_at,
+        "evidence_items": items,
+        "unresolved_gaps": ["实时盘口未接入", "部分产业链验证仍需一手材料"],
+    }
+
+
+def evaluate_agent_harness_for_context(agent: dict, context: dict, output: dict) -> dict:
+    from fundos.agent_harness import evaluate_agent
+    return evaluate_agent(agent["id"], context, output)
 
 
 def trader_context_style(agent_id: str) -> list[str]:

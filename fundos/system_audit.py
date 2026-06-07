@@ -1738,13 +1738,22 @@ def runtime_context_pack_schema_check(repo_root: Path, run_path: Path, agent_ids
             issues.append("context_budget_manifest_agent_id_mismatch")
         if int(manifest.get("estimated_tokens_after", 0) or 0) > int(manifest.get("token_budget", context.get("context_budget_tokens", 0)) or 0):
             issues.append("token_budget_exceeded")
-        for required_control in ["role_specific_compression", "loss_accounting_required", "evidence_id_preservation", "claim_id_preservation", "token_budget_respected", "no_real_trade_action"]:
+        for required_control in ["role_specific_compression", "loss_accounting_required", "role_context_contract_loaded", "vertical_required_dimensions_traced", "evidence_id_preservation", "claim_id_preservation", "token_budget_respected", "no_real_trade_action"]:
             if required_control not in controls:
                 issues.append(f"missing_context_budget_control:{required_control}")
         if not loss:
             issues.append("context_loss_accounting_missing")
-        if "excluded_items_are_named" not in loss_controls or "dropped_claim_ids_are_auditable" not in loss_controls:
+        if "excluded_items_are_named" not in loss_controls or "dropped_claim_ids_are_auditable" not in loss_controls or "retained_context_dimensions_are_traced" not in loss_controls or "forbidden_drop_list_checked" not in loss_controls:
             issues.append("loss_controls_incomplete")
+        role_contract = context.get("role_context_contract", {}) or {}
+        required_dimensions = set(role_contract.get("required_context_dimensions", []) or [])
+        retained_dimensions = set(loss.get("retained_context_dimensions", []) or [])
+        if not role_contract:
+            issues.append("role_context_contract_missing")
+        if required_dimensions and not required_dimensions <= retained_dimensions:
+            issues.append("required_context_dimensions_missing")
+        if loss.get("forbidden_drop_violations"):
+            issues.append("forbidden_drop_list_violated")
         if not isinstance(loss.get("retained_evidence_ids", []), list) or not isinstance(loss.get("retained_claim_ids", []), list):
             issues.append("loss_traceability_lists_missing")
         if thread.get("agent_id") != agent_id:
@@ -3325,6 +3334,12 @@ def operating_system_manifest_context_management_check(manifest: Any, agent_harn
     compare_value(mismatches, "context_management_summary.loss_accounting_present", summary.get("loss_accounting_present"), sum(1 for item in context_docs if item.get("loss_accounting_present")))
     compare_value(mismatches, "context_management_summary.role_specific_compression_present", summary.get("role_specific_compression_present"), sum(1 for item in context_docs if item.get("role_specific_compression_present")))
     compare_value(mismatches, "context_management_summary.evidence_loss_auditable", summary.get("evidence_loss_auditable"), sum(1 for item in context_docs if item.get("evidence_loss_auditable")))
+    compare_value(mismatches, "context_management_summary.role_context_contract_present", summary.get("role_context_contract_present"), sum(1 for item in context_docs if item.get("role_context_contract_present")))
+    compare_value(mismatches, "context_management_summary.required_context_dimensions_covered", summary.get("required_context_dimensions_covered"), sum(1 for item in context_docs if item.get("required_context_dimensions_covered")))
+    compare_value(mismatches, "context_management_summary.forbidden_drop_list_respected", summary.get("forbidden_drop_list_respected"), sum(1 for item in context_docs if item.get("forbidden_drop_list_respected")))
+    compare_value(mismatches, "context_management_summary.retained_omitted_dimensions_traced", summary.get("retained_omitted_dimensions_traced"), sum(1 for item in context_docs if item.get("retained_omitted_dimensions_traced")))
+    compare_value(mismatches, "context_management_summary.missing_required_context_dimensions", summary.get("missing_required_context_dimensions"), sorted({dimension for item in context_docs for dimension in item.get("missing_required_context_dimensions", []) if dimension}))
+    compare_value(mismatches, "context_management_summary.forbidden_drop_violations", summary.get("forbidden_drop_violations"), sorted({dimension for item in context_docs for dimension in item.get("forbidden_drop_violations", []) if dimension}))
     compare_value(mismatches, "context_management_summary.excluded_items", summary.get("excluded_items"), sum(int(item.get("excluded_items", 0) or 0) for item in context_docs))
     compare_value(mismatches, "context_management_summary.estimated_tokens_before", summary.get("estimated_tokens_before"), sum(int(item.get("estimated_tokens_before", 0) or 0) for item in context_docs))
     compare_value(mismatches, "context_management_summary.estimated_tokens_after", summary.get("estimated_tokens_after"), sum(int(item.get("estimated_tokens_after", 0) or 0) for item in context_docs))
@@ -3333,7 +3348,7 @@ def operating_system_manifest_context_management_check(manifest: Any, agent_harn
     compare_value(mismatches, "context_management_summary.thread_summaries_available", summary.get("thread_summaries_available"), sum(1 for item in thread_docs if item.get("available")))
     compare_value(mismatches, "context_management_summary.thread_summary_signals_present", summary.get("thread_summary_signals_present"), sum(1 for item in thread_docs if item.get("summary_signal_present")))
     controls = set(summary.get("controls", []) or [])
-    for required_control in ["role_specific_compression", "loss_accounting_required", "token_budget_respected", "thread_summary_is_retrieval_input_only"]:
+    for required_control in ["role_specific_compression", "loss_accounting_required", "role_context_contract_loaded", "vertical_required_dimensions_traced", "forbidden_drop_list_checked", "token_budget_respected", "thread_summary_is_retrieval_input_only"]:
         if required_control not in controls:
             mismatches.append(f"context_management_summary.controls: missing {required_control}")
     if summary.get("real_trade_allowed") is not False:

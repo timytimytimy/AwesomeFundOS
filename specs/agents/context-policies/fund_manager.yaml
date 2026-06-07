@@ -57,6 +57,21 @@ harness_checks:
 - context_budget_respected
 - must_preserve_satisfied
 - role_focus_alignment
+- role_context_contract_satisfied
 - no_real_trade_action
 real_trade_allowed: false
 broker_integration: false
+required_context_dimensions:
+- committee_disagreement
+- weakest_evidence_link
+- risk_reward
+- position_range
+- kill_criteria
+forbidden_drop_list:
+- risk_blockers
+- committee_disagreement
+- kill_criteria
+- weakest_evidence_link
+- source_tiers
+- evidence_ids
+- claim_ids

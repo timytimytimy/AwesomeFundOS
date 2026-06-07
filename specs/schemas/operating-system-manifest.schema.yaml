@@ -405,6 +405,12 @@ properties:
       - loss_accounting_present
       - role_specific_compression_present
       - evidence_loss_auditable
+      - role_context_contract_present
+      - required_context_dimensions_covered
+      - forbidden_drop_list_respected
+      - retained_omitted_dimensions_traced
+      - missing_required_context_dimensions
+      - forbidden_drop_violations
       - excluded_items
       - estimated_tokens_before
       - estimated_tokens_after
@@ -423,6 +429,16 @@ properties:
       loss_accounting_present: {type: integer}
       role_specific_compression_present: {type: integer}
       evidence_loss_auditable: {type: integer}
+      role_context_contract_present: {type: integer}
+      required_context_dimensions_covered: {type: integer}
+      forbidden_drop_list_respected: {type: integer}
+      retained_omitted_dimensions_traced: {type: integer}
+      missing_required_context_dimensions:
+        type: array
+        items: {type: string}
+      forbidden_drop_violations:
+        type: array
+        items: {type: string}
       excluded_items: {type: integer}
       estimated_tokens_before: {type: integer}
       estimated_tokens_after: {type: integer}

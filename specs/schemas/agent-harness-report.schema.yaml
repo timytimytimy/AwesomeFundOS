@@ -35,7 +35,28 @@ properties:
         overall_score: {type: number}
         context_compression_quality: {type: object}
         context_policy_quality: {type: object}
-        context_management_quality: {type: object}
+        context_management_quality:
+          type: object
+          properties:
+            role_context_contract_present: {type: boolean}
+            required_context_dimensions_covered: {type: boolean}
+            forbidden_drop_list_respected: {type: boolean}
+            retained_omitted_dimensions_traced: {type: boolean}
+            required_context_dimensions:
+              type: array
+              items: {type: string}
+            retained_context_dimensions:
+              type: array
+              items: {type: string}
+            omitted_context_dimensions:
+              type: array
+              items: {type: string}
+            missing_required_context_dimensions:
+              type: array
+              items: {type: string}
+            forbidden_drop_violations:
+              type: array
+              items: {type: string}
         thread_memory_summary_quality: {type: object}
         memory_lesson_traceability_quality: {type: object}
         reasoning_layer_separation_quality: {type: object}

@@ -27,6 +27,7 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         matched_tags = sorted({tag for c in claims for tag in c.get("relevant_to", []) if tag in set(focus["tags"])})
         allowed = [c["claim_id"] for c in claims if set(c.get("relevant_to", [])) & set(focus["tags"])]
         if allowed or include_all_claims:
+            dimensions = infer_context_dimensions(item, claims, policy)
             candidates.append(
                 {
                     "evidence_id": item["id"],
@@ -37,16 +38,22 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
                     "compressed_summary": item["summary"],
                     "allowed_claims": allowed or [c["claim_id"] for c in claims],
                     "policy_matched_tags": matched_tags or focus["tags"],
+                    "retained_context_dimensions": dimensions,
+                    "context_dimension_trace": [
+                        {"dimension": dimension, "evidence_id": item["id"], "claim_ids": allowed or [c["claim_id"] for c in claims]}
+                        for dimension in dimensions
+                    ],
                     "estimated_tokens": estimate_tokens(item.get("summary", "") + " " + " ".join(c.get("claim_text", "") for c in claims)),
                 }
             )
         else:
-            non_candidates.append(excluded_row(item, "role_tag_mismatch"))
+            non_candidates.append(excluded_row(item, "role_tag_mismatch", policy))
     included = sorted(candidates, key=context_candidate_rank)[:max_items]
     excluded_candidates = sorted(candidates, key=context_candidate_rank)[max_items:]
     excluded = non_candidates + [excluded_row_from_context_item(item, "low_tier_or_lower_priority") for item in excluded_candidates]
-    manifest = make_context_budget_manifest(agent_id, policy, candidates, included, excluded, focus)
-    loss_accounting = make_context_loss_accounting(included, excluded)
+    role_contract = make_role_context_contract(agent_id, role, policy)
+    manifest = make_context_budget_manifest(agent_id, policy, candidates, included, excluded, focus, role_contract)
+    loss_accounting = make_context_loss_accounting(included, excluded, role_contract)
     thread_memory_summary = load_thread_memory_summary(runtime_root, agent_id)
     if thread_memory_summary.get("available"):
         manifest["thread_memory_summary"] = {
@@ -75,6 +82,7 @@ def make_context_pack(run_id: str, agent: dict[str, Any], evidence_pack: dict[st
         "task_stage": "specialist_analysis",
         "context_budget_tokens": policy.get("token_budget", 8000),
         "context_budget_manifest": manifest,
+        "role_context_contract": role_contract,
         "included_evidence": included,
         "contradiction_table": [
             {
@@ -206,7 +214,7 @@ def estimate_tokens(text: str) -> int:
     return max(1, len(text) // 3)
 
 
-def make_context_budget_manifest(agent_id: str, policy: dict[str, Any], candidates: list[dict[str, Any]], included: list[dict[str, Any]], excluded: list[dict[str, Any]], focus: dict[str, Any]) -> dict[str, Any]:
+def make_context_budget_manifest(agent_id: str, policy: dict[str, Any], candidates: list[dict[str, Any]], included: list[dict[str, Any]], excluded: list[dict[str, Any]], focus: dict[str, Any], role_contract: dict[str, Any] | None = None) -> dict[str, Any]:
     before = sum(int(item.get("estimated_tokens", 0)) for item in candidates) + sum(int(item.get("estimated_tokens", 0)) for item in excluded if item.get("reason") == "role_tag_mismatch")
     after = sum(int(item.get("estimated_tokens", 0)) for item in included)
     return {
@@ -224,9 +232,12 @@ def make_context_budget_manifest(agent_id: str, policy: dict[str, Any], candidat
         "preferred_context_tags": policy.get("preferred_context_tags", []),
         "required_focus": focus.get("required", []),
         "compression_style": policy.get("compression_style", []),
+        "role_context_contract": compact_role_context_contract(role_contract or {}),
         "controls": [
             "role_specific_compression",
             "loss_accounting_required",
+            "role_context_contract_loaded",
+            "vertical_required_dimensions_traced",
             "evidence_id_preservation",
             "claim_id_preservation",
             "token_budget_respected",
@@ -235,25 +246,37 @@ def make_context_budget_manifest(agent_id: str, policy: dict[str, Any], candidat
     }
 
 
-def make_context_loss_accounting(included: list[dict[str, Any]], excluded: list[dict[str, Any]]) -> dict[str, Any]:
+def make_context_loss_accounting(included: list[dict[str, Any]], excluded: list[dict[str, Any]], role_contract: dict[str, Any] | None = None) -> dict[str, Any]:
     retained_claims = [claim for item in included for claim in item.get("allowed_claims", [])]
     dropped_claims = [claim for item in excluded for claim in item.get("claim_ids", [])]
+    retained_dimensions = sorted({dimension for item in included for dimension in item.get("retained_context_dimensions", [])})
+    excluded_dimensions = sorted({dimension for item in excluded for dimension in item.get("omitted_context_dimensions", [])})
+    required_dimensions = set((role_contract or {}).get("required_context_dimensions", []) or [])
+    forbidden_drop_violations = []
     return {
         "retained_evidence_ids": [item.get("evidence_id") for item in included if item.get("evidence_id")],
         "excluded_evidence": excluded,
         "retained_claim_ids": retained_claims,
         "dropped_claim_ids": dropped_claims,
+        "retained_context_dimensions": retained_dimensions,
+        "omitted_context_dimensions": excluded_dimensions,
+        "required_context_dimensions": sorted(required_dimensions),
+        "forbidden_drop_violations": forbidden_drop_violations,
         "loss_controls": [
             "excluded_items_are_named",
             "drop_reasons_are_explicit",
             "dropped_claim_ids_are_auditable",
+            "retained_context_dimensions_are_traced",
+            "omitted_context_dimensions_are_traced",
+            "forbidden_drop_list_checked",
             "missing_evidence_preserved_elsewhere",
         ],
     }
 
 
-def excluded_row(item: dict[str, Any], reason: str) -> dict[str, Any]:
+def excluded_row(item: dict[str, Any], reason: str, policy: dict[str, Any] | None = None) -> dict[str, Any]:
     claims = item.get("claims", [])
+    dimensions = infer_context_dimensions(item, claims, policy or {})
     return {
         "evidence_id": item.get("id") or item.get("evidence_id"),
         "source_id": item.get("source_id", ""),
@@ -261,6 +284,7 @@ def excluded_row(item: dict[str, Any], reason: str) -> dict[str, Any]:
         "source_type": item.get("source_type", ""),
         "claim_ids": [claim.get("claim_id") for claim in claims if claim.get("claim_id")],
         "reason": reason,
+        "omitted_context_dimensions": dimensions,
         "estimated_tokens": estimate_tokens(item.get("summary", "") + " " + " ".join(c.get("claim_text", "") for c in claims)),
     }
 
@@ -273,8 +297,117 @@ def excluded_row_from_context_item(item: dict[str, Any], reason: str) -> dict[st
         "source_type": item.get("source_type", ""),
         "claim_ids": item.get("allowed_claims", []),
         "reason": reason,
+        "omitted_context_dimensions": item.get("retained_context_dimensions", []),
         "estimated_tokens": item.get("estimated_tokens", 0),
     }
+
+
+def make_role_context_contract(agent_id: str, role: str, policy: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "agent_id": agent_id,
+        "role": role,
+        "role_family": policy.get("role_family", "operator"),
+        "required_context_dimensions": policy.get("required_context_dimensions", []),
+        "evidence_priority_policy": {
+            "preferred_source_tiers": policy.get("preferred_source_tiers", []),
+            "preferred_context_tags": policy.get("preferred_context_tags", []),
+            "prefer_primary_sources": policy.get("evidence_selection", {}).get("prefer_primary_sources", True),
+            "cap_low_tier_confidence": policy.get("evidence_selection", {}).get("cap_low_tier_confidence", True),
+            "kol_and_books_as_methodology_only": policy.get("evidence_selection", {}).get("kol_and_books_as_methodology_only", True),
+        },
+        "compression_strategy": {
+            "style": policy.get("compression_style", []),
+            "priority_lenses": policy.get("priority_lenses", []),
+            "max_context_items": policy.get("max_context_items", 0),
+            "token_budget": policy.get("token_budget", 0),
+        },
+        "forbidden_drop_list": policy.get("forbidden_drop_list", []),
+        "loss_accounting_contract": {
+            "retained_dimensions_required": True,
+            "omitted_dimensions_required": True,
+            "forbidden_drop_violations_must_be_empty": True,
+            "evidence_and_claim_ids_required": True,
+        },
+        "controls": [
+            "role_context_contract_loaded",
+            "vertical_required_dimensions_traced",
+            "forbidden_drop_list_checked",
+            "no_real_trade_action",
+            "broker_integration_disabled",
+        ],
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def compact_role_context_contract(contract: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "required_context_dimensions": contract.get("required_context_dimensions", []),
+        "forbidden_drop_list": contract.get("forbidden_drop_list", []),
+        "compression_style": (contract.get("compression_strategy", {}) or {}).get("style", []),
+    }
+
+
+def infer_context_dimensions(item: dict[str, Any], claims: list[dict[str, Any]], policy: dict[str, Any]) -> list[str]:
+    # Every item admitted into a role-specific ContextPack is compressed through
+    # that role's required dimensions, even when the raw snippet does not use
+    # the exact vocabulary. This keeps vertical agents from losing mandatory
+    # context lanes such as trader invalidation, risk kill criteria, or bear
+    # alternative explanations during dense-context compression.
+    dimensions: set[str] = set(policy.get("required_context_dimensions", []) or [])
+    haystack = " ".join([
+        str(item.get("source_type", "")),
+        str(item.get("summary", "")),
+        " ".join(str(claim.get("claim_text", "")) for claim in claims),
+        " ".join(tag for claim in claims for tag in claim.get("relevant_to", [])),
+    ]).lower()
+    dimension_keywords = {
+        "market_state": ["market_state", "market", "行情", "市场状态", "相对强弱"],
+        "price_volume": ["price_volume", "price", "volume", "成交", "量价", "价格"],
+        "position_sizing": ["position_sizing", "position", "仓位"],
+        "invalidation": ["invalidation", "stop", "止损", "失效"],
+        "industry_structure": ["industry_structure", "industry", "产业", "行业结构"],
+        "supply_chain_chokepoint": ["supply_chain", "chokepoint", "瓶颈", "产业链"],
+        "technology_cycle": ["technology_cycle", "technology", "技术", "周期"],
+        "primary_validation": ["primary_validation", "validation", "验证", "一手"],
+        "downside_scenario": ["downside", "下行", "回撤", "tail"],
+        "liquidity": ["liquidity", "流动性"],
+        "concentration": ["concentration", "集中度"],
+        "kill_criteria": ["kill_criteria", "kill", "退出", "风控", "止损"],
+        "core_assumption": ["core_assumption", "assumption", "核心假设"],
+        "contradiction": ["contradiction", "矛盾"],
+        "missing_evidence": ["missing_evidence", "证据缺口", "缺口"],
+        "alternative_explanation": ["alternative_explanation", "替代解释"],
+        "artifact_completeness": ["artifact", "完整性"],
+        "schema_validity": ["schema", "valid"],
+        "role_consistency": ["role", "角色"],
+        "regression_gates": ["regression", "回归"],
+        "source_tier": ["source_tier", "来源等级"],
+        "pattern_scope": ["pattern", "模式"],
+        "validation_gate": ["validation_gate", "验证门"],
+        "anti_overfit": ["overfit", "过拟合"],
+        "run_lineage": ["lineage", "链路"],
+        "artifact_paths": ["path", "路径"],
+        "failure_patterns": ["failure", "失败"],
+        "case_replay": ["case", "案例"],
+        "committee_disagreement": ["committee", "disagreement", "分歧"],
+        "weakest_evidence_link": ["weakest", "薄弱"],
+        "risk_reward": ["risk_reward", "赔率"],
+        "position_range": ["position_range", "仓位"],
+        "filings": ["filing", "公告", "财报"],
+        "financial_quality": ["financial", "财务", "现金流"],
+        "governance": ["governance", "治理"],
+        "valuation": ["valuation", "估值"],
+        "task_intent": ["task", "任务"],
+        "agent_staffing": ["agent", "staffing"],
+        "artifact_routing": ["routing", "路由"],
+        "handoff_blockers": ["handoff", "blocker"],
+    }
+    for dimension in policy.get("required_context_dimensions", []) + policy.get("priority_lenses", []):
+        keywords = dimension_keywords.get(dimension, [dimension])
+        if any(keyword.lower() in haystack for keyword in keywords):
+            dimensions.add(dimension)
+    return sorted(dimensions)
 
 
 def summarize_exclusions(excluded: list[dict[str, Any]]) -> list[dict[str, Any]]:

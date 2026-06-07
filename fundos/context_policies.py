@@ -8,7 +8,7 @@ from fundos.io import REPO_ROOT, read_yaml, write_yaml
 CONTEXT_POLICY_VERSION = "0.1.0"
 DEFAULT_MUST_PRESERVE = ["evidence_ids", "claim_ids", "contradictions", "missing_evidence", "source_tiers", "low_confidence_claims"]
 DEFAULT_EXCLUSIONS = ["real_trade_orders", "personal_financial_advice", "uncited_high_confidence_claims", "brokerage_instructions"]
-DEFAULT_HARNESS_CHECKS = ["source_policy_match", "context_budget_respected", "must_preserve_satisfied", "role_focus_alignment", "no_real_trade_action"]
+DEFAULT_HARNESS_CHECKS = ["source_policy_match", "context_budget_respected", "must_preserve_satisfied", "role_focus_alignment", "role_context_contract_satisfied", "no_real_trade_action"]
 
 
 def role_family(role: str, category: str = "") -> str:
@@ -51,6 +51,8 @@ def policy_template(agent: dict[str, Any]) -> dict[str, Any]:
         "compression_style": spec["compression_style"],
         "priority_lenses": spec["priority_lenses"],
         "required_focus": spec["required_focus"],
+        "required_context_dimensions": spec["required_context_dimensions"],
+        "forbidden_drop_list": spec["forbidden_drop_list"],
         "exclusion_rules": DEFAULT_EXCLUSIONS + spec.get("exclusion_rules", []),
         "evidence_selection": {
             "match_mode": "claim_relevance_tag_overlap",
@@ -73,6 +75,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["trading", "risk"],
             "compression_style": ["trigger_table", "price_volume_summary", "risk_boundary_table"],
             "priority_lenses": ["market_state", "price_volume", "trigger", "invalidation", "liquidity", "position_sizing"],
+            "required_context_dimensions": ["market_state", "price_volume", "position_sizing", "invalidation"],
+            "forbidden_drop_list": ["risk_blockers", "stop_loss", "liquidity", "invalidation", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["量价结构", "买卖触发条件", "仓位纪律"],
             "exclusion_rules": ["company_list_without_trigger", "theme_story_without_price_volume"],
         },
@@ -82,6 +86,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["risk", "company", "trading"],
             "compression_style": ["risk_matrix", "scenario_table", "kill_criteria_table"],
             "priority_lenses": ["downside", "liquidity", "concentration", "valuation_fragility", "tail_risk"],
+            "required_context_dimensions": ["downside_scenario", "liquidity", "concentration", "kill_criteria"],
+            "forbidden_drop_list": ["risk_blockers", "downside_scenario", "liquidity", "concentration", "kill_criteria", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["下行风险", "证据等级", "仓位上限"],
         },
         "bear": {
@@ -90,6 +96,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["bear_case", "risk", "company"],
             "compression_style": ["assumption_attack_table", "contradiction_table", "alternative_explanation_table"],
             "priority_lenses": ["core_assumptions", "contradictions", "missing_evidence", "failed_analogies", "crowding"],
+            "required_context_dimensions": ["core_assumption", "contradiction", "missing_evidence", "alternative_explanation"],
+            "forbidden_drop_list": ["risk_blockers", "contradictions", "missing_evidence", "alternative_explanation", "bear_case", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["攻击核心假设", "替代解释", "证据缺口"],
         },
         "evaluation": {
@@ -98,6 +106,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["industry", "company", "trading", "risk", "bear_case"],
             "compression_style": ["scorecard", "artifact_checklist", "blocking_issue_table"],
             "priority_lenses": ["artifact_completeness", "schema_validity", "role_consistency", "source_boundaries", "regression_gates"],
+            "required_context_dimensions": ["artifact_completeness", "schema_validity", "role_consistency", "regression_gates"],
+            "forbidden_drop_list": ["risk_blockers", "schema_errors", "blocking_issues", "safety_boundary", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["评分依据", "阻断项", "回归测试"],
         },
         "learning": {
@@ -106,6 +116,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["industry", "company", "trading", "risk", "bear_case"],
             "compression_style": ["source_registry_table", "pattern_card", "validation_gate_table"],
             "priority_lenses": ["source_tier", "allowed_learning_output", "pattern_scope", "anti_overfit", "validation_gate"],
+            "required_context_dimensions": ["source_tier", "pattern_scope", "validation_gate", "anti_overfit"],
+            "forbidden_drop_list": ["risk_blockers", "source_tiers", "validation_gate", "quarantine", "evolution_gate", "evidence_ids", "claim_ids"],
             "required_focus": ["来源等级", "可学习模式", "验证门槛"],
         },
         "archivist": {
@@ -114,6 +126,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["industry", "company", "trading", "risk", "bear_case"],
             "compression_style": ["case_card", "lineage_table", "review_task_list"],
             "priority_lenses": ["run_lineage", "artifact_paths", "failure_patterns", "review_tasks", "case_replay"],
+            "required_context_dimensions": ["run_lineage", "artifact_paths", "failure_patterns", "case_replay"],
+            "forbidden_drop_list": ["risk_blockers", "artifact_paths", "failure_patterns", "case_replay", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["归档路径", "复盘任务", "案例复现"],
         },
         "fund_manager": {
@@ -122,6 +136,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["industry", "company", "trading", "risk", "bear_case"],
             "compression_style": ["committee_memo", "decision_alternative_table", "weakest_link_table"],
             "priority_lenses": ["committee_disagreement", "weakest_evidence_link", "risk_reward", "position_range", "kill_criteria"],
+            "required_context_dimensions": ["committee_disagreement", "weakest_evidence_link", "risk_reward", "position_range", "kill_criteria"],
+            "forbidden_drop_list": ["risk_blockers", "committee_disagreement", "kill_criteria", "weakest_evidence_link", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["综合判断", "证据追溯", "流程完整性"],
         },
         "company": {
@@ -130,6 +146,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["company", "risk"],
             "compression_style": ["company_evidence_table", "financial_quality_table", "valuation_sensitivity_table"],
             "priority_lenses": ["filings", "financial_quality", "revenue_exposure", "customer_evidence", "governance", "valuation"],
+            "required_context_dimensions": ["filings", "financial_quality", "governance", "valuation"],
+            "forbidden_drop_list": ["risk_blockers", "filings", "financial_quality", "governance", "valuation", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["财报公告", "产品和订单", "治理风险"],
         },
         "industry": {
@@ -138,6 +156,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["industry", "company"],
             "compression_style": ["supply_chain_map", "chokepoint_table", "research_gap_table"],
             "priority_lenses": ["industry_structure", "supply_chain_chokepoint", "policy_to_demand", "adoption_stage", "primary_validation"],
+            "required_context_dimensions": ["industry_structure", "supply_chain_chokepoint", "technology_cycle", "primary_validation"],
+            "forbidden_drop_list": ["risk_blockers", "industry_structure", "supply_chain_chokepoint", "primary_validation", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["产业链", "chokepoint", "需求验证"],
         },
         "operator": {
@@ -146,6 +166,8 @@ def family_spec(family: str) -> dict[str, Any]:
             "preferred_context_tags": ["industry", "company", "trading", "risk", "bear_case"],
             "compression_style": ["routing_table", "dag_state", "artifact_checklist"],
             "priority_lenses": ["task_intent", "agent_staffing", "artifact_routing", "dag_state", "handoff_blockers"],
+            "required_context_dimensions": ["task_intent", "agent_staffing", "artifact_routing", "handoff_blockers"],
+            "forbidden_drop_list": ["risk_blockers", "task_intent", "handoff_blockers", "artifact_paths", "source_tiers", "evidence_ids", "claim_ids"],
             "required_focus": ["综合判断", "证据追溯", "流程完整性"],
         },
     }

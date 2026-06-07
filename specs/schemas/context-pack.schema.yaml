@@ -8,6 +8,7 @@ required:
   - task_stage
   - context_budget_tokens
   - context_budget_manifest
+  - role_context_contract
   - included_evidence
   - contradiction_table
   - missing_evidence
@@ -62,6 +63,18 @@ properties:
       compression_style:
         type: array
         items: {type: string}
+      role_context_contract:
+        type: object
+        properties:
+          required_context_dimensions:
+            type: array
+            items: {type: string}
+          forbidden_drop_list:
+            type: array
+            items: {type: string}
+          compression_style:
+            type: array
+            items: {type: string}
       controls:
         type: array
         items: {type: string}
@@ -75,6 +88,40 @@ properties:
           accepted_memory_lesson_count: {type: integer}
           quarantined_candidate_count: {type: integer}
           rejected_candidate_count: {type: integer}
+  role_context_contract:
+    type: object
+    required:
+      - agent_id
+      - role
+      - role_family
+      - required_context_dimensions
+      - evidence_priority_policy
+      - compression_strategy
+      - forbidden_drop_list
+      - loss_accounting_contract
+      - controls
+      - real_trade_allowed
+      - broker_integration
+    properties:
+      agent_id: {type: string}
+      role: {type: string}
+      role_family: {type: string}
+      required_context_dimensions:
+        type: array
+        items: {type: string}
+      evidence_priority_policy: {type: object}
+      compression_strategy: {type: object}
+      forbidden_drop_list:
+        type: array
+        items: {type: string}
+      loss_accounting_contract: {type: object}
+      controls:
+        type: array
+        items: {type: string}
+      real_trade_allowed:
+        enum: [false]
+      broker_integration:
+        enum: [disabled]
   included_evidence:
     type: array
     items:
@@ -98,6 +145,12 @@ properties:
         policy_matched_tags:
           type: array
           items: {type: string}
+        retained_context_dimensions:
+          type: array
+          items: {type: string}
+        context_dimension_trace:
+          type: array
+          items: {type: object}
         estimated_tokens: {type: integer}
   contradiction_table:
     type: array
@@ -151,11 +204,26 @@ properties:
               type: array
               items: {type: string}
             reason: {type: string}
+            omitted_context_dimensions:
+              type: array
+              items: {type: string}
             estimated_tokens: {type: integer}
       retained_claim_ids:
         type: array
         items: {type: string}
       dropped_claim_ids:
+        type: array
+        items: {type: string}
+      retained_context_dimensions:
+        type: array
+        items: {type: string}
+      omitted_context_dimensions:
+        type: array
+        items: {type: string}
+      required_context_dimensions:
+        type: array
+        items: {type: string}
+      forbidden_drop_violations:
         type: array
         items: {type: string}
       loss_controls:
