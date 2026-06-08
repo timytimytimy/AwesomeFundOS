@@ -816,9 +816,9 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
         requirement(
             "cli.run_eval_evolve_operability",
             "cli_operability",
-            "CLI exposes run, eval, evolve, report, memory, capabilities, sources, cases, threads, and governance workflows.",
+            "CLI exposes run, eval, evolve, report, memory, capabilities, sources, cases, threads, governance, and system doctor workflows.",
             [root / "fundos/cli.py", root / "tests/test_cli_unittest.py"],
-            file_contains(root / "fundos/cli.py", ["command_run", "command_eval", "command_evolve", "command_capabilities_apply", "command_sources_ingest", "command_threads_show", "command_governance_summary"]),
+            file_contains(root / "fundos/cli.py", ["command_run", "command_eval", "command_evolve", "command_capabilities_apply", "command_sources_ingest", "command_threads_show", "command_governance_summary", "command_system_doctor"]),
         ),
         requirement(
             "runtime.operating_system_manifest_schema_exists",

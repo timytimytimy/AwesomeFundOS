@@ -29,6 +29,8 @@ fundos followups answer --run runs/2026-06-05-robotics --task-id 2026-06-05-robo
 fundos followups close --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001 --evidence accepted-evidence.yaml
 fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
+fundos system doctor
+fundos system audit --strict
 ```
 
 ### 1.1 `fundos skills export --out <dir>`
@@ -39,6 +41,19 @@ fundos governance summary --run runs/2026-06-05-robotics
 - 同步写入 `<dir>/awesomefundos-skills-manifest.yaml`，记录 agent_id、skill_name、source_path、target_path 和安全边界。
 - 不改变 `agent.md`、Profile、Memory、Tool Permission 或风险限制。
 - 导出后的 Skill 仍保持 `real_trade_allowed=false`、`broker_integration=disabled`，仅用于 research / watchlist / Paper Portfolio。
+
+### 1.2 `fundos system doctor`
+
+快速检查当前仓库是否可以直接交给 Codex / CLI 使用：
+
+- 校验 `pyproject.toml` 是否声明 `fundos` console script；
+- 校验默认 roster 是否可加载且包含 19 个 Agent；
+- 校验每个 roster Agent 都有 source-controlled `agent.md` 和 `SKILL.md`；
+- 执行 Codex Skill 导出 dry-run，确认 19 个 `fundos-*` Skill 目录可生成；
+- 运行 repository-level strict audit；
+- 显式输出 `doctor_status`、通过/失败检查数、`real_trade_allowed=False` 与 `broker_integration=disabled`。
+
+任一检查失败时返回非 0；该命令不创建真实交易连接，不改写 Agent Card / Skill / Profile / Tool Permission。
 
 ## 2. `fundos init`
 

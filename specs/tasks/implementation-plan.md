@@ -43,7 +43,16 @@ python3 -m fundos.cli cases list
 python3 -m fundos.cli followups list --run runs/<run_id>
 python3 -m fundos.cli threads show --agent fund_manager
 python3 -m fundos.cli governance summary --run runs/<run_id>
+python3 -m fundos.cli system doctor
 python3 -m fundos.cli system audit --strict
+```
+
+After `python3 -m pip install -e .`, the equivalent console-script form is preferred for daily use:
+
+```bash
+fundos system doctor
+fundos skills export --out ./skills
+fundos system audit --strict
 ```
 
 ## 3. Implemented module checklist
@@ -247,15 +256,18 @@ Implemented behavior:
 Evidence:
 
 - `fundos/system_audit.py`
+- `fundos/cli.py`
 - `docs/prd/overall-prd.md`
 - `docs/prd/modules/*.md`
 - `specs/audits/prd-requirement-matrix.yaml`
 - `specs/schemas/prd-requirement-matrix.schema.yaml`
 - `tests/test_system_audit.py`
+- `tests/test_cli_unittest.py`
 
 Implemented behavior:
 
 - `system audit --strict` validates PRD/module coverage, runtime artifacts, schemas, source ingestion quarantine artifacts, public research manifest integrity, OS manifest, safety invariants, learning/evolution/capability artifacts, and no-placeholder runtime records.
+- `system doctor` provides a faster Codex-facing readiness check for console-script packaging, 19 Agent Cards, 19 source Skills, Codex Skill exportability, repository strict audit, and paper-only / broker-disabled safety invariants.
 - The PRD acceptance matrix maps all 104 acceptance criteria across 10 module PRDs to concrete evidence paths and verification commands.
 - `.github/workflows/ci.yml` runs the same V1 verification gate on push, pull request, and manual dispatch.
 
@@ -270,10 +282,13 @@ scripts/verify_v1.sh
 The script runs:
 
 ```bash
-python3 -m unittest discover -s tests -q
-python3 -m fundos.cli system audit --strict
+.venv-fundos-verify/bin/python -m unittest discover -s tests -q
+.venv-fundos-verify/bin/fundos system doctor
+.venv-fundos-verify/bin/python -m fundos.cli system audit --strict
 git diff --check
 ```
+
+`scripts/verify_v1.sh` creates `.venv-fundos-verify` automatically when needed so PEP 668 / externally-managed Python environments do not block verification.
 
 Expected safety fields in audit output:
 

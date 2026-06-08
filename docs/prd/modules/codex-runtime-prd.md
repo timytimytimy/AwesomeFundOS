@@ -130,7 +130,7 @@ V1 目标命令：
 
 ## Acceptance Criteria
 
-- `fundos init`, `fundos run`, `fundos eval`, `fundos evolve`, `fundos inspect`, `fundos report`, `fundos memory`, `fundos capabilities`, `fundos sources`, `fundos cases`, `fundos followups`, `fundos threads`, `fundos governance` and `fundos system audit` are exposed as local-first CLI workflows.
+- `fundos init`, `fundos run`, `fundos eval`, `fundos evolve`, `fundos inspect`, `fundos report`, `fundos memory`, `fundos capabilities`, `fundos sources`, `fundos cases`, `fundos followups`, `fundos threads`, `fundos governance`, `fundos skills export`, `fundos system doctor` and `fundos system audit` are exposed as local-first CLI workflows.
 - Each run writes `run.yaml`, selected agents, EvidencePack, ContextPacks, Agent outputs, final decision memo, harness artifacts, portfolio artifacts and `system/operating-system-manifest.yaml`.
 - `run.yaml` model_records must be concrete governance evidence and must never use stub model/tool version placeholders.
 - `system audit --strict` must fail missing runtime model records, stale OS manifest summaries, schema violations or broker / real-trade leakage.

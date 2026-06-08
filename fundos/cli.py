@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -848,6 +849,89 @@ def command_system_audit(args: argparse.Namespace) -> int:
         return 1
     return 0
 
+
+def command_system_doctor(args: argparse.Namespace) -> int:
+    repo = Path(args.repo)
+    if not repo.is_absolute():
+        repo = Path.cwd() / repo
+    repo = repo.resolve()
+
+    checks = run_system_doctor(repo)
+    failed = [row for row in checks if row["status"] != "pass"]
+    for row in checks:
+        print(f"[{row['status']}] {row['check_id']} - {row['message']}")
+    print(f"doctor_status={'pass' if not failed else 'fail'}")
+    print(f"passed_checks={len(checks) - len(failed)}")
+    print(f"failed_checks={len(failed)}")
+    print("real_trade_allowed=False")
+    print("broker_integration=disabled")
+    return 1 if failed else 0
+
+
+def doctor_check(check_id: str, ok: bool, message: str) -> dict[str, str]:
+    return {"check_id": check_id, "status": "pass" if ok else "fail", "message": message}
+
+
+def run_system_doctor(repo: Path) -> list[dict[str, str]]:
+    checks: list[dict[str, str]] = []
+    pyproject = repo / "pyproject.toml"
+    cli_file = repo / "fundos" / "cli.py"
+    roster_path = repo / "specs" / "agents" / "default-roster.yaml"
+    pyproject_text = pyproject.read_text(encoding="utf-8") if pyproject.exists() else ""
+    checks.append(
+        doctor_check(
+            "package.console_script_declared",
+            'fundos = "fundos.cli:main"' in pyproject_text,
+            "pyproject.toml exposes the fundos console command",
+        )
+    )
+    checks.append(doctor_check("cli.module_present", cli_file.exists(), "fundos CLI module is present"))
+    checks.append(doctor_check("roster.file_present", roster_path.exists(), "default roster file is present"))
+
+    roster: dict[str, Any] = {}
+    try:
+        roster = read_yaml(roster_path) if roster_path.exists() else {}
+    except Exception as exc:  # pragma: no cover - defensive user-facing diagnostic
+        checks.append(doctor_check("roster.loadable", False, f"default roster failed to load: {exc}"))
+    agents = roster.get("agents", []) if isinstance(roster, dict) else []
+    agent_ids = [row.get("id") for row in agents if isinstance(row, dict) and row.get("id")]
+    checks.append(doctor_check("roster.agent_count", len(agent_ids) == 19, f"default roster contains {len(agent_ids)} agents"))
+
+    missing_cards = [aid for aid in agent_ids if not (repo / "specs" / "agents" / "agent-cards" / aid / "agent.md").exists()]
+    missing_skills = [aid for aid in agent_ids if not (repo / "specs" / "skills" / aid / "SKILL.md").exists()]
+    checks.append(doctor_check("agents.agent_cards_present", not missing_cards and len(agent_ids) > 0, f"missing agent cards: {','.join(missing_cards) or 'none'}"))
+    checks.append(doctor_check("skills.source_skills_present", not missing_skills and len(agent_ids) > 0, f"missing source skills: {','.join(missing_skills) or 'none'}"))
+
+    export_ok = False
+    export_message = "not attempted"
+    if not missing_skills and agent_ids:
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                out_dir = Path(d) / "skills"
+                out_dir.mkdir(parents=True, exist_ok=True)
+                exported = 0
+                for aid in agent_ids:
+                    target_dir = out_dir / f"fundos-{aid}"
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(repo / "specs" / "skills" / aid / "SKILL.md", target_dir / "SKILL.md")
+                    exported += 1
+                export_ok = exported == len(agent_ids) and all((out_dir / f"fundos-{aid}" / "SKILL.md").exists() for aid in agent_ids)
+                export_message = f"Codex skill export dry-run wrote {exported} skill folders"
+        except Exception as exc:  # pragma: no cover - defensive user-facing diagnostic
+            export_message = f"Codex skill export dry-run failed: {exc}"
+    checks.append(doctor_check("skills.export_dry_run", export_ok, export_message))
+
+    try:
+        audit = run_system_audit(repo)
+        checks.append(doctor_check("audit.strict_requirements", audit.get("failed_requirements") == 0, f"system audit failed_requirements={audit.get('failed_requirements')}"))
+        checks.append(doctor_check("safety.real_trade_disabled", audit.get("real_trade_allowed") is False, "real_trade_allowed remains False"))
+        checks.append(doctor_check("safety.broker_disabled", audit.get("broker_integration") == "disabled", "broker_integration remains disabled"))
+    except Exception as exc:  # pragma: no cover - defensive user-facing diagnostic
+        checks.append(doctor_check("audit.strict_requirements", False, f"system audit failed to run: {exc}"))
+        checks.append(doctor_check("safety.real_trade_disabled", False, "unable to verify real_trade_allowed"))
+        checks.append(doctor_check("safety.broker_disabled", False, "unable to verify broker_integration"))
+    return checks
+
 def command_cases_list(args: argparse.Namespace) -> int:
     library = load_case_library()
     index = build_case_library_index(library)
@@ -1136,6 +1220,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_system_audit.add_argument("--run")
     p_system_audit.add_argument("--strict", action="store_true")
     p_system_audit.set_defaults(func=command_system_audit)
+
+    p_system_doctor = system_sub.add_parser("doctor")
+    p_system_doctor.add_argument("--repo", default=".", help="Repository root to inspect; defaults to current directory")
+    p_system_doctor.set_defaults(func=command_system_doctor)
 
     return parser
 

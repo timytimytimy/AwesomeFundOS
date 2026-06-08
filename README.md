@@ -50,6 +50,14 @@ python3 -m pip install -e .
 fundos --help
 ```
 
+快速健康检查：
+
+```bash
+fundos system doctor
+```
+
+`doctor` 会检查本地安装入口、19 个 Agent Card、19 个 source Skill、Codex Skill 导出 dry-run、strict repository audit，以及 `real_trade_allowed=False` / `broker_integration=disabled` 安全边界。
+
 本地完整质量门：
 
 ```bash
@@ -58,11 +66,15 @@ scripts/verify_v1.sh
 
 该脚本会运行全量 unittest、`fundos system audit --strict` 和 `git diff --check`，并显式校验 `real_trade_allowed=False` 与 `broker_integration=disabled`。GitHub Actions 使用同一个脚本作为 CI 入口。
 
+为兼容 PEP 668 / Homebrew Python 等 externally-managed 环境，`scripts/verify_v1.sh` 会默认创建并复用仓库内 `.venv-fundos-verify`，不会向系统 Python 写入包。
+
 ## Codex Skill 导出
 
 仓库内的 canonical Skills 位于 `specs/skills/*/SKILL.md`。如果需要把 AwesomeFundOS 的 19 个 Agent Skills 导出为 Codex 可发现的 Skill 目录，可以运行：
 
 ```bash
+fundos skills export --out ./skills
+# 或不安装 console script 时：
 python3 -m fundos.cli skills export --out ./skills
 ```
 

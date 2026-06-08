@@ -34,10 +34,15 @@ The manifest links selected agents to source-controlled Agent Cards, SKILL files
 
 Repository-level audit checks overall PRD, module PRDs, agent assets, policies, harness modules, learning/evolution, case library, tools, governance protocols, safety boundaries and CLI operability.
 
+## 5. System Doctor
+
+`fundos system doctor` is the fast readiness check before handing the repository to Codex for implementation or operation. It verifies console-script packaging, default roster loadability, the 19 source-controlled Agent Cards, the 19 source-controlled Skills, Codex Skill export dry-run, repository strict audit, and the no-real-trade / no-broker safety invariants. It returns non-zero on any failed check and never grants runtime permissions.
+
 ## Acceptance Criteria
 
 - Repository audit reports required PRD modules and fails if any module is missing or too weak for implementation.
 - Runtime strict audit fails stale OS manifest summaries, schema violations, missing artifacts, unsafe model records or broker / real-trade leakage.
 - Audit output includes YAML and Markdown reports with requirement IDs, evidence paths, details and blocking issues.
 - Audit itself is evidence-based: each pass must point to concrete files or runtime artifacts.
+- `fundos system doctor` returns `doctor_status=pass` only when packaging, Agent assets, Skill exportability, strict audit, and safety invariants pass.
 - Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, audit never grants permissions.

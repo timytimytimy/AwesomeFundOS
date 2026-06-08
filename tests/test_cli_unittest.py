@@ -69,6 +69,26 @@ class FundosCliTests(unittest.TestCase):
             self.assertIn("real_trade_allowed=false", exported_text)
             self.assertIn("broker_integration=disabled", exported_text)
 
+    def test_system_doctor_checks_installation_assets_export_and_safety(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+
+            result = run_cli(["system", "doctor", "--repo", str(ROOT)], tmp_path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("[pass] package.console_script_declared", result.stdout)
+            self.assertIn("[pass] roster.agent_count", result.stdout)
+            self.assertIn("[pass] agents.agent_cards_present", result.stdout)
+            self.assertIn("[pass] skills.source_skills_present", result.stdout)
+            self.assertIn("[pass] skills.export_dry_run", result.stdout)
+            self.assertIn("[pass] audit.strict_requirements", result.stdout)
+            self.assertIn("[pass] safety.real_trade_disabled", result.stdout)
+            self.assertIn("[pass] safety.broker_disabled", result.stdout)
+            self.assertIn("doctor_status=pass", result.stdout)
+            self.assertIn("failed_checks=0", result.stdout)
+            self.assertIn("real_trade_allowed=False", result.stdout)
+            self.assertIn("broker_integration=disabled", result.stdout)
+
     def test_run_topic_creates_complete_workspace(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

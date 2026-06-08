@@ -26,6 +26,18 @@ class PackagingTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("usage: fundos", result.stdout)
         self.assertIn("skills", result.stdout)
+        self.assertIn("system", result.stdout)
+
+    def test_system_help_exposes_doctor_command(self):
+        result = subprocess.run(
+            [sys.executable, "-m", "fundos.cli", "system", "--help"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("audit", result.stdout)
+        self.assertIn("doctor", result.stdout)
 
 
 if __name__ == "__main__":
