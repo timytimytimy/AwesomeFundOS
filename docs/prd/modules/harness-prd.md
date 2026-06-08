@@ -141,6 +141,31 @@ runs/{run_id}/harness/historical-case-replay.yaml
 
 Harness Evaluation 需要把回放摘要写入 `case_replay_quality`，并把 `historical_case_replay` 放入 dimension_scores。
 
+#### Historical Case Replay Stress Fixture
+
+V1 还必须提供离线覆盖率压力测试，证明 source-controlled historical case library 不只是存在，而是能被回放系统覆盖到关键失败类型：fraud blowup、policy-driven cycle、failed breakout、KOL thesis failure，以及 manifest 声明的 minimum case types。
+
+命令：
+
+```bash
+fundos harness case-replay-stress
+```
+
+产物：
+
+```text
+runs/{fixture_name}/runs/case-replay-stress-fixture/harness/case-replay-stress.yaml
+```
+
+验收要求：
+
+- `missing_required_case_types=[]`；
+- `missing_critical_replay_types=[]`，至少覆盖 fraud、policy、failed breakout、KOL thesis failure；
+- critical case 的 failure modes 必须进入 `failure_modes_checked`；
+- KOL / 大 V / 课程 / 书籍 / 历史案例仍只能是 methodology、hypothesis、checklist 或 case pattern 来源；
+- 回放通过不允许产生 direct buy/sell、direct case mapping、broker instruction 或真实交易权限；
+- `system audit --strict` 必须包含 `cases.historical_case_replay_coverage_stress`。
+
 ### Level 3 Outcome Tracking / Market Replay Harness
 
 V1 只做轻量结构，但必须形成可评测的复盘闭环。支持离线 market replay fixture，不接实时行情、不接券商、不生成真实交易动作：

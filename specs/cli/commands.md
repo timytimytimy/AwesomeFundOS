@@ -37,6 +37,7 @@ fundos harness context-stress --items 72 --out-run runs/context-stress
 fundos harness capability-benchmark
 fundos harness capability-matrix
 fundos harness handoff-stress
+fundos harness case-replay-stress
 fundos system doctor
 fundos system audit --strict
 ```
@@ -85,7 +86,18 @@ fundos harness handoff-stress --fixture-name handoff_stress_committee_fixture_v1
 
 Outputs include `handoff_stress_status`, `scenario_count`, `passed_scenarios`, `blocked_scenarios`, `mismatched_scenarios`, and the generated `harness/handoff-stress.yaml`. The benchmark writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
-### 1.1 `fundos fixtures list` and `fundos run --fixture-id <id>`
+### 1.6 `fundos harness case-replay-stress`
+
+Runs an isolated historical case replay coverage fixture. The fixture creates controlled learning patterns for fraud blowups, policy cycles, failed breakouts, KOL thesis failures, and the remaining minimum case types, then verifies that replay touches source-controlled case files and their failure modes without turning any case, book, course, KOL, or historical analogy into a direct buy/sell signal.
+
+```bash
+fundos harness case-replay-stress
+fundos harness case-replay-stress --fixture-name case_replay_coverage_fixture_v1
+```
+
+Outputs include `case_replay_stress_status`, `case_count`, `patterns_replayed`, `case_results_total`, `missing_required_case_types`, `missing_critical_replay_types`, `missing_critical_failure_modes`, and the generated `harness/case-replay-stress.yaml`. The fixture writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
+
+### 1.7 `fundos fixtures list` and `fundos run --fixture-id <id>`
 
 `fundos fixtures list` prints the built-in deterministic public-research fixture catalog. `fundos run --fixture-id <id>` resolves topic, research fixture, market replay fixture, and primary vertical agents from `examples/fixtures/fixture-catalog.yaml`.
 

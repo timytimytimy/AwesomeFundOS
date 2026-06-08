@@ -98,8 +98,14 @@ def match_cases(pattern: dict[str, Any], cases: list[dict[str, Any]]) -> list[di
         case_tags = set(case.get("tags", []))
         case_agents = set(case.get("applicable_agents", []))
         if pattern_id in case.get("pattern_ids", []) or pattern_tags & case_tags or pattern_agents & case_agents:
-            matched.append(case)
-    return matched[:3]
+            matched.append((
+                1 if pattern_id in case.get("pattern_ids", []) else 0,
+                len(pattern_tags & case_tags),
+                len(pattern_agents & case_agents),
+                case,
+            ))
+    matched.sort(key=lambda row: (row[0], row[1], row[2]), reverse=True)
+    return [row[3] for row in matched[:3]]
 
 
 def no_match_result(pattern: dict[str, Any]) -> dict[str, Any]:

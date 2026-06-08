@@ -644,6 +644,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
     context_stress = context_stress_check(root)
     capability_benchmark = capability_benchmark_fixture_check(root)
     capability_matrix = capability_matrix_fixture_check(root)
+    case_replay_stress = case_replay_stress_check(root)
     handoff_stress = handoff_stress_check(root)
     return [
         requirement(
@@ -830,6 +831,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             [root / "fundos/capability_matrix.py", root / "fundos/capability_regression.py", root / "fundos/capability_apply.py"],
             capability_matrix["ok"],
             details=capability_matrix,
+        ),
+        requirement(
+            "cases.historical_case_replay_coverage_stress",
+            "case_library",
+            "Historical case replay stress harness covers fraud, policy cycles, failed breakouts, KOL thesis failures, failure modes, and no-direct-mapping safety controls.",
+            [root / "fundos/case_replay_stress.py", root / "fundos/case_replay.py", root / "specs/cases/historical-case-library.yaml", root / "specs/cases/cases"],
+            case_replay_stress["ok"],
+            details=case_replay_stress,
         ),
         requirement(
             "committee.cross_agent_handoff_stress_harness",
@@ -1047,6 +1056,54 @@ def capability_matrix_fixture_check(root: Path) -> dict[str, Any]:
         "blocked_missing_artifact_count": report.get("blocked_missing_artifact_count", 0),
         "applied_kinds": improvement.get("applied_kinds", []),
         "blocked_candidate_ids": improvement.get("blocked_candidate_ids", []),
+        "blocking_issues": report.get("blocking_issues", []),
+        "controls": report.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def case_replay_stress_check(root: Path) -> dict[str, Any]:
+    from fundos.case_replay_stress import CRITICAL_CASE_TYPES, run_case_replay_stress_fixture
+
+    try:
+        report = run_case_replay_stress_fixture(root)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "blocking_issues": [f"case_replay_stress_failed:{exc}"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    checks = report.get("checks", {}) or {}
+    ok = (
+        report.get("status") == "passed"
+        and not report.get("missing_required_case_types")
+        and not report.get("missing_critical_replay_types")
+        and set(CRITICAL_CASE_TYPES).issubset(set(report.get("matched_case_types", []) or []))
+        and checks.get("failure_modes_checked") is True
+        and checks.get("methodology_only_controls_ok") is True
+        and checks.get("kol_thesis_hypothesis_only_ok") is True
+        and checks.get("no_direct_mapping_ok") is True
+        and checks.get("safety_ok") is True
+        and report.get("real_trade_allowed") is False
+        and report.get("broker_integration") == "disabled"
+    )
+    return {
+        "ok": ok,
+        "status": report.get("status"),
+        "fixture_id": report.get("fixture_id"),
+        "workspace_path": report.get("workspace_path"),
+        "case_count": report.get("case_count", 0),
+        "patterns_replayed": report.get("patterns_replayed", 0),
+        "case_results_total": report.get("case_results_total", 0),
+        "matched_case_types": report.get("matched_case_types", []),
+        "critical_case_types": report.get("critical_case_types", []),
+        "missing_required_case_types": report.get("missing_required_case_types", []),
+        "missing_critical_replay_types": report.get("missing_critical_replay_types", []),
+        "missing_critical_failure_modes": report.get("missing_critical_failure_modes", []),
+        "checks": checks,
         "blocking_issues": report.get("blocking_issues", []),
         "controls": report.get("controls", []),
         "real_trade_allowed": False,

@@ -285,6 +285,21 @@ Learning / Evolution must provide a deterministic benchmark fixture that proves 
 
 The benchmark is not allowed to promote a KOL, book, course, or historical case into direct buy/sell evidence. Methodology and case replay remain hypothesis/checklist inputs only. A candidate that fails replay, evidence quality, role consistency, skill benchmark, or safety gates must remain blocked and cannot be applied.
 
+## Historical Case Replay Coverage Fixture
+
+Learning Evolution depends on case replay before durable capability upgrades, so V1 includes a dedicated offline fixture that stresses the historical case library itself. `fundos harness case-replay-stress` creates controlled learning patterns for fraud blowups, policy cycles, failed breakouts, KOL thesis failures, and the remaining minimum case types. It then runs the normal replay engine and blocks if any required case type, critical replay type, or critical failure mode is not checked.
+
+Output artifact: `harness/case-replay-stress.yaml`.
+
+Required checks:
+
+- source-controlled case manifest minimum types are present;
+- fraud, policy cycle, failed breakout, and KOL thesis failure cases are replayed;
+- failure modes from those critical cases are included in replay results;
+- KOL and social-signal cases remain hypothesis/checklist only;
+- direct case mapping, direct buy/sell signals, broker instructions, and real-trade authority remain forbidden;
+- the fixture runs in an isolated workspace and never mutates source-controlled Agent Cards or Skills.
+
 ## Capability Matrix Fixture
 
 Learning Evolution includes an isolated capability matrix fixture for non-skill capability kinds and blocking cases. The fixture creates controlled `principle`, `workflow`, `checklist`, and unsafe `tool_policy` / missing-artifact candidates, runs Capability Regression, applies only human-approved non-skill candidates to runtime `agents/{agent_id}/applied-capabilities.yaml`, and verifies blocked candidates are not applied.
