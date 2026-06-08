@@ -38,6 +38,7 @@ fundos harness capability-benchmark
 fundos harness capability-matrix
 fundos harness handoff-stress
 fundos harness case-replay-stress
+fundos harness governance-stress
 fundos system doctor
 fundos system audit --strict
 ```
@@ -97,7 +98,18 @@ fundos harness case-replay-stress --fixture-name case_replay_coverage_fixture_v1
 
 Outputs include `case_replay_stress_status`, `case_count`, `patterns_replayed`, `case_results_total`, `missing_required_case_types`, `missing_critical_replay_types`, `missing_cross_market_replay_types`, `missing_critical_failure_modes`, and the generated `harness/case-replay-stress.yaml`. The fixture writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
-### 1.7 `fundos fixtures list` and `fundos run --fixture-id <id>`
+### 1.7 `fundos harness governance-stress`
+
+Runs an isolated governance stress fixture for protected capability changes. The fixture validates that a safe workflow capability can pass regression and human-approved runtime apply, while protected tool-policy expansion, risk-limit mutation, missing multi-agent dependency attestations, and real-trade authority requests are blocked before apply.
+
+```bash
+fundos harness governance-stress
+fundos harness governance-stress --fixture-name governance_tool_risk_dependency_fixture_v1
+```
+
+Outputs include `governance_stress_status`, `candidate_count`, `applied_candidate_count`, `blocked_tool_policy_count`, `blocked_risk_limit_count`, `blocked_dependency_count`, `blocked_real_trade_count`, and the generated `harness/governance-stress.yaml`. The fixture writes only under its isolated `runs/<fixture-name>/` workspace. Source-controlled Agent Cards, Skills, ToolPolicies, Profiles, risk limits, broker settings, and real-trade authority must remain unchanged. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
+
+### 1.8 `fundos fixtures list` and `fundos run --fixture-id <id>`
 
 `fundos fixtures list` prints the built-in deterministic public-research fixture catalog. `fundos run --fixture-id <id>` resolves topic, research fixture, market replay fixture, and primary vertical agents from `examples/fixtures/fixture-catalog.yaml`.
 

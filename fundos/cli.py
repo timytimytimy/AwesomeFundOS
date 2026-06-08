@@ -33,6 +33,7 @@ from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
 from fundos.failure_patterns import load_failure_summary, write_failure_patterns
 from fundos.fixture_catalog import list_fixture_summaries, resolve_fixture
+from fundos.governance_stress import run_governance_stress_fixture
 from fundos.handoff_stress import run_handoff_stress_fixture
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
@@ -1090,6 +1091,23 @@ def command_harness_case_replay_stress(args: argparse.Namespace) -> int:
     print(f"broker_integration={report['broker_integration']}")
     return 0 if report["status"] == "passed" else 1
 
+
+def command_harness_governance_stress(args: argparse.Namespace) -> int:
+    report = run_governance_stress_fixture(Path.cwd(), fixture_name=args.fixture_name)
+    print(f"governance_stress_status={report['status']}")
+    print(f"candidate_count={report['candidate_count']}")
+    print(f"applied_candidate_count={report['applied_candidate_count']}")
+    print(f"blocked_tool_policy_count={report['blocked_tool_policy_count']}")
+    print(f"blocked_risk_limit_count={report['blocked_risk_limit_count']}")
+    print(f"blocked_dependency_count={report['blocked_dependency_count']}")
+    print(f"blocked_real_trade_count={report['blocked_real_trade_count']}")
+    print("blocking_issues=" + (",".join(report.get("blocking_issues", [])) or "none"))
+    report_path = Path.cwd() / report["workspace_path"] / "runs" / report["run_id"] / "harness" / "governance-stress.yaml"
+    print(f"governance_stress_report={report_path}")
+    print(f"real_trade_allowed={report['real_trade_allowed']}")
+    print(f"broker_integration={report['broker_integration']}")
+    return 0 if report["status"] == "passed" else 1
+
 def command_followups_list(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
     reconcile_research_gap_followups(run_path)
@@ -1355,6 +1373,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_harness_case_replay_stress = harness_sub.add_parser("case-replay-stress")
     p_harness_case_replay_stress.add_argument("--fixture-name", default="case_replay_coverage_fixture_v1", help="Isolated fixture workspace name under runs/")
     p_harness_case_replay_stress.set_defaults(func=command_harness_case_replay_stress)
+    p_harness_governance_stress = harness_sub.add_parser("governance-stress")
+    p_harness_governance_stress.add_argument("--fixture-name", default="governance_tool_risk_dependency_fixture_v1", help="Isolated fixture workspace name under runs/")
+    p_harness_governance_stress.set_defaults(func=command_harness_governance_stress)
 
     p_followups = sub.add_parser("followups")
     followups_sub = p_followups.add_subparsers(dest="followups_command", required=True)

@@ -316,6 +316,21 @@ Required checks:
 - source-controlled Agent Cards, source Skills, Profiles, risk limits, and tool permissions must not be mutated;
 - safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
 
+## Governance Stress Fixture
+
+Learning Evolution includes an isolated governance stress fixture for protected capability scopes and multi-agent dependencies. `fundos harness governance-stress` creates one safe workflow candidate plus negative candidates for tool-permission expansion, risk-limit mutation, missing risk/bear-debater attestations, and real-trade authority. Only the safe workflow candidate may apply, and only to runtime `agents/{agent_id}/applied-capabilities.yaml`.
+
+Output artifact: `harness/governance-stress.yaml`.
+
+Required checks:
+
+- safe workflow candidate passes capability regression and records human-approved runtime apply;
+- tool-policy and risk-limit candidates are blocked by protected-scope governance;
+- dependency-chain candidate is blocked when required agent attestations are missing;
+- real-trade authority candidate is blocked regardless of other scores;
+- blocked candidates are not applied;
+- source-controlled Agent Cards, Skills, ToolPolicies, risk limits, broker settings, and real-trade authority are not mutated.
+
 Acceptance additions:
 
 - `fundos harness capability-benchmark` returns pass only when before/after snapshots show a real controlled capability delta.

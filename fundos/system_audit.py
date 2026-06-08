@@ -645,6 +645,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
     capability_benchmark = capability_benchmark_fixture_check(root)
     capability_matrix = capability_matrix_fixture_check(root)
     case_replay_stress = case_replay_stress_check(root)
+    governance_stress = governance_stress_check(root)
     handoff_stress = handoff_stress_check(root)
     return [
         requirement(
@@ -839,6 +840,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             [root / "fundos/case_replay_stress.py", root / "fundos/case_replay.py", root / "specs/cases/historical-case-library.yaml", root / "specs/cases/cases"],
             case_replay_stress["ok"],
             details=case_replay_stress,
+        ),
+        requirement(
+            "governance.tool_risk_dependency_stress_harness",
+            "governance",
+            "Governance stress harness blocks tool-policy expansion, risk-limit changes, missing multi-agent dependencies, and real-trade authority while allowing safe workflow capability apply.",
+            [root / "fundos/governance_stress.py", root / "fundos/capability_regression.py", root / "fundos/capability_apply.py", root / "specs/agents/tool-policies"],
+            governance_stress["ok"],
+            details=governance_stress,
         ),
         requirement(
             "committee.cross_agent_handoff_stress_harness",
@@ -1111,6 +1120,52 @@ def case_replay_stress_check(root: Path) -> dict[str, Any]:
         "missing_cross_market_replay_types": report.get("missing_cross_market_replay_types", []),
         "missing_critical_failure_modes": report.get("missing_critical_failure_modes", []),
         "checks": checks,
+        "blocking_issues": report.get("blocking_issues", []),
+        "controls": report.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def governance_stress_check(root: Path) -> dict[str, Any]:
+    from fundos.governance_stress import run_governance_stress_fixture
+
+    try:
+        report = run_governance_stress_fixture(root)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "blocking_issues": [f"governance_stress_failed:{exc}"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    improvement = report.get("improvement", {}) or {}
+    ok = (
+        report.get("status") == "passed"
+        and report.get("applied_candidate_count", 0) == 1
+        and report.get("blocked_tool_policy_count", 0) >= 1
+        and report.get("blocked_risk_limit_count", 0) >= 1
+        and report.get("blocked_dependency_count", 0) >= 1
+        and report.get("blocked_real_trade_count", 0) >= 1
+        and improvement.get("governance_passed") is True
+        and report.get("real_trade_allowed") is False
+        and report.get("broker_integration") == "disabled"
+    )
+    return {
+        "ok": ok,
+        "status": report.get("status"),
+        "fixture_id": report.get("fixture_id"),
+        "workspace_path": report.get("workspace_path"),
+        "candidate_count": report.get("candidate_count", 0),
+        "applied_candidate_count": report.get("applied_candidate_count", 0),
+        "blocked_candidate_count": report.get("blocked_candidate_count", 0),
+        "blocked_tool_policy_count": report.get("blocked_tool_policy_count", 0),
+        "blocked_risk_limit_count": report.get("blocked_risk_limit_count", 0),
+        "blocked_dependency_count": report.get("blocked_dependency_count", 0),
+        "blocked_real_trade_count": report.get("blocked_real_trade_count", 0),
+        "applied_candidate_ids": improvement.get("applied_candidate_ids", []),
+        "blocked_candidate_ids": improvement.get("blocked_candidate_ids", []),
         "blocking_issues": report.get("blocking_issues", []),
         "controls": report.get("controls", []),
         "real_trade_allowed": False,

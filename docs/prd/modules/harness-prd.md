@@ -334,6 +334,22 @@ Required checks:
 - source-controlled Agent Cards, Skills, Profiles, risk limits, and ToolPolicies must remain unchanged;
 - safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
 
+## Governance Stress Fixture
+
+Harness includes a protected-governance stress fixture for tool-policy, risk-limit, and multi-agent capability dependency chains. The fixture proves that normal workflow capabilities can pass regression and apply only to runtime applied-capability records, while protected mutations and unsafe authority requests are blocked before apply.
+
+Output artifact: `harness/governance-stress.yaml`.
+
+Required checks:
+
+- safe workflow candidate passes `historical_case_replay`, `role_drift_check`, `evidence_quality_check`, `tool_harness`, `risk_limit_guard`, and `capability_dependency_chain`, then applies through human-approved runtime capability records;
+- tool-permission expansion candidates remain `blocked_regression`;
+- risk-limit mutation candidates remain `blocked_regression`;
+- candidates with missing multi-agent dependency attestations remain `blocked_regression`;
+- any real-trade or broker-authority request remains blocked even with an apparent human approver;
+- source-controlled Agent Cards, Skills, Profiles, ToolPolicies, risk limits, broker settings, and real-trade authority remain unchanged;
+- safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
+
 ## Cross-Agent Handoff Stress Evaluation
 
 Harness includes a cross-agent committee handoff stress check for the Investment Committee workflow. The check builds an isolated offline fixture with FundManager, RiskManager, BearDebater, analyst, trader, EvaluationHarness, and ReviewArchivist roles, then verifies `specs/protocols/handoff-contract.yaml` against generated and intentionally degraded handoff scenarios.

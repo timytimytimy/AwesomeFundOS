@@ -15,6 +15,9 @@ TEST_ARTIFACTS = {
     "tool_harness": "harness/tool-harness.yaml",
     "agent_harness": "harness/agent-harness.yaml",
     "outcome_review": "portfolio/portfolio-review.yaml",
+    "risk_limit_guard": "risk/risk-limits.yaml",
+    "capability_dependency_chain": "agent_work/dependency-attestations.yaml",
+    "missing_dependency_attestation": "agent_work/dependency-attestations.yaml",
 }
 
 
@@ -181,6 +184,21 @@ def score_based_issues(test_name: str, doc: dict[str, Any]) -> list[str]:
             issues.append("evidence_quality_below_60")
     if test_name == "tool_harness" and doc.get("high_confidence_allowed") is False:
         issues.append("tool_harness_blocks_high_confidence")
+    if test_name == "risk_limit_guard":
+        if doc.get("real_trade_allowed") is not False:
+            issues.append("risk_limit_real_trade_allowed_forbidden")
+        if doc.get("broker_integration") != "disabled":
+            issues.append("risk_limit_broker_integration_not_disabled")
+        if doc.get("risk_manager_veto_required") is not True:
+            issues.append("risk_manager_veto_required_missing")
+    if test_name == "capability_dependency_chain":
+        if doc.get("dependencies_ready") is not True:
+            issues.append("capability_dependency_chain_not_ready")
+        missing = [row.get("agent_id") for row in doc.get("attestations", []) if row.get("status") != "ready"]
+        if missing:
+            issues.append("capability_dependency_attestations_missing:" + ",".join(str(item) for item in sorted(missing)))
+    if test_name == "missing_dependency_attestation":
+        issues.append("capability_dependency_attestation_required")
     return issues
 
 
@@ -188,6 +206,8 @@ def unsafe_candidate_issues(candidate: dict[str, Any]) -> list[str]:
     issues = []
     if candidate.get("target_scope") in {"core_profile", "org_structure", "tool_permission", "risk_limit"}:
         issues.append("protected_scope_requires_separate_governance")
+    if candidate.get("candidate_type") in {"profile_update", "tool_permission_update", "risk_limit_update"}:
+        issues.append("protected_candidate_type_requires_separate_governance")
     if candidate.get("real_trade_allowed") is True:
         issues.append("real_trade_allowed_forbidden")
     return issues
