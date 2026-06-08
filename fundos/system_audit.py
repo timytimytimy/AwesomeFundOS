@@ -643,6 +643,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
     fixture_catalog = fixture_catalog_check(root)
     context_stress = context_stress_check(root)
     capability_benchmark = capability_benchmark_fixture_check(root)
+    capability_matrix = capability_matrix_fixture_check(root)
     handoff_stress = handoff_stress_check(root)
     return [
         requirement(
@@ -823,6 +824,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details=capability_benchmark,
         ),
         requirement(
+            "evolution.capability_matrix_non_skill_and_blocking_fixture",
+            "learning_evolution",
+            "Capability matrix fixture verifies principle/workflow/checklist apply paths and blocks protected-scope or missing-artifact candidates before human-approved apply.",
+            [root / "fundos/capability_matrix.py", root / "fundos/capability_regression.py", root / "fundos/capability_apply.py"],
+            capability_matrix["ok"],
+            details=capability_matrix,
+        ),
+        requirement(
             "committee.cross_agent_handoff_stress_harness",
             "governance",
             "Cross-agent handoff stress harness verifies committee handoff contracts, artifact refs, context trace, blocked unsafe requests, and no-broker controls.",
@@ -994,6 +1003,50 @@ def capability_benchmark_fixture_check(root: Path) -> dict[str, Any]:
         "application_status_transition": improvement.get("application_status_transition"),
         "skill_text_length_delta": improvement.get("skill_text_length_delta"),
         "case_replay_score": report.get("case_replay_score", 0),
+        "blocking_issues": report.get("blocking_issues", []),
+        "controls": report.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def capability_matrix_fixture_check(root: Path) -> dict[str, Any]:
+    from fundos.capability_matrix import run_capability_matrix_fixture
+
+    try:
+        report = run_capability_matrix_fixture(root)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "blocking_issues": [f"capability_matrix_failed:{exc}"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    improvement = report.get("improvement", {}) or {}
+    ok = (
+        report.get("status") == "passed"
+        and report.get("non_skill_applied_count", 0) >= 3
+        and report.get("blocked_protected_scope_count", 0) >= 1
+        and report.get("blocked_missing_artifact_count", 0) >= 1
+        and improvement.get("matrix_passed") is True
+        and report.get("real_trade_allowed") is False
+        and report.get("broker_integration") == "disabled"
+    )
+    return {
+        "ok": ok,
+        "status": report.get("status"),
+        "fixture_id": report.get("fixture_id"),
+        "workspace_path": report.get("workspace_path"),
+        "candidate_count": report.get("candidate_count", 0),
+        "passed_candidate_count": report.get("passed_candidate_count", 0),
+        "blocked_candidate_count": report.get("blocked_candidate_count", 0),
+        "applied_candidate_count": report.get("applied_candidate_count", 0),
+        "non_skill_applied_count": report.get("non_skill_applied_count", 0),
+        "blocked_protected_scope_count": report.get("blocked_protected_scope_count", 0),
+        "blocked_missing_artifact_count": report.get("blocked_missing_artifact_count", 0),
+        "applied_kinds": improvement.get("applied_kinds", []),
+        "blocked_candidate_ids": improvement.get("blocked_candidate_ids", []),
         "blocking_issues": report.get("blocking_issues", []),
         "controls": report.get("controls", []),
         "real_trade_allowed": False,

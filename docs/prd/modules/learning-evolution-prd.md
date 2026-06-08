@@ -285,6 +285,21 @@ Learning / Evolution must provide a deterministic benchmark fixture that proves 
 
 The benchmark is not allowed to promote a KOL, book, course, or historical case into direct buy/sell evidence. Methodology and case replay remain hypothesis/checklist inputs only. A candidate that fails replay, evidence quality, role consistency, skill benchmark, or safety gates must remain blocked and cannot be applied.
 
+## Capability Matrix Fixture
+
+Learning Evolution includes an isolated capability matrix fixture for non-skill capability kinds and blocking cases. The fixture creates controlled `principle`, `workflow`, `checklist`, and unsafe `tool_policy` / missing-artifact candidates, runs Capability Regression, applies only human-approved non-skill candidates to runtime `agents/{agent_id}/applied-capabilities.yaml`, and verifies blocked candidates are not applied.
+
+Output artifact: `harness/capability-matrix-fixture.yaml`.
+
+Required checks:
+
+- principle, workflow, and checklist candidates must pass regression and apply through the managed runtime capability path;
+- protected scopes such as tool permissions must remain `blocked_regression` and require separate governance;
+- candidates whose required test artifacts are missing must remain `blocked_regression`;
+- blocked candidates must not appear in runtime applied capabilities;
+- source-controlled Agent Cards, source Skills, Profiles, risk limits, and tool permissions must not be mutated;
+- safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
+
 Acceptance additions:
 
 - `fundos harness capability-benchmark` returns pass only when before/after snapshots show a real controlled capability delta.

@@ -19,6 +19,7 @@ from fundos.agent_performance import load_performance_summary, write_agent_perfo
 from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
 from fundos.capability_benchmark import run_capability_benchmark_fixture
+from fundos.capability_matrix import run_capability_matrix_fixture
 from fundos.case_replay import run_case_replay
 from fundos.case_library import build_case_library_index, load_case_library
 from fundos.claim_graph import write_claim_graph
@@ -1051,6 +1052,24 @@ def command_harness_handoff_stress(args: argparse.Namespace) -> int:
     print(f"broker_integration={report['broker_integration']}")
     return 0 if report["status"] == "passed" else 1
 
+
+def command_harness_capability_matrix(args: argparse.Namespace) -> int:
+    report = run_capability_matrix_fixture(Path.cwd(), fixture_name=args.fixture_name)
+    print(f"capability_matrix_status={report['status']}")
+    print(f"candidate_count={report['candidate_count']}")
+    print(f"passed_candidate_count={report['passed_candidate_count']}")
+    print(f"blocked_candidate_count={report['blocked_candidate_count']}")
+    print(f"applied_candidate_count={report['applied_candidate_count']}")
+    print(f"non_skill_applied_count={report['non_skill_applied_count']}")
+    print(f"blocked_protected_scope_count={report['blocked_protected_scope_count']}")
+    print(f"blocked_missing_artifact_count={report['blocked_missing_artifact_count']}")
+    print("blocking_issues=" + (",".join(report.get("blocking_issues", [])) or "none"))
+    report_path = Path.cwd() / report["workspace_path"] / "runs" / report["run_id"] / "harness" / "capability-matrix-fixture.yaml"
+    print(f"capability_matrix_report={report_path}")
+    print(f"real_trade_allowed={report['real_trade_allowed']}")
+    print(f"broker_integration={report['broker_integration']}")
+    return 0 if report["status"] == "passed" else 1
+
 def command_followups_list(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
     reconcile_research_gap_followups(run_path)
@@ -1310,6 +1329,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_harness_handoff = harness_sub.add_parser("handoff-stress")
     p_harness_handoff.add_argument("--fixture-name", default="handoff_stress_committee_fixture_v1", help="Isolated fixture workspace name under runs/")
     p_harness_handoff.set_defaults(func=command_harness_handoff_stress)
+    p_harness_capability_matrix = harness_sub.add_parser("capability-matrix")
+    p_harness_capability_matrix.add_argument("--fixture-name", default="capability_matrix_non_skill_and_blocking_fixture_v1", help="Isolated fixture workspace name under runs/")
+    p_harness_capability_matrix.set_defaults(func=command_harness_capability_matrix)
 
     p_followups = sub.add_parser("followups")
     followups_sub = p_followups.add_subparsers(dest="followups_command", required=True)

@@ -293,6 +293,21 @@ Required checks:
 - source-controlled Agent Card and Skill files must remain unchanged;
 - safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
 
+## Capability Matrix Fixture
+
+Harness includes an isolated capability matrix fixture for non-skill self-improvement and negative regression cases. The fixture verifies that principle, workflow, and checklist upgrades can pass Capability Regression and apply only to runtime applied-capabilities files, while protected scope and missing-artifact candidates remain blocked.
+
+Output artifact: `harness/capability-matrix-fixture.yaml`.
+
+Required checks:
+
+- principle, workflow, and checklist candidates must apply through managed runtime capability records;
+- protected tool-permission or risk-limit candidates must be blocked before apply;
+- candidates missing required regression artifacts must be blocked before apply;
+- blocked candidates must not appear in runtime applied capabilities;
+- source-controlled Agent Cards, Skills, Profiles, risk limits, and ToolPolicies must remain unchanged;
+- safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
+
 ## Cross-Agent Handoff Stress Evaluation
 
 Harness includes a cross-agent committee handoff stress check for the Investment Committee workflow. The check builds an isolated offline fixture with FundManager, RiskManager, BearDebater, analyst, trader, EvaluationHarness, and ReviewArchivist roles, then verifies `specs/protocols/handoff-contract.yaml` against generated and intentionally degraded handoff scenarios.

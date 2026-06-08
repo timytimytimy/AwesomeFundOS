@@ -35,6 +35,7 @@ fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
 fundos harness context-stress --items 72 --out-run runs/context-stress
 fundos harness capability-benchmark
+fundos harness capability-matrix
 fundos harness handoff-stress
 fundos system doctor
 fundos system audit --strict
@@ -62,7 +63,18 @@ fundos harness capability-benchmark --fixture-name capability_benchmark_skill_ap
 
 Outputs include `capability_benchmark_status`, `candidate_id`, `regression_status`, `skill_benchmark_status`, `application_status`, `managed_skill_block_added`, `skill_text_length_delta`, `case_replay_score`, and the generated `harness/capability-benchmark-fixture.yaml`. The benchmark writes only under its isolated `runs/<fixture-name>/` workspace and must not mutate source-controlled `specs/agents/agent-cards/*/agent.md` or `specs/skills/*/SKILL.md`. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
-### 1.4 `fundos harness handoff-stress`
+### 1.4 `fundos harness capability-matrix`
+
+Runs an isolated capability matrix fixture for non-skill self-improvement and negative regression cases. The fixture validates `principle`, `workflow`, and `checklist` candidates through Capability Regression and human-approved runtime apply, then verifies that protected tool-permission candidates and missing-artifact candidates remain `blocked_regression` and cannot be applied.
+
+```bash
+fundos harness capability-matrix
+fundos harness capability-matrix --fixture-name capability_matrix_non_skill_and_blocking_fixture_v1
+```
+
+Outputs include `capability_matrix_status`, `candidate_count`, `non_skill_applied_count`, `blocked_protected_scope_count`, `blocked_missing_artifact_count`, and the generated `harness/capability-matrix-fixture.yaml`. The fixture writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
+
+### 1.5 `fundos harness handoff-stress`
 
 Runs an isolated cross-agent committee handoff stress fixture. The fixture creates a mixed primary-evidence / social-signal research run, generates role-specific ContextPacks and committee artifacts, then mutates handoffs to verify that missing blocking handoffs, missing required fields, unsafe trade requests, and analyst-to-trader context loss are blocked.
 
