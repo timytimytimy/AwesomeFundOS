@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from fundos.agent_outputs import write_agent_output
+from fundos.agent_threads import read_events, record_run_threads
 from fundos.committee import write_committee_artifacts
 from fundos.context import make_context_pack
 from fundos.evidence import make_evidence_pack
@@ -15,6 +16,7 @@ from fundos.task_dag import write_task_dag
 HANDOFF_STRESS_VERSION = "0.1.0"
 FIXTURE_ID = "handoff_stress_committee_fixture_v1"
 RUN_ID = "handoff-stress-fixture"
+SEED_RUN_ID = "handoff-stress-seed"
 DEFAULT_AGENT_IDS = [
     "fund_manager",
     "risk_manager",
@@ -24,7 +26,29 @@ DEFAULT_AGENT_IDS = [
     "evaluation_harness",
     "review_archivist",
 ]
+EXTENDED_AGENT_IDS = [
+    "chief_of_staff",
+    "fund_manager",
+    "risk_manager",
+    "bear_debater",
+    "learning_curator",
+    "evaluation_harness",
+    "review_archivist",
+    "tech_growth_analyst",
+    "advanced_manufacturing_analyst",
+    "consumer_healthcare_analyst",
+    "cyclical_macro_analyst",
+    "policy_event_analyst",
+    "quality_growth_company_analyst",
+    "turnaround_value_company_analyst",
+    "fraud_governance_analyst",
+    "position_trend_trader",
+    "swing_trader",
+    "event_driven_trader",
+    "defensive_execution_trader",
+]
 UNSAFE_TERMS = ["real order", "broker", "execute", "place order", "真实下单", "券商下单", "实盘下单"]
+INCOMPLETE_DELIVERY_STATUSES = {"delayed", "pending", "partial", "unresolved"}
 
 
 def run_handoff_stress_fixture(root: Path, fixture_name: str = FIXTURE_ID) -> dict[str, Any]:
@@ -32,12 +56,25 @@ def run_handoff_stress_fixture(root: Path, fixture_name: str = FIXTURE_ID) -> di
     run_path = workspace / "runs" / RUN_ID
     if workspace.exists():
         remove_tree(workspace)
-    for name in ["agent_work", "committee", "context", "debate", "evidence", "harness", "system", "workflow"]:
+    for name in ["agent_work", "committee", "context", "debate", "evidence", "harness", "memory", "system", "workflow"]:
         (run_path / name).mkdir(parents=True, exist_ok=True)
 
-    agents = load_roster_agents(root, DEFAULT_AGENT_IDS)
+    agents = load_roster_agents(root, EXTENDED_AGENT_IDS)
     selected = [{"agent_id": agent["id"], "role": agent["role"]} for agent in agents]
     evidence_pack = make_stress_evidence_pack(RUN_ID)
+    seed_run_path = workspace / "runs" / SEED_RUN_ID
+    (seed_run_path / "memory").mkdir(parents=True, exist_ok=True)
+    write_yaml(seed_run_path / "run.yaml", {
+        "run_id": SEED_RUN_ID,
+        "query": evidence_pack["query"],
+        "selected_agents": selected,
+        "model_records": [],
+        "purpose": "seed previous-run agent thread events for handoff carryover stress",
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    })
+    record_run_threads(seed_run_path, selected, "handoff_stress_seed", {"purpose": "multi_run_carryover_seed"})
+
     write_yaml(run_path / "evidence" / "evidence-pack.yaml", evidence_pack)
     write_yaml(run_path / "run.yaml", {
         "run_id": RUN_ID,
@@ -47,6 +84,7 @@ def run_handoff_stress_fixture(root: Path, fixture_name: str = FIXTURE_ID) -> di
         "real_trade_allowed": False,
         "broker_integration": "disabled",
     })
+    record_run_threads(run_path, selected, "handoff_stress_current", {"purpose": "multi_run_carryover_current"})
 
     outputs = []
     for agent in agents:
@@ -61,7 +99,8 @@ def run_handoff_stress_fixture(root: Path, fixture_name: str = FIXTURE_ID) -> di
     contract = read_yaml(root / "specs" / "protocols" / "handoff-contract.yaml") or {}
     handoffs_doc = read_yaml(run_path / "committee" / "handoffs.yaml") or {}
     readiness_doc = read_yaml(run_path / "committee" / "decision-readiness.yaml") or {}
-    scenario_results = [evaluate_scenario(run_path, contract, scenario) for scenario in build_scenarios(handoffs_doc, readiness_doc)]
+    thread_carryover = build_thread_carryover_summary(workspace, selected, [SEED_RUN_ID, RUN_ID])
+    scenario_results = [evaluate_scenario(run_path, contract, scenario) for scenario in build_scenarios(handoffs_doc, readiness_doc, selected, thread_carryover)]
     mismatched = [row for row in scenario_results if row["actual_status"] != row["expected_status"]]
     overall_score = round(sum(float(row["score"]) for row in scenario_results) / len(scenario_results), 1) if scenario_results else 0
     report = {
@@ -76,11 +115,17 @@ def run_handoff_stress_fixture(root: Path, fixture_name: str = FIXTURE_ID) -> di
         "passed_scenarios": sum(1 for row in scenario_results if row["actual_status"] == row["expected_status"]),
         "blocked_scenarios": sum(1 for row in scenario_results if row["actual_status"] == "blocked"),
         "mismatched_scenarios": [row["scenario_id"] for row in mismatched],
+        "extended_roster_agent_count": len(selected),
+        "thread_carryover": thread_carryover,
         "scenario_results": scenario_results,
         "controls": [
             "handoff_contract_stress_test",
             "cross_agent_context_trace_required",
             "blocking_handoffs_required",
+            "delayed_blocking_handoff_blocked",
+            "partial_handoff_blocked",
+            "multi_run_thread_carryover_required",
+            "larger_committee_roster_stress",
             "unsafe_handoff_request_blocked",
             "offline_fixture_only",
             "no_real_trade_action",
@@ -136,7 +181,12 @@ def make_stress_evidence_pack(run_id: str) -> dict[str, Any]:
     )
 
 
-def build_scenarios(handoffs_doc: dict[str, Any], readiness_doc: dict[str, Any]) -> list[dict[str, Any]]:
+def build_scenarios(
+    handoffs_doc: dict[str, Any],
+    readiness_doc: dict[str, Any],
+    selected: list[dict[str, Any]],
+    thread_carryover: dict[str, Any],
+) -> list[dict[str, Any]]:
     base_handoffs = deepcopy(handoffs_doc.get("items", []) or [])
     return [
         {
@@ -145,6 +195,9 @@ def build_scenarios(handoffs_doc: dict[str, Any], readiness_doc: dict[str, Any])
             "expected_status": "passed",
             "handoffs": base_handoffs,
             "readiness": deepcopy(readiness_doc),
+            "selected_agent_count": len(selected),
+            "min_agent_count": 12,
+            "thread_carryover": deepcopy(thread_carryover),
         },
         {
             "scenario_id": "missing_blocking_handoff",
@@ -156,6 +209,26 @@ def build_scenarios(handoffs_doc: dict[str, Any], readiness_doc: dict[str, Any])
         mutate_scenario("missing_required_field", "A handoff missing artifact and required_response must be blocked.", "blocked", base_handoffs, readiness_doc, drop_required_fields),
         mutate_scenario("unsafe_trade_request", "A handoff requesting real execution or broker action must be blocked.", "blocked", base_handoffs, readiness_doc, inject_unsafe_request),
         mutate_scenario("cross_role_context_loss", "An analyst-to-trader handoff without traceable agent artifact or evidence/claim refs must be blocked.", "blocked", base_handoffs, readiness_doc, inject_context_loss),
+        mutate_scenario("delayed_blocking_handoff", "A blocking RiskManager handoff marked delayed/past-due must block final readiness.", "blocked", base_handoffs, readiness_doc, inject_delayed_blocking_handoff),
+        mutate_scenario("partial_research_handoff", "A partial analyst-to-trader handoff missing evidence/claim delivery must block context handoff quality.", "blocked", base_handoffs, readiness_doc, inject_partial_research_handoff),
+        {
+            "scenario_id": "thread_carryover_missing_previous_run",
+            "description": "A specialized agent missing previous-run thread carryover must block continuity-sensitive committee handoff readiness.",
+            "expected_status": "blocked",
+            "handoffs": deepcopy(base_handoffs),
+            "readiness": deepcopy(readiness_doc),
+            "thread_carryover": mutate_thread_carryover_missing_agent(thread_carryover, "advanced_manufacturing_analyst"),
+        },
+        {
+            "scenario_id": "larger_committee_roster",
+            "description": "The stress fixture must exercise a larger multi-analyst, multi-trader committee roster rather than a minimal committee only.",
+            "expected_status": "passed",
+            "handoffs": deepcopy(base_handoffs),
+            "readiness": deepcopy(readiness_doc),
+            "selected_agent_count": len(selected),
+            "min_agent_count": 12,
+            "thread_carryover": deepcopy(thread_carryover),
+        },
     ]
 
 
@@ -201,6 +274,78 @@ def inject_context_loss(handoffs: list[dict[str, Any]]) -> None:
         target["context_trace"] = []
 
 
+def inject_delayed_blocking_handoff(handoffs: list[dict[str, Any]]) -> None:
+    target = next((row for row in handoffs if row.get("handoff_type") == "risk_to_fund_manager_position_cap"), None)
+    if target is None and handoffs:
+        target = handoffs[0]
+    if target is not None:
+        target["delivery_status"] = "delayed"
+        target["required_response_due"] = "past_due"
+        target["resolution_status"] = "unresolved"
+
+
+def inject_partial_research_handoff(handoffs: list[dict[str, Any]]) -> None:
+    target = next((row for row in handoffs if row.get("handoff_type") == "analyst_to_trader_trigger_check"), None)
+    if target is None and handoffs:
+        target = handoffs[0]
+    if target is not None:
+        target["delivery_status"] = "partial"
+        target["partial_fields"] = ["evidence_refs", "claim_refs"]
+        target["required_response"] = "Only a narrative summary was delivered; evidence IDs and claim IDs are still missing."
+
+
+def mutate_thread_carryover_missing_agent(thread_carryover: dict[str, Any], agent_id: str) -> dict[str, Any]:
+    mutated = deepcopy(thread_carryover)
+    per_agent = mutated.get("per_agent", {})
+    row = per_agent.get(agent_id)
+    if row:
+        row["has_carryover"] = False
+        row["missing_run_ids"] = sorted(set((row.get("missing_run_ids") or []) + [SEED_RUN_ID]))
+        row["run_ids_seen"] = [run_id for run_id in row.get("run_ids_seen", []) if run_id != SEED_RUN_ID]
+    missing = set(mutated.get("missing_carryover_agents", []) or [])
+    missing.add(agent_id)
+    mutated["missing_carryover_agents"] = sorted(missing)
+    mutated["agents_with_carryover"] = max(0, int(mutated.get("agents_with_carryover", 0)) - 1)
+    mutated["status"] = "blocked"
+    return mutated
+
+
+def build_thread_carryover_summary(workspace: Path, selected: list[dict[str, Any]], expected_run_ids: list[str]) -> dict[str, Any]:
+    per_agent: dict[str, Any] = {}
+    missing_agents = []
+    event_counts: dict[str, int] = {}
+    for item in selected:
+        agent_id = item["agent_id"]
+        events_path = workspace / "memory" / "agents" / agent_id / "thread-events.jsonl"
+        events = read_events(events_path)
+        run_ids_seen = [row.get("run_id") for row in events if row.get("run_id") in expected_run_ids]
+        missing_run_ids = [run_id for run_id in expected_run_ids if run_id not in run_ids_seen]
+        has_carryover = not missing_run_ids and run_ids_seen.index(expected_run_ids[0]) < run_ids_seen.index(expected_run_ids[-1])
+        if not has_carryover:
+            missing_agents.append(agent_id)
+        event_counts[agent_id] = len(events)
+        per_agent[agent_id] = {
+            "event_count": len(events),
+            "run_ids_seen": run_ids_seen,
+            "missing_run_ids": missing_run_ids,
+            "has_carryover": has_carryover,
+            "event_log_path": str(Path("memory") / "agents" / agent_id / "thread-events.jsonl"),
+        }
+    return {
+        "artifact_type": "thread_carryover_summary",
+        "expected_run_ids": expected_run_ids,
+        "run_count": len(expected_run_ids),
+        "agents_checked": len(selected),
+        "agents_with_carryover": len(selected) - len(missing_agents),
+        "missing_carryover_agents": sorted(missing_agents),
+        "event_counts": event_counts,
+        "per_agent": per_agent,
+        "status": "passed" if not missing_agents else "blocked",
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
 def evaluate_scenario(run_path: Path, contract: dict[str, Any], scenario: dict[str, Any]) -> dict[str, Any]:
     handoffs = scenario.get("handoffs", []) or []
     readiness = scenario.get("readiness", {}) or {}
@@ -208,8 +353,12 @@ def evaluate_scenario(run_path: Path, contract: dict[str, Any], scenario: dict[s
     required_fields_ok = check_required_fields(handoffs, contract, issues)
     allowed_types_ok = check_handoff_types(handoffs, contract, issues)
     blocking_handoffs_ok = check_blocking_handoffs(handoffs, readiness, issues)
+    delayed_blocking_handoffs_ok = check_no_delayed_blocking_handoffs(handoffs, issues)
+    partial_handoffs_ok = check_no_partial_handoffs(handoffs, issues)
     artifact_refs_exist = check_artifact_refs(run_path, handoffs, issues)
     cross_agent_context_trace_ok = check_cross_agent_context_trace(run_path, handoffs, issues)
+    thread_carryover_ok = check_thread_carryover(scenario.get("thread_carryover"), issues)
+    larger_roster_ok = check_larger_roster(scenario.get("selected_agent_count"), scenario.get("min_agent_count"), issues)
     unsafe_request_blocked = check_no_unsafe_requests(handoffs, issues)
     paper_only_ok = check_paper_only(handoffs, issues)
     actual_status = "passed" if not issues else "blocked"
@@ -217,8 +366,12 @@ def evaluate_scenario(run_path: Path, contract: dict[str, Any], scenario: dict[s
         required_fields_ok,
         allowed_types_ok,
         blocking_handoffs_ok,
+        delayed_blocking_handoffs_ok,
+        partial_handoffs_ok,
         artifact_refs_exist,
         cross_agent_context_trace_ok,
+        thread_carryover_ok,
+        larger_roster_ok,
         unsafe_request_blocked,
         paper_only_ok,
     )
@@ -233,8 +386,12 @@ def evaluate_scenario(run_path: Path, contract: dict[str, Any], scenario: dict[s
         "required_fields_ok": required_fields_ok,
         "allowed_handoff_types_ok": allowed_types_ok,
         "blocking_handoffs_ok": blocking_handoffs_ok,
+        "delayed_blocking_handoffs_ok": delayed_blocking_handoffs_ok,
+        "partial_handoffs_ok": partial_handoffs_ok,
         "artifact_refs_exist": artifact_refs_exist,
         "cross_agent_context_trace_ok": cross_agent_context_trace_ok,
+        "thread_carryover_ok": thread_carryover_ok,
+        "larger_roster_ok": larger_roster_ok,
         "unsafe_request_blocked": unsafe_request_blocked,
         "paper_only_ok": paper_only_ok,
         "real_trade_allowed": False,
@@ -272,6 +429,31 @@ def check_blocking_handoffs(handoffs: list[dict[str, Any]], readiness: dict[str,
     return not missing and readiness_ok
 
 
+def check_no_delayed_blocking_handoffs(handoffs: list[dict[str, Any]], issues: list[str]) -> bool:
+    delayed = []
+    for row in handoffs:
+        if row.get("blocking_if_missing") is not True:
+            continue
+        delivery_status = str(row.get("delivery_status", "delivered")).lower()
+        due_status = str(row.get("required_response_due", "on_time")).lower()
+        resolution_status = str(row.get("resolution_status", "resolved")).lower()
+        if delivery_status in INCOMPLETE_DELIVERY_STATUSES or due_status == "past_due" or resolution_status == "unresolved":
+            delayed.append(f"{row.get('from_agent')}->{row.get('to_agent')}")
+    issues.extend(f"delayed_blocking_handoff:{item}" for item in delayed)
+    return not delayed
+
+
+def check_no_partial_handoffs(handoffs: list[dict[str, Any]], issues: list[str]) -> bool:
+    partial = []
+    for row in handoffs:
+        delivery_status = str(row.get("delivery_status", "delivered")).lower()
+        partial_fields = row.get("partial_fields") or []
+        if delivery_status == "partial" or partial_fields:
+            partial.append(f"{row.get('from_agent')}->{row.get('to_agent')}:{','.join(partial_fields) if partial_fields else delivery_status}")
+    issues.extend(f"partial_handoff:{item}" for item in partial)
+    return not partial
+
+
 def check_artifact_refs(run_path: Path, handoffs: list[dict[str, Any]], issues: list[str]) -> bool:
     missing = []
     for row in handoffs:
@@ -296,6 +478,24 @@ def check_cross_agent_context_trace(run_path: Path, handoffs: list[dict[str, Any
             missing.append(f"{row.get('from_agent')}->{row.get('to_agent')}")
     issues.extend(f"cross_agent_context_trace_missing:{item}" for item in missing)
     return not missing
+
+
+def check_thread_carryover(thread_carryover: dict[str, Any] | None, issues: list[str]) -> bool:
+    if not thread_carryover:
+        return True
+    missing = thread_carryover.get("missing_carryover_agents", []) or []
+    if missing or thread_carryover.get("status") != "passed":
+        issues.append("thread_carryover_missing_previous_run:" + ",".join(missing or ["unknown"]))
+    return not missing and thread_carryover.get("status") == "passed"
+
+
+def check_larger_roster(selected_agent_count: int | None, min_agent_count: int | None, issues: list[str]) -> bool:
+    if min_agent_count is None:
+        return True
+    if selected_agent_count is None or selected_agent_count < min_agent_count:
+        issues.append(f"larger_roster_too_small:{selected_agent_count or 0}<{min_agent_count}")
+        return False
+    return True
 
 
 def check_no_unsafe_requests(handoffs: list[dict[str, Any]], issues: list[str]) -> bool:

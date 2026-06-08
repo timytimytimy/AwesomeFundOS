@@ -20,7 +20,10 @@ class HandoffStressTests(unittest.TestCase):
 
         self.assertEqual(report["artifact_type"], "handoff_stress_report")
         self.assertEqual(report["status"], "passed")
-        self.assertGreaterEqual(report["scenario_count"], 5)
+        self.assertGreaterEqual(report["scenario_count"], 9)
+        self.assertGreaterEqual(report["extended_roster_agent_count"], 12)
+        self.assertGreaterEqual(report["thread_carryover"]["agents_with_carryover"], 12)
+        self.assertEqual(report["thread_carryover"]["missing_carryover_agents"], [])
         self.assertEqual(report["mismatched_scenarios"], [])
         self.assertFalse(report["real_trade_allowed"])
         self.assertEqual(report["broker_integration"], "disabled")
@@ -35,6 +38,14 @@ class HandoffStressTests(unittest.TestCase):
         self.assertEqual(by_id["missing_blocking_handoff"]["actual_status"], "blocked")
         self.assertEqual(by_id["unsafe_trade_request"]["actual_status"], "blocked")
         self.assertEqual(by_id["cross_role_context_loss"]["actual_status"], "blocked")
+        self.assertEqual(by_id["delayed_blocking_handoff"]["actual_status"], "blocked")
+        self.assertFalse(by_id["delayed_blocking_handoff"]["delayed_blocking_handoffs_ok"])
+        self.assertEqual(by_id["partial_research_handoff"]["actual_status"], "blocked")
+        self.assertFalse(by_id["partial_research_handoff"]["partial_handoffs_ok"])
+        self.assertEqual(by_id["thread_carryover_missing_previous_run"]["actual_status"], "blocked")
+        self.assertFalse(by_id["thread_carryover_missing_previous_run"]["thread_carryover_ok"])
+        self.assertEqual(by_id["larger_committee_roster"]["actual_status"], "passed")
+        self.assertTrue(by_id["larger_committee_roster"]["larger_roster_ok"])
 
         artifact = REPO_ROOT / report["workspace_path"] / "runs" / report["run_id"] / "harness" / "handoff-stress.yaml"
         self.assertTrue(artifact.exists())
@@ -72,6 +83,11 @@ class HandoffStressTests(unittest.TestCase):
         self.assertTrue(row["details"]["happy_path_context_trace_ok"])
         self.assertTrue(row["details"]["unsafe_request_blocked"])
         self.assertTrue(row["details"]["context_loss_blocked"])
+        self.assertTrue(row["details"]["delayed_handoff_blocked"])
+        self.assertTrue(row["details"]["partial_handoff_blocked"])
+        self.assertTrue(row["details"]["thread_carryover_blocked"])
+        self.assertTrue(row["details"]["larger_roster_passed"])
+        self.assertGreaterEqual(row["details"]["extended_roster_agent_count"], 12)
         self.assertFalse(row["details"]["real_trade_allowed"])
         self.assertEqual(row["details"]["broker_integration"], "disabled")
 

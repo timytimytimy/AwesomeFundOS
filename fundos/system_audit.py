@@ -1191,6 +1191,10 @@ def handoff_stress_check(root: Path) -> dict[str, Any]:
     happy = next((row for row in scenario_results if row.get("scenario_id") == "happy_path_committee"), {})
     unsafe = next((row for row in scenario_results if row.get("scenario_id") == "unsafe_trade_request"), {})
     context_loss = next((row for row in scenario_results if row.get("scenario_id") == "cross_role_context_loss"), {})
+    delayed = next((row for row in scenario_results if row.get("scenario_id") == "delayed_blocking_handoff"), {})
+    partial = next((row for row in scenario_results if row.get("scenario_id") == "partial_research_handoff"), {})
+    thread_missing = next((row for row in scenario_results if row.get("scenario_id") == "thread_carryover_missing_previous_run"), {})
+    larger_roster = next((row for row in scenario_results if row.get("scenario_id") == "larger_committee_roster"), {})
     ok = (
         report.get("status") == "passed"
         and not mismatched
@@ -1198,6 +1202,12 @@ def handoff_stress_check(root: Path) -> dict[str, Any]:
         and happy.get("cross_agent_context_trace_ok") is True
         and unsafe.get("actual_status") == "blocked"
         and context_loss.get("actual_status") == "blocked"
+        and delayed.get("actual_status") == "blocked"
+        and partial.get("actual_status") == "blocked"
+        and thread_missing.get("actual_status") == "blocked"
+        and larger_roster.get("actual_status") == "passed"
+        and int(report.get("extended_roster_agent_count", 0)) >= 12
+        and not (report.get("thread_carryover", {}) or {}).get("missing_carryover_agents")
         and report.get("real_trade_allowed") is False
         and report.get("broker_integration") == "disabled"
     )
@@ -1215,6 +1225,12 @@ def handoff_stress_check(root: Path) -> dict[str, Any]:
         "happy_path_context_trace_ok": happy.get("cross_agent_context_trace_ok"),
         "unsafe_request_blocked": unsafe.get("actual_status") == "blocked",
         "context_loss_blocked": context_loss.get("actual_status") == "blocked",
+        "delayed_handoff_blocked": delayed.get("actual_status") == "blocked",
+        "partial_handoff_blocked": partial.get("actual_status") == "blocked",
+        "thread_carryover_blocked": thread_missing.get("actual_status") == "blocked",
+        "larger_roster_passed": larger_roster.get("actual_status") == "passed",
+        "extended_roster_agent_count": report.get("extended_roster_agent_count", 0),
+        "thread_carryover": report.get("thread_carryover", {}),
         "controls": report.get("controls", []),
         "real_trade_allowed": False,
         "broker_integration": "disabled",

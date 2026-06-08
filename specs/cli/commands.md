@@ -78,14 +78,14 @@ Outputs include `capability_matrix_status`, `candidate_count`, `non_skill_applie
 
 ### 1.5 `fundos harness handoff-stress`
 
-Runs an isolated cross-agent committee handoff stress fixture. The fixture creates a mixed primary-evidence / social-signal research run, generates role-specific ContextPacks and committee artifacts, then mutates handoffs to verify that missing blocking handoffs, missing required fields, unsafe trade requests, and analyst-to-trader context loss are blocked.
+Runs an isolated cross-agent committee handoff stress fixture. The fixture creates a mixed primary-evidence / social-signal research run, generates role-specific ContextPacks and committee artifacts for a larger multi-analyst, multi-trader roster, records seed/current thread events, then mutates handoffs to verify that missing blocking handoffs, missing required fields, unsafe trade requests, analyst-to-trader context loss, delayed blocking handoffs, partial handoffs, and missing previous-run thread carryover are blocked.
 
 ```bash
 fundos harness handoff-stress
 fundos harness handoff-stress --fixture-name handoff_stress_committee_fixture_v1
 ```
 
-Outputs include `handoff_stress_status`, `scenario_count`, `passed_scenarios`, `blocked_scenarios`, `mismatched_scenarios`, and the generated `harness/handoff-stress.yaml`. The benchmark writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
+Outputs include `handoff_stress_status`, `scenario_count`, `passed_scenarios`, `blocked_scenarios`, `mismatched_scenarios`, and the generated `harness/handoff-stress.yaml`. The report also records `extended_roster_agent_count` and a `thread_carryover` summary showing whether specialized agents retained seed/current run continuity. The benchmark writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
 ### 1.6 `fundos harness case-replay-stress`
 

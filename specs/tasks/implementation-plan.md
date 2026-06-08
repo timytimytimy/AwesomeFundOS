@@ -311,7 +311,7 @@ broker_integration=disabled
 ## 6. Suggested next hardening tasks
 
 1. Expand case replay from fixture-level coverage into parameterized multi-year scenario packs with richer evidence timelines.
-2. Add richer cross-agent handoff stress tests for delayed/partial handoffs, multi-run thread carryover, and larger committee rosters.
-3. Add additional fixture catalog scenarios beyond the current robotics, consumer_healthcare, cyclical_macro, and policy_event set.
-4. Expand governance stress from single-run fixtures into multi-run approval ledgers and revocation tests.
+2. Add additional fixture catalog scenarios beyond the current robotics, consumer_healthcare, cyclical_macro, and policy_event set, including cross-market and multi-cycle evidence timelines.
+3. Expand governance stress from single-run fixtures into multi-run approval ledgers and revocation tests.
+4. Add adversarial context-compression stress cases where vertical agents must preserve role-specific evidence, missingness, and uncertainty under tight token budgets.
 5. Keep `.github/workflows/ci.yml` aligned with `scripts/verify_v1.sh` whenever quality gates change.

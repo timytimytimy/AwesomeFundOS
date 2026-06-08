@@ -352,7 +352,7 @@ Required checks:
 
 ## Cross-Agent Handoff Stress Evaluation
 
-Harness includes a cross-agent committee handoff stress check for the Investment Committee workflow. The check builds an isolated offline fixture with FundManager, RiskManager, BearDebater, analyst, trader, EvaluationHarness, and ReviewArchivist roles, then verifies `specs/protocols/handoff-contract.yaml` against generated and intentionally degraded handoff scenarios.
+Harness includes a cross-agent committee handoff stress check for the Investment Committee workflow. The check builds an isolated offline fixture with FundManager, RiskManager, BearDebater, multiple industry/company analysts, multiple traders, EvaluationHarness, LearningCurator, and ReviewArchivist roles, then verifies `specs/protocols/handoff-contract.yaml` against generated and intentionally degraded handoff scenarios.
 
 Output artifact: `harness/handoff-stress.yaml`.
 
@@ -360,8 +360,12 @@ Required checks:
 
 - happy-path committee handoffs must include all required fields and valid handoff types;
 - blocking BearDebater and RiskManager handoffs must be present before final readiness can rise;
+- blocking handoffs marked delayed, pending, partial, unresolved, or past-due must block readiness;
+- partial research handoffs must be blocked when evidence IDs or claim IDs have not been delivered;
 - referenced artifacts must exist under the run workspace;
 - analyst-to-trader handoffs must preserve evidence ID / claim ID context trace through structured agent artifacts;
+- specialized Agent thread events must carry over from a seed run into the current run, and missing previous-run carryover must block continuity-sensitive scenarios;
+- stress fixtures must cover a larger committee roster, not only a minimal committee;
 - unsafe broker, real execution, or real order requests must be blocked;
 - degraded scenarios are treated as successful harness behavior only when the harness blocks them;
 - safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
