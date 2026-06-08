@@ -292,3 +292,19 @@ Required checks:
 - after-apply snapshot must show exactly the managed capability block in the isolated runtime skill;
 - source-controlled Agent Card and Skill files must remain unchanged;
 - safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.
+
+## Cross-Agent Handoff Stress Evaluation
+
+Harness includes a cross-agent committee handoff stress check for the Investment Committee workflow. The check builds an isolated offline fixture with FundManager, RiskManager, BearDebater, analyst, trader, EvaluationHarness, and ReviewArchivist roles, then verifies `specs/protocols/handoff-contract.yaml` against generated and intentionally degraded handoff scenarios.
+
+Output artifact: `harness/handoff-stress.yaml`.
+
+Required checks:
+
+- happy-path committee handoffs must include all required fields and valid handoff types;
+- blocking BearDebater and RiskManager handoffs must be present before final readiness can rise;
+- referenced artifacts must exist under the run workspace;
+- analyst-to-trader handoffs must preserve evidence ID / claim ID context trace through structured agent artifacts;
+- unsafe broker, real execution, or real order requests must be blocked;
+- degraded scenarios are treated as successful harness behavior only when the harness blocks them;
+- safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.

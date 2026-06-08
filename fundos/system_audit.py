@@ -643,6 +643,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
     fixture_catalog = fixture_catalog_check(root)
     context_stress = context_stress_check(root)
     capability_benchmark = capability_benchmark_fixture_check(root)
+    handoff_stress = handoff_stress_check(root)
     return [
         requirement(
             "prd.overall_and_modules_exist",
@@ -822,6 +823,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details=capability_benchmark,
         ),
         requirement(
+            "committee.cross_agent_handoff_stress_harness",
+            "governance",
+            "Cross-agent handoff stress harness verifies committee handoff contracts, artifact refs, context trace, blocked unsafe requests, and no-broker controls.",
+            [root / "fundos/handoff_stress.py", root / "fundos/committee.py", root / "specs/protocols/handoff-contract.yaml"],
+            handoff_stress["ok"],
+            details=handoff_stress,
+        ),
+        requirement(
             "tools.read_only_adapter_contracts_and_runtime",
             "tooling",
             "Read-only tool adapter contracts and deterministic fixture runtime exist.",
@@ -986,6 +995,54 @@ def capability_benchmark_fixture_check(root: Path) -> dict[str, Any]:
         "skill_text_length_delta": improvement.get("skill_text_length_delta"),
         "case_replay_score": report.get("case_replay_score", 0),
         "blocking_issues": report.get("blocking_issues", []),
+        "controls": report.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def handoff_stress_check(root: Path) -> dict[str, Any]:
+    from fundos.handoff_stress import run_handoff_stress_fixture
+
+    try:
+        report = run_handoff_stress_fixture(root)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "blocking_issues": [f"handoff_stress_failed:{exc}"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    scenario_results = report.get("scenario_results", []) or []
+    mismatched = report.get("mismatched_scenarios", []) or []
+    happy = next((row for row in scenario_results if row.get("scenario_id") == "happy_path_committee"), {})
+    unsafe = next((row for row in scenario_results if row.get("scenario_id") == "unsafe_trade_request"), {})
+    context_loss = next((row for row in scenario_results if row.get("scenario_id") == "cross_role_context_loss"), {})
+    ok = (
+        report.get("status") == "passed"
+        and not mismatched
+        and happy.get("actual_status") == "passed"
+        and happy.get("cross_agent_context_trace_ok") is True
+        and unsafe.get("actual_status") == "blocked"
+        and context_loss.get("actual_status") == "blocked"
+        and report.get("real_trade_allowed") is False
+        and report.get("broker_integration") == "disabled"
+    )
+    return {
+        "ok": ok,
+        "status": report.get("status"),
+        "fixture_id": report.get("fixture_id"),
+        "workspace_path": report.get("workspace_path"),
+        "overall_score": report.get("overall_score", 0),
+        "scenario_count": report.get("scenario_count", 0),
+        "passed_scenarios": report.get("passed_scenarios", 0),
+        "blocked_scenarios": report.get("blocked_scenarios", 0),
+        "mismatched_scenarios": mismatched,
+        "scenario_statuses": {row.get("scenario_id"): row.get("actual_status") for row in scenario_results},
+        "happy_path_context_trace_ok": happy.get("cross_agent_context_trace_ok"),
+        "unsafe_request_blocked": unsafe.get("actual_status") == "blocked",
+        "context_loss_blocked": context_loss.get("actual_status") == "blocked",
         "controls": report.get("controls", []),
         "real_trade_allowed": False,
         "broker_integration": "disabled",

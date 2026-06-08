@@ -54,4 +54,6 @@ Decision memo must include question restatement, conclusion, evidence references
 - Final decision memo validates against `decision-memo.schema.yaml` and links to Evidence ID / Claim ID.
 - Bear case and risk review materially influence final memo fields or generate explicit unresolved issues.
 - Follow-up research gaps are routed to `workflow/research-gap-tasks.yaml` when evidence is insufficient.
+- Committee handoffs validate against `specs/protocols/handoff-contract.yaml`, including required fields, blocking bear/risk handoffs, artifact references, and cross-agent evidence/claim context trace.
+- Harness blocks handoff degradation scenarios such as missing required fields, missing blocking handoffs, unsafe broker/execution requests, and analyst-to-trader context loss.
 - Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, no automatic order placement.

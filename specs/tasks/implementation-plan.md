@@ -312,6 +312,6 @@ broker_integration=disabled
 
 1. Expand historical case replay coverage for fraud, policy cycles, failed breakouts, and KOL thesis failures.
 2. Add more benchmark fixtures for non-skill capability kinds and failure/blocking cases.
-3. Add cross-agent handoff stress tests on top of the dense ContextPack stress harness.
+3. Add richer cross-agent handoff stress tests for delayed/partial handoffs, multi-run thread carryover, and larger committee rosters.
 4. Add additional fixture catalog scenarios beyond the current robotics, consumer_healthcare, cyclical_macro, and policy_event set.
 5. Keep `.github/workflows/ci.yml` aligned with `scripts/verify_v1.sh` whenever quality gates change.

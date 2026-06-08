@@ -31,6 +31,7 @@ from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
 from fundos.failure_patterns import load_failure_summary, write_failure_patterns
 from fundos.fixture_catalog import list_fixture_summaries, resolve_fixture
+from fundos.handoff_stress import run_handoff_stress_fixture
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import build_learning_source_registry, write_run_learning_patterns, write_run_learning_source_registry
@@ -1035,6 +1036,21 @@ def command_harness_capability_benchmark(args: argparse.Namespace) -> int:
     print(f"broker_integration={report['broker_integration']}")
     return 0 if report["status"] == "passed" else 1
 
+
+def command_harness_handoff_stress(args: argparse.Namespace) -> int:
+    report = run_handoff_stress_fixture(Path.cwd(), fixture_name=args.fixture_name)
+    print(f"handoff_stress_status={report['status']}")
+    print(f"overall_score={report['overall_score']}")
+    print(f"scenario_count={report['scenario_count']}")
+    print(f"passed_scenarios={report['passed_scenarios']}")
+    print(f"blocked_scenarios={report['blocked_scenarios']}")
+    print("mismatched_scenarios=" + (",".join(report.get("mismatched_scenarios", [])) or "none"))
+    report_path = Path.cwd() / report["workspace_path"] / "runs" / report["run_id"] / "harness" / "handoff-stress.yaml"
+    print(f"handoff_stress_report={report_path}")
+    print(f"real_trade_allowed={report['real_trade_allowed']}")
+    print(f"broker_integration={report['broker_integration']}")
+    return 0 if report["status"] == "passed" else 1
+
 def command_followups_list(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
     reconcile_research_gap_followups(run_path)
@@ -1291,6 +1307,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_harness_capability = harness_sub.add_parser("capability-benchmark")
     p_harness_capability.add_argument("--fixture-name", default="capability_benchmark_skill_apply_fixture_v1", help="Isolated fixture workspace name under runs/")
     p_harness_capability.set_defaults(func=command_harness_capability_benchmark)
+    p_harness_handoff = harness_sub.add_parser("handoff-stress")
+    p_harness_handoff.add_argument("--fixture-name", default="handoff_stress_committee_fixture_v1", help="Isolated fixture workspace name under runs/")
+    p_harness_handoff.set_defaults(func=command_harness_handoff_stress)
 
     p_followups = sub.add_parser("followups")
     followups_sub = p_followups.add_subparsers(dest="followups_command", required=True)

@@ -35,6 +35,7 @@ fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
 fundos harness context-stress --items 72 --out-run runs/context-stress
 fundos harness capability-benchmark
+fundos harness handoff-stress
 fundos system doctor
 fundos system audit --strict
 ```
@@ -60,6 +61,17 @@ fundos harness capability-benchmark --fixture-name capability_benchmark_skill_ap
 ```
 
 Outputs include `capability_benchmark_status`, `candidate_id`, `regression_status`, `skill_benchmark_status`, `application_status`, `managed_skill_block_added`, `skill_text_length_delta`, `case_replay_score`, and the generated `harness/capability-benchmark-fixture.yaml`. The benchmark writes only under its isolated `runs/<fixture-name>/` workspace and must not mutate source-controlled `specs/agents/agent-cards/*/agent.md` or `specs/skills/*/SKILL.md`. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
+
+### 1.4 `fundos harness handoff-stress`
+
+Runs an isolated cross-agent committee handoff stress fixture. The fixture creates a mixed primary-evidence / social-signal research run, generates role-specific ContextPacks and committee artifacts, then mutates handoffs to verify that missing blocking handoffs, missing required fields, unsafe trade requests, and analyst-to-trader context loss are blocked.
+
+```bash
+fundos harness handoff-stress
+fundos harness handoff-stress --fixture-name handoff_stress_committee_fixture_v1
+```
+
+Outputs include `handoff_stress_status`, `scenario_count`, `passed_scenarios`, `blocked_scenarios`, `mismatched_scenarios`, and the generated `harness/handoff-stress.yaml`. The benchmark writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
 ### 1.1 `fundos fixtures list` and `fundos run --fixture-id <id>`
 
