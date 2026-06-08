@@ -80,6 +80,20 @@ python3 -m fundos.cli skills export --out ./skills
 
 该命令会生成 `./skills/fundos-*/SKILL.md` 和 `./skills/awesomefundos-skills-manifest.yaml`。导出的 Skills 仍保持 `real_trade_allowed=false` 与 `broker_integration=disabled`，只用于研究、观察池和 Paper Portfolio 工作流。
 
+## 内置离线研究场景
+
+V1 提供跨行业、跨市场状态的 deterministic fixture catalog，用于离线验证 Agent 分工、EvidencePack、ContextPack、Outcome Tracking 和 Harness：
+
+```bash
+fundos fixtures list
+fundos run --fixture-id robotics
+fundos run --fixture-id consumer_healthcare
+fundos run --fixture-id cyclical_macro
+fundos run --fixture-id policy_event
+```
+
+这些 fixture 覆盖公告、政策、新闻、行情摘要、社媒情绪和历史案例六类来源；社媒/KOL 只作为情绪或假设线索，不能成为直接买卖依据。所有场景都保持 `real_trade_allowed=false` 与 `broker_integration=disabled`。
+
 ## 合规边界
 
 V1 输出为模拟投委会研究决策备忘录、观察池动作和模拟组合观点，不构成投资建议，不接真实交易，不自动下单。

@@ -1,0 +1,56 @@
+[
+  {
+    "title": "国家医保局关于医药价格和招采信用评价的政策样例",
+    "url": "https://www.gov.cn/zhengce/content/healthcare-policy-example.htm",
+    "snippet": "官方政策强调医药价格、集采和合规治理，消费医疗与创新药研究需要区分支付端压力、真实需求和合规风险。",
+    "source_type": "policy",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "policy",
+    "published_at": "2026-05-15"
+  },
+  {
+    "title": "上市公司年度报告：消费医疗服务业务收入与门店扩张",
+    "url": "https://www.cninfo.com.cn/new/disclosure/detail/consumer-healthcare-annual-report",
+    "snippet": "年度报告披露消费医疗服务收入、门店数量、客单价和获客成本变化；需要进一步核对现金流和同店增长。",
+    "source_type": "announcement",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "announcement",
+    "published_at": "2026-04-30"
+  },
+  {
+    "title": "消费医疗行业新闻：复苏分化与渠道获客成本上升",
+    "url": "https://example.com/news/consumer-healthcare-recovery",
+    "snippet": "行业新闻显示消费医疗需求恢复但结构分化，线上获客成本和合规投放成为利润率关键变量。",
+    "source_type": "news",
+    "source_tier": "tier_4_expert_opinion",
+    "fixture_category": "news",
+    "published_at": "2026-06-01"
+  },
+  {
+    "title": "消费医疗样例行情：弱复苏状态下成交额温和放大",
+    "url": "https://example.com/market/consumer-healthcare-volume",
+    "snippet": "离线行情摘要显示板块相对强弱改善但波动仍高，交易员需要等待量价确认和回撤纪律。",
+    "source_type": "market_data",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "market_data",
+    "published_at": "2026-06-03"
+  },
+  {
+    "title": "雪球讨论：消费医疗复苏预期升温",
+    "url": "https://xueqiu.com/example/consumer-healthcare",
+    "snippet": "社媒讨论聚焦消费复苏和医美需求，但社媒只能作为情绪线索，不能作为业绩兑现证据。",
+    "source_type": "web",
+    "source_tier": "tier_5_social_signal",
+    "fixture_category": "social_signal",
+    "published_at": "2026-06-04"
+  },
+  {
+    "title": "历史案例：消费成长股估值消化与获客成本拐点",
+    "url": "https://example.com/case/consumer-growth-valuation-reset",
+    "snippet": "案例复盘提示消费医疗公司从收入增长到利润兑现之间可能经历估值消化，需关注获客成本、复购和现金流。",
+    "source_type": "case",
+    "source_tier": "tier_2_canonical_framework",
+    "fixture_category": "case_library",
+    "published_at": "2026-05-01"
+  }
+]

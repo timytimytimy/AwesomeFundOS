@@ -984,6 +984,74 @@ class FundosCliTests(unittest.TestCase):
             self.assertEqual(manifest["research_plan_coverage"]["category_counts"]["announcement"], 1)
             self.assertEqual(manifest["research_plan_coverage"]["category_counts"]["policy"], 1)
 
+    def test_fixtures_list_prints_cross_industry_catalog_and_safety_boundaries(self):
+        result = run_cli(["fixtures", "list"], ROOT)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("fixture_count=4", result.stdout)
+        for fixture_id in ["robotics", "consumer_healthcare", "cyclical_macro", "policy_event"]:
+            self.assertIn(f"fixture_id={fixture_id}", result.stdout)
+        self.assertIn("market_regime=cyclical_restocking_high_volatility", result.stdout)
+        self.assertIn("primary_agents=policy_event_analyst,event_driven_trader,risk_manager", result.stdout)
+        self.assertIn("real_trade_allowed=False", result.stdout)
+        self.assertIn("broker_integration=disabled", result.stdout)
+
+    def test_run_accepts_fixture_id_and_uses_catalog_research_and_market_replay(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+
+            result = run_cli(["run", "--fixture-id", "consumer_healthcare"], tmp_path)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            run_rel = [line for line in result.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            run_path = tmp_path / run_rel
+            run_doc = yaml.safe_load((run_path / "run.yaml").read_text())
+            evidence = yaml.safe_load((run_path / "evidence" / "evidence-pack.yaml").read_text())
+            manifest = yaml.safe_load((run_path / "evidence" / "public-research-manifest.yaml").read_text())
+            outcome = yaml.safe_load((run_path / "portfolio" / "outcome-tracking.yaml").read_text())
+            selected_ids = {row["agent_id"] for row in run_doc["selected_agents"]}
+
+            self.assertEqual(run_doc["input"]["input_type"], "topic")
+            self.assertEqual(run_doc["input"]["value"], "消费医疗复苏与估值修复")
+            self.assertEqual(run_doc["input"].get("fixture_id"), "consumer_healthcare")
+            self.assertIn("consumer_healthcare_analyst", selected_ids)
+            self.assertIn("quality_growth_company_analyst", selected_ids)
+            self.assertEqual(manifest["adapter_name"], "fixture")
+            self.assertEqual(manifest["result_count"], 6)
+            self.assertEqual(evidence["research_plan_coverage"]["categories_covered"], 6)
+            self.assertEqual(evidence["research_plan_coverage"]["missing_categories"], [])
+            public_items = [item for item in evidence["evidence_items"] if item.get("source_id") == "public_research"]
+            self.assertEqual(len(public_items), 6)
+            self.assertEqual(outcome["outcome_status"], "evaluated_with_market_replay")
+            self.assertFalse(outcome["real_trade_allowed"])
+            self.assertEqual(outcome["broker_integration"], "disabled")
+
+    def test_fixture_id_selects_vertical_agents_for_cyclical_and_policy_runs(self):
+        with tempfile.TemporaryDirectory() as d:
+            tmp_path = Path(d)
+
+            cyclical = run_cli(["run", "--fixture-id", "cyclical_macro"], tmp_path)
+            self.assertEqual(cyclical.returncode, 0, cyclical.stderr)
+            cyclical_rel = [line for line in cyclical.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            cyclical_selected = {row["agent_id"] for row in yaml.safe_load((tmp_path / cyclical_rel / "run.yaml").read_text())["selected_agents"]}
+            self.assertIn("cyclical_macro_analyst", cyclical_selected)
+            self.assertIn("turnaround_value_company_analyst", cyclical_selected)
+            self.assertIn("swing_trader", cyclical_selected)
+
+            policy = run_cli(["run", "--fixture-id", "policy_event"], tmp_path)
+            self.assertEqual(policy.returncode, 0, policy.stderr)
+            policy_rel = [line for line in policy.stdout.splitlines() if line.startswith("run_path=")][-1].split("=", 1)[1]
+            policy_selected = {row["agent_id"] for row in yaml.safe_load((tmp_path / policy_rel / "run.yaml").read_text())["selected_agents"]}
+            self.assertIn("policy_event_analyst", policy_selected)
+            self.assertIn("event_driven_trader", policy_selected)
+            self.assertIn("risk_manager", policy_selected)
+
+    def test_fixture_id_cannot_be_combined_with_manual_topic_stock_or_question(self):
+        result = run_cli(["run", "--fixture-id", "robotics", "--topic", "机器人产业链投资机会"], ROOT)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("--fixture-id cannot be combined", result.stderr)
+
     def test_run_writes_research_gap_followup_artifacts_for_missing_plan_categories(self):
         with tempfile.TemporaryDirectory() as d:
             tmp_path = Path(d)

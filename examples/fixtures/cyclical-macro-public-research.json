@@ -1,0 +1,56 @@
+[
+  {
+    "title": "国家发改委关于大宗商品保供稳价工作的政策样例",
+    "url": "https://www.ndrc.gov.cn/xxgk/zcfb/cyclical-policy-example.html",
+    "snippet": "官方政策强调大宗商品保供稳价和产能约束，周期股研究需要同时评估价格弹性、库存周期和政策边界。",
+    "source_type": "policy",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "policy",
+    "published_at": "2026-05-10"
+  },
+  {
+    "title": "上市公司季度报告：资源品价格上涨带动利润修复",
+    "url": "https://www.cninfo.com.cn/new/disclosure/detail/cyclical-quarterly-report",
+    "snippet": "季度报告披露资源品价格上涨、单位毛利改善和资本开支约束；需要核对库存、现金成本和套保影响。",
+    "source_type": "announcement",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "announcement",
+    "published_at": "2026-04-28"
+  },
+  {
+    "title": "周期行业新闻：补库预期推动价格弹性",
+    "url": "https://example.com/news/cyclical-restocking",
+    "snippet": "行业新闻显示下游补库预期升温，但持续性取决于终端需求和供给释放节奏。",
+    "source_type": "news",
+    "source_tier": "tier_4_expert_opinion",
+    "fixture_category": "news",
+    "published_at": "2026-06-02"
+  },
+  {
+    "title": "周期板块样例行情：高波动放量突破后回撤扩大",
+    "url": "https://example.com/market/cyclical-volatility",
+    "snippet": "离线行情摘要显示板块成交额显著放大但日内波动扩大，仓位需要受风险预算和止损纪律约束。",
+    "source_type": "market_data",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "market_data",
+    "published_at": "2026-06-03"
+  },
+  {
+    "title": "X 讨论：资源品超级周期再起争论",
+    "url": "https://x.com/example/status/cyclical-supercycle",
+    "snippet": "社媒讨论将资源品上涨解读为超级周期，但该信号只能触发反方验证，不能替代库存和价格数据。",
+    "source_type": "web",
+    "source_tier": "tier_5_social_signal",
+    "fixture_category": "social_signal",
+    "published_at": "2026-06-04"
+  },
+  {
+    "title": "历史案例：周期顶部的盈利外推和库存反转",
+    "url": "https://example.com/case/cyclical-peak-inventory-reversal",
+    "snippet": "案例复盘提示周期高景气阶段容易把当前盈利线性外推，库存反转和政策压价可能快速改变赔率。",
+    "source_type": "case",
+    "source_tier": "tier_2_canonical_framework",
+    "fixture_category": "case_library",
+    "published_at": "2026-05-05"
+  }
+]

@@ -28,6 +28,7 @@ from fundos.decision import make_decision_memo, write_decision_markdown
 from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
 from fundos.evolution import run_evolution_gate
 from fundos.failure_patterns import load_failure_summary, write_failure_patterns
+from fundos.fixture_catalog import list_fixture_summaries, resolve_fixture
 from fundos.harness import make_evaluation, make_evaluation_for_run
 from fundos.io import DISCLAIMER, REPO_ROOT, read_yaml, write_yaml
 from fundos.learning import build_learning_source_registry, write_run_learning_patterns, write_run_learning_source_registry
@@ -291,10 +292,18 @@ def command_skills_export(args: argparse.Namespace) -> int:
     return 0
 
 def infer_input(args: argparse.Namespace) -> tuple[str, str]:
+    if getattr(args, "fixture_id", None):
+        if any(getattr(args, name, None) for name in ["topic", "stock", "question"]):
+            raise SystemExit("--fixture-id cannot be combined with --topic, --stock, or --question")
+        fixture = resolve_fixture(args.fixture_id)
+        topic = fixture.get("topic")
+        if not topic:
+            raise SystemExit(f"fixture_missing_topic: {args.fixture_id}")
+        return "topic", str(topic)
     provided = [("topic", args.topic), ("stock", args.stock), ("question", args.question)]
     non_empty = [(k, v) for k, v in provided if v]
     if len(non_empty) != 1:
-        raise SystemExit("exactly one of --topic, --stock, --question is required")
+        raise SystemExit("exactly one of --topic, --stock, --question, --fixture-id is required")
     return non_empty[0]
 
 def select_agents(input_type: str, value: str, roster: dict[str, Any]) -> list[dict[str, str]]:
@@ -485,8 +494,23 @@ def command_run(args: argparse.Namespace) -> int:
     roster = load_roster()
     selected = select_agents(input_type, value, roster)
     agents_by_id = {agent["id"]: agent for agent in roster["agents"]}
-    fixture_path = Path(args.research_fixture) if getattr(args, "research_fixture", None) else None
-    market_replay_path = Path(args.market_replay_fixture) if getattr(args, "market_replay_fixture", None) else None
+    fixture_id = getattr(args, "fixture_id", None)
+    fixture_row = resolve_fixture(fixture_id) if fixture_id else {}
+    if fixture_row.get("primary_agents"):
+        selected_ids = {row["agent_id"] for row in selected}
+        max_agents = int(roster.get("max_agents_per_run", 10))
+        for agent_id in fixture_row.get("primary_agents", []):
+            if agent_id in selected_ids or agent_id not in agents_by_id or len(selected) >= max_agents:
+                continue
+            selected.append({
+                "agent_id": agent_id,
+                "role": agents_by_id[agent_id]["role"],
+                "reason": f"matched built-in fixture primary agent: {fixture_id}",
+                "context_pack_id": f"ctx_{agent_id}",
+            })
+            selected_ids.add(agent_id)
+    fixture_path = Path(args.research_fixture or fixture_row.get("research_fixture")) if (getattr(args, "research_fixture", None) or fixture_row.get("research_fixture")) else None
+    market_replay_path = Path(args.market_replay_fixture or fixture_row.get("market_replay_fixture")) if (getattr(args, "market_replay_fixture", None) or fixture_row.get("market_replay_fixture")) else None
     research_cache_root = Path(args.research_cache) if getattr(args, "research_cache", None) else Path.cwd() / "cache" / "research"
     research_client = PublicResearchClient(fixture_path=fixture_path, cache_root=research_cache_root, adapter_name="fixture" if fixture_path else "duckduckgo")
     research_plan = build_research_plan(value, input_type=input_type)
@@ -497,7 +521,7 @@ def command_run(args: argparse.Namespace) -> int:
     run_doc = {
         "run_id": run_id,
         "created_at": now_iso(),
-        "input": {"input_type": input_type, "value": value},
+        "input": {"input_type": input_type, "value": value, **({"fixture_id": fixture_id} if fixture_id else {})},
         "market": "CN_A_SHARE",
         "selected_agents": selected,
         "status": "archived",
@@ -942,6 +966,24 @@ def command_cases_list(args: argparse.Namespace) -> int:
     print("broker_integration=disabled")
     return 0
 
+
+def command_fixtures_list(args: argparse.Namespace) -> int:
+    rows = list_fixture_summaries()
+    print(f"fixture_count={len(rows)}")
+    for row in rows:
+        print(
+            "- "
+            f"fixture_id={row.get('fixture_id')} "
+            f"topic={row.get('topic')} "
+            f"market_regime={row.get('market_regime')} "
+            f"research_fixture={row.get('research_fixture')} "
+            f"market_replay_fixture={row.get('market_replay_fixture') or ''} "
+            f"primary_agents={','.join(row.get('primary_agents', []) or [])}"
+        )
+    print("real_trade_allowed=False")
+    print("broker_integration=disabled")
+    return 0
+
 def command_followups_list(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
     reconcile_research_gap_followups(run_path)
@@ -1113,6 +1155,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--research-fixture", help="Path to a JSON array of public research results for deterministic offline runs")
     p_run.add_argument("--research-cache", help="Path to public research cache directory; defaults to ./cache/research")
     p_run.add_argument("--market-replay-fixture", help="Path to a YAML market replay fixture for deterministic offline outcome tracking")
+    p_run.add_argument("--fixture-id", help="Built-in fixture catalog id, e.g. robotics, consumer_healthcare, cyclical_macro, policy_event")
     p_run.set_defaults(func=command_run)
 
     p_eval = sub.add_parser("eval")
@@ -1180,6 +1223,11 @@ def build_parser() -> argparse.ArgumentParser:
     cases_sub = p_cases.add_subparsers(dest="cases_command", required=True)
     p_cases_list = cases_sub.add_parser("list")
     p_cases_list.set_defaults(func=command_cases_list)
+
+    p_fixtures = sub.add_parser("fixtures")
+    fixtures_sub = p_fixtures.add_subparsers(dest="fixtures_command", required=True)
+    p_fixtures_list = fixtures_sub.add_parser("list")
+    p_fixtures_list.set_defaults(func=command_fixtures_list)
 
     p_followups = sub.add_parser("followups")
     followups_sub = p_followups.add_subparsers(dest="followups_command", required=True)

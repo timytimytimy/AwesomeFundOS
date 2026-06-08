@@ -1,0 +1,56 @@
+[
+  {
+    "title": "国务院关于新型基础设施建设的政策样例",
+    "url": "https://www.gov.cn/zhengce/content/policy-event-infra-example.htm",
+    "snippet": "官方政策提出推进新型基础设施建设，事件驱动研究需要确认政策层级、资金来源、执行主体和落地节奏。",
+    "source_type": "policy",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "policy",
+    "published_at": "2026-05-20"
+  },
+  {
+    "title": "上市公司公告：中标新型基础设施项目",
+    "url": "https://www.cninfo.com.cn/new/disclosure/detail/policy-event-contract",
+    "snippet": "公司公告披露中标项目金额、履约周期和收入确认安排；需要核对项目毛利率、垫资和历史履约质量。",
+    "source_type": "announcement",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "announcement",
+    "published_at": "2026-06-01"
+  },
+  {
+    "title": "事件新闻：地方配套政策密集发布",
+    "url": "https://example.com/news/policy-event-local-rollout",
+    "snippet": "新闻显示地方配套政策密集发布，但事件强度需要由正式文件、财政安排和订单公告交叉验证。",
+    "source_type": "news",
+    "source_tier": "tier_4_expert_opinion",
+    "fixture_category": "news",
+    "published_at": "2026-06-02"
+  },
+  {
+    "title": "事件驱动样例行情：公告后高开回落",
+    "url": "https://example.com/market/policy-event-gap-risk",
+    "snippet": "离线行情摘要显示标的公告后高开回落，事件交易员需要评估缺口风险、兑现窗口和到期规则。",
+    "source_type": "market_data",
+    "source_tier": "tier_1_primary_fact",
+    "fixture_category": "market_data",
+    "published_at": "2026-06-03"
+  },
+  {
+    "title": "微博讨论：政策事件热度快速扩散",
+    "url": "https://weibo.com/example/policy-event",
+    "snippet": "社媒讨论显示政策事件热度扩散，但热度只能作为拥挤度和叙事风险输入。",
+    "source_type": "web",
+    "source_tier": "tier_5_social_signal",
+    "fixture_category": "social_signal",
+    "published_at": "2026-06-04"
+  },
+  {
+    "title": "历史案例：政策主题从点火到兑现失败",
+    "url": "https://example.com/case/policy-theme-execution-gap",
+    "snippet": "案例复盘提示政策主题从文件发布到订单兑现存在时滞，若缺少财政和订单证据，后期容易出现主题退潮。",
+    "source_type": "case",
+    "source_tier": "tier_2_canonical_framework",
+    "fixture_category": "case_library",
+    "published_at": "2026-05-08"
+  }
+]

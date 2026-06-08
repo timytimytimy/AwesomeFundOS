@@ -1,0 +1,15 @@
+version: 0.1.0
+market_replay:
+  新型基础设施政策事件交易:
+    - date: '2026-06-01'
+      close: 100.0
+      volume: 1000
+    - date: '2026-06-02'
+      close: 109.0
+      volume: 2600
+    - date: '2026-06-03'
+      close: 101.0
+      volume: 2400
+    - date: '2026-06-04'
+      close: 98.5
+      volume: 1900

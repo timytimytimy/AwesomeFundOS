@@ -1,0 +1,35 @@
+version: 0.1.0
+artifact_type: public_research_fixture_catalog
+purpose: Deterministic offline public-research scenarios across industries and market regimes for Agent/Harness evaluation.
+fixtures:
+  robotics:
+    topic: 机器人产业链投资机会
+    research_fixture: examples/fixtures/robotics-public-research.json
+    market_replay_fixture: examples/fixtures/robotics-market-replay.yaml
+    primary_agents: [tech_growth_analyst, quality_growth_company_analyst, position_trend_trader]
+    market_regime: technology_chokepoint_policy_ignition
+  consumer_healthcare:
+    topic: 消费医疗复苏与估值修复
+    research_fixture: examples/fixtures/consumer-healthcare-public-research.json
+    market_replay_fixture: examples/fixtures/consumer-healthcare-market-replay.yaml
+    primary_agents: [consumer_healthcare_analyst, quality_growth_company_analyst, defensive_execution_trader]
+    market_regime: weak_recovery_with_margin_pressure
+  cyclical_macro:
+    topic: 资源品补库周期与价格弹性
+    research_fixture: examples/fixtures/cyclical-macro-public-research.json
+    market_replay_fixture: examples/fixtures/cyclical-macro-market-replay.yaml
+    primary_agents: [cyclical_macro_analyst, turnaround_value_company_analyst, swing_trader]
+    market_regime: cyclical_restocking_high_volatility
+  policy_event:
+    topic: 新型基础设施政策事件交易
+    research_fixture: examples/fixtures/policy-event-public-research.json
+    market_replay_fixture: examples/fixtures/policy-event-market-replay.yaml
+    primary_agents: [policy_event_analyst, event_driven_trader, risk_manager]
+    market_regime: policy_event_gap_risk
+controls:
+  - fixture_is_offline_test_data_not_investment_advice
+  - primary_evidence_required_for_high_confidence
+  - social_signal_never_direct_buy
+  - no_real_trade_action
+real_trade_allowed: false
+broker_integration: disabled

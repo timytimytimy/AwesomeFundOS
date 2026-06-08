@@ -10,6 +10,10 @@ fundos run --topic "机器人产业链投资机会"
 fundos run --stock 300750
 fundos run --question "当前 A 股低空经济是否值得进入观察池？"
 fundos run --topic "机器人产业链投资机会" --research-fixture examples/fixtures/robotics-public-research.json --market-replay-fixture examples/fixtures/robotics-market-replay.yaml
+fundos fixtures list
+fundos run --fixture-id consumer_healthcare
+fundos run --fixture-id cyclical_macro
+fundos run --fixture-id policy_event
 fundos run --topic "机器人产业链投资机会" --research-cache cache/research
 fundos eval --run runs/2026-06-05-robotics
 fundos evolve --run runs/2026-06-05-robotics
@@ -32,6 +36,23 @@ fundos governance summary --run runs/2026-06-05-robotics
 fundos system doctor
 fundos system audit --strict
 ```
+
+### 1.1 `fundos fixtures list` and `fundos run --fixture-id <id>`
+
+`fundos fixtures list` prints the built-in deterministic public-research fixture catalog. `fundos run --fixture-id <id>` resolves topic, research fixture, market replay fixture, and primary vertical agents from `examples/fixtures/fixture-catalog.yaml`.
+
+V1 fixture IDs:
+
+- `robotics`: technology chokepoint / policy ignition.
+- `consumer_healthcare`: weak recovery with margin pressure.
+- `cyclical_macro`: cyclical restocking and high volatility.
+- `policy_event`: policy event gap risk.
+
+Constraints:
+
+- `--fixture-id` is mutually exclusive with `--topic`, `--stock`, and `--question`.
+- Fixture catalog scenarios are offline test data, not investment advice.
+- All runs retain `real_trade_allowed=false` and `broker_integration=disabled`.
 
 ### 1.1 `fundos skills export --out <dir>`
 

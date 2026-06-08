@@ -1,0 +1,15 @@
+version: 0.1.0
+market_replay:
+  消费医疗复苏与估值修复:
+    - date: '2026-06-01'
+      close: 100.0
+      volume: 900
+    - date: '2026-06-02'
+      close: 101.5
+      volume: 980
+    - date: '2026-06-03'
+      close: 99.2
+      volume: 1100
+    - date: '2026-06-04'
+      close: 103.0
+      volume: 1250

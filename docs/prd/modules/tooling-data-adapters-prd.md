@@ -32,6 +32,8 @@ Each Tool Adapter contract declares:
 
 V1 can use deterministic fixtures and local cache. Fixture mode must still produce realistic provenance, source tier counts, source type counts and unresolved gap reporting. Runtime adapters are read-only; they cannot place orders, modify broker state or mutate source-controlled Agent assets.
 
+The committed fixture catalog (`examples/fixtures/fixture-catalog.yaml`) provides built-in offline scenarios across robotics, consumer healthcare, cyclical macro, and policy-event regimes. Each scenario must cover announcement, policy, news, market_data, social_signal, and case_library categories so specialized Agents and Harness checks can be exercised without network access.
+
 ## 5. Harness
 
 Tool Harness checks adapter coverage, primary-source coverage, low-quality source dominance, KOL methodology boundaries, cache status, source hash presence and blocked unsafe outputs.

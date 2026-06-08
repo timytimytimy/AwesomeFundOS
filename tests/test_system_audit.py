@@ -66,6 +66,15 @@ class SystemAuditTests(unittest.TestCase):
         ]:
             self.assertIn(expected_module, module_details['required_modules'])
             self.assertIn(expected_module, module_details['present_modules'])
+        fixture_details = by_id['fixtures.cross_industry_public_research_catalog']['details']
+        self.assertEqual(by_id['fixtures.cross_industry_public_research_catalog']['status'], 'pass')
+        self.assertEqual(fixture_details['fixture_count'], 4)
+        self.assertEqual(fixture_details['missing_required_fixtures'], [])
+        self.assertEqual(fixture_details['missing_paths'], [])
+        self.assertEqual(fixture_details['missing_source_categories'], {})
+        self.assertFalse(fixture_details['real_trade_allowed'])
+        self.assertEqual(fixture_details['broker_integration'], 'disabled')
+        self.assertIn('social_signal_never_direct_buy', fixture_details['controls'])
         matrix_details = by_id['prd.acceptance_criteria_matrix_maps_to_evidence']['details']
         self.assertEqual(by_id['prd.acceptance_criteria_matrix_maps_to_evidence']['status'], 'pass')
         self.assertEqual(matrix_details['criterion_count'], 104)

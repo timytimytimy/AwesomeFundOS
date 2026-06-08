@@ -6,6 +6,7 @@ import shlex
 from pathlib import Path
 from typing import Any
 
+from fundos.fixture_catalog import fixture_catalog_missing_paths, load_fixture_catalog
 from fundos.io import DISCLAIMER, read_yaml, write_yaml
 
 AUDIT_VERSION = "0.1.0"
@@ -638,6 +639,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
     prd_coverage = module_prd_coverage(root)
     prd_matrix = prd_requirement_matrix_check(root)
     agent_skill_contract_manifest = agent_skill_contract_manifest_check(root, agents)
+    fixture_catalog = fixture_catalog_check(root)
     return [
         requirement(
             "prd.overall_and_modules_exist",
@@ -793,6 +795,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details={"case_count": len(list((root / "specs/cases/cases").glob("*.yaml"))) if (root / "specs/cases/cases").exists() else 0},
         ),
         requirement(
+            "fixtures.cross_industry_public_research_catalog",
+            "tooling",
+            "Fixture catalog covers multiple industries and market regimes with source-tiered offline public research scenarios.",
+            [root / "examples/fixtures/fixture-catalog.yaml", root / "examples/fixtures", root / "fundos/fixture_catalog.py"],
+            fixture_catalog["ok"],
+            details=fixture_catalog,
+        ),
+        requirement(
             "tools.read_only_adapter_contracts_and_runtime",
             "tooling",
             "Read-only tool adapter contracts and deterministic fixture runtime exist.",
@@ -870,6 +880,59 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
         if line.strip():
             rows.append(json.loads(line))
     return rows
+
+
+def fixture_catalog_check(root: Path) -> dict[str, Any]:
+    try:
+        catalog = load_fixture_catalog(root / "examples" / "fixtures" / "fixture-catalog.yaml")
+    except Exception as exc:
+        return {
+            "ok": False,
+            "fixture_count": 0,
+            "missing_paths": [],
+            "missing_required_fixtures": [],
+            "missing_source_categories": {},
+            "blocking_issues": [f"fixture_catalog_load_failed:{exc}"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    fixtures = catalog.get("fixtures", {}) if isinstance(catalog.get("fixtures"), dict) else {}
+    required_ids = {"robotics", "consumer_healthcare", "cyclical_macro", "policy_event"}
+    missing_required = sorted(required_ids - set(fixtures))
+    missing_paths = fixture_catalog_missing_paths(catalog)
+    required_categories = {"announcement", "policy", "news", "market_data", "social_signal", "case_library"}
+    missing_categories: dict[str, list[str]] = {}
+    for fixture_id, row in fixtures.items():
+        research_fixture = row.get("research_fixture")
+        if not research_fixture:
+            missing_categories[str(fixture_id)] = sorted(required_categories)
+            continue
+        path = Path(str(research_fixture))
+        if not path.is_absolute():
+            path = root / path
+        rows = load_json(path, [])
+        categories = {str(item.get("fixture_category")) for item in rows if isinstance(item, dict) and item.get("fixture_category")}
+        missing = sorted(required_categories - categories)
+        if missing:
+            missing_categories[str(fixture_id)] = missing
+    ok = len(fixtures) >= 4 and not missing_required and not missing_paths and not missing_categories and catalog.get("real_trade_allowed") is False and catalog.get("broker_integration") == "disabled"
+    return {
+        "ok": ok,
+        "fixture_count": len(fixtures),
+        "fixture_ids": sorted(fixtures),
+        "missing_required_fixtures": missing_required,
+        "missing_paths": missing_paths,
+        "missing_source_categories": missing_categories,
+        "controls": catalog.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def load_json(path: Path, default: Any) -> Any:
+    if not path.exists():
+        return default
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def exists(path: Path) -> bool:

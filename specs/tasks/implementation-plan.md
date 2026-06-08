@@ -308,8 +308,8 @@ broker_integration=disabled
 
 ## 6. Suggested next hardening tasks
 
-1. Add more fixture-backed public research examples across industries and market regimes.
-2. Expand historical case replay coverage for fraud, policy cycles, failed breakouts, and KOL thesis failures.
-3. Add benchmark fixtures that compare capability versions before/after human apply.
-4. Add richer context stress tests for very dense EvidencePacks and cross-agent handoffs.
+1. Expand historical case replay coverage for fraud, policy cycles, failed breakouts, and KOL thesis failures.
+2. Add benchmark fixtures that compare capability versions before/after human apply.
+3. Add richer context stress tests for very dense EvidencePacks and cross-agent handoffs.
+4. Add additional fixture catalog scenarios beyond the current robotics, consumer_healthcare, cyclical_macro, and policy_event set.
 5. Keep `.github/workflows/ci.yml` aligned with `scripts/verify_v1.sh` whenever quality gates change.
