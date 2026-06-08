@@ -23,6 +23,7 @@ from fundos.case_library import build_case_library_index, load_case_library
 from fundos.claim_graph import write_claim_graph
 from fundos.committee import write_committee_artifacts
 from fundos.context import context_focus, make_context_pack
+from fundos.context_stress import DEFAULT_AGENT_IDS as CONTEXT_STRESS_DEFAULT_AGENT_IDS, run_context_stress
 from fundos.context_policies import load_context_policy
 from fundos.decision import make_decision_memo, write_decision_markdown
 from fundos.evidence import load_seed_library, make_evidence_pack, now_iso
@@ -984,6 +985,37 @@ def command_fixtures_list(args: argparse.Namespace) -> int:
     print("broker_integration=disabled")
     return 0
 
+def command_harness_context_stress(args: argparse.Namespace) -> int:
+    agent_ids = [item.strip() for item in (args.agents or "").split(",") if item.strip()] or list(CONTEXT_STRESS_DEFAULT_AGENT_IDS)
+    run_path = Path(args.out_run) if getattr(args, "out_run", None) else None
+    if run_path and not run_path.is_absolute():
+        run_path = Path.cwd() / run_path
+    try:
+        report = run_context_stress(run_path=run_path, agent_ids=agent_ids, item_count=int(args.items), fail_under=int(args.fail_under))
+    except KeyError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"context_stress_status={report['status']}")
+    print(f"overall_score={report['overall_score']}")
+    print(f"agent_count={report['agent_count']}")
+    print(f"item_count={report['item_count']}")
+    print("blocked_agents=" + (",".join(report.get("blocked_agents", [])) or "none"))
+    for row in report.get("agent_results", []):
+        print(
+            "- "
+            f"agent_id={row.get('agent_id')} "
+            f"score={row.get('score')} "
+            f"included_items={row.get('included_items')} "
+            f"excluded_items={row.get('excluded_items')} "
+            f"compression_ratio={row.get('compression_ratio')} "
+            f"missing_required_context_dimensions={','.join(row.get('missing_required_context_dimensions', [])) or 'none'}"
+        )
+    if run_path:
+        print(f"context_stress_report={run_path / 'harness' / 'context-stress.yaml'}")
+    print("real_trade_allowed=False")
+    print("broker_integration=disabled")
+    return 0 if report["status"] == "passed" else 1
+
 def command_followups_list(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
     reconcile_research_gap_followups(run_path)
@@ -1228,6 +1260,15 @@ def build_parser() -> argparse.ArgumentParser:
     fixtures_sub = p_fixtures.add_subparsers(dest="fixtures_command", required=True)
     p_fixtures_list = fixtures_sub.add_parser("list")
     p_fixtures_list.set_defaults(func=command_fixtures_list)
+
+    p_harness = sub.add_parser("harness")
+    harness_sub = p_harness.add_subparsers(dest="harness_command", required=True)
+    p_harness_context = harness_sub.add_parser("context-stress")
+    p_harness_context.add_argument("--agents", default=",".join(CONTEXT_STRESS_DEFAULT_AGENT_IDS), help="Comma-separated agent ids to stress; defaults to vertical representative agents")
+    p_harness_context.add_argument("--items", default="72", help="Synthetic dense EvidencePack item count")
+    p_harness_context.add_argument("--fail-under", default="80", help="Minimum context-management score per agent")
+    p_harness_context.add_argument("--out-run", default="", help="Optional run directory where harness/context-stress.yaml should be written")
+    p_harness_context.set_defaults(func=command_harness_context_stress)
 
     p_followups = sub.add_parser("followups")
     followups_sub = p_followups.add_subparsers(dest="followups_command", required=True)

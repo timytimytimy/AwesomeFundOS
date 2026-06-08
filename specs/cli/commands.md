@@ -33,9 +33,21 @@ fundos followups answer --run runs/2026-06-05-robotics --task-id 2026-06-05-robo
 fundos followups close --run runs/2026-06-05-robotics --task-id 2026-06-05-robotics:research_gap:001 --evidence accepted-evidence.yaml
 fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
+fundos harness context-stress --items 72 --out-run runs/context-stress
 fundos system doctor
 fundos system audit --strict
 ```
+
+### 1.2 `fundos harness context-stress`
+
+Runs an offline dense EvidencePack stress test against representative vertical Agents and their context policies. The command verifies role-specific compression, token-budget accounting, loss accounting, required context-dimension preservation, and forbidden-drop checks. It does not call network providers, brokers, or order APIs.
+
+```bash
+fundos harness context-stress --items 72 --out-run runs/context-stress
+fundos harness context-stress --agents tech_growth_analyst,position_trend_trader,risk_manager,bear_debater --fail-under 80
+```
+
+Outputs include `context_stress_status`, per-agent scores, compression ratios, blocked agents, and optional `harness/context-stress.yaml`. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
 ### 1.1 `fundos fixtures list` and `fundos run --fixture-id <id>`
 

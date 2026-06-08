@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from fundos.fixture_catalog import fixture_catalog_missing_paths, load_fixture_catalog
+from fundos.context_stress import run_context_stress
 from fundos.io import DISCLAIMER, read_yaml, write_yaml
 
 AUDIT_VERSION = "0.1.0"
@@ -640,6 +641,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
     prd_matrix = prd_requirement_matrix_check(root)
     agent_skill_contract_manifest = agent_skill_contract_manifest_check(root, agents)
     fixture_catalog = fixture_catalog_check(root)
+    context_stress = context_stress_check(root)
     return [
         requirement(
             "prd.overall_and_modules_exist",
@@ -803,6 +805,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details=fixture_catalog,
         ),
         requirement(
+            "context.dense_vertical_context_stress_harness",
+            "context_management",
+            "Dense EvidencePack context stress harness verifies role-specific compression, loss accounting, and vertical required-dimension preservation.",
+            [root / "fundos/context_stress.py", root / "fundos/context.py", root / "fundos/agent_harness.py"],
+            context_stress["ok"],
+            details=context_stress,
+        ),
+        requirement(
             "tools.read_only_adapter_contracts_and_runtime",
             "tooling",
             "Read-only tool adapter contracts and deterministic fixture runtime exist.",
@@ -880,6 +890,53 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
         if line.strip():
             rows.append(json.loads(line))
     return rows
+
+
+def context_stress_check(root: Path) -> dict[str, Any]:
+    try:
+        report = run_context_stress(item_count=72, fail_under=80)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "overall_score": 0,
+            "blocking_issues": [f"context_stress_failed:{exc}"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    blocked = report.get("blocked_agents", []) or []
+    missing_dimensions = {
+        row.get("agent_id"): row.get("missing_required_context_dimensions", [])
+        for row in report.get("agent_results", [])
+        if row.get("missing_required_context_dimensions")
+    }
+    forbidden_violations = {
+        row.get("agent_id"): row.get("forbidden_drop_violations", [])
+        for row in report.get("agent_results", [])
+        if row.get("forbidden_drop_violations")
+    }
+    ok = (
+        report.get("status") == "passed"
+        and not blocked
+        and not missing_dimensions
+        and not forbidden_violations
+        and report.get("real_trade_allowed") is False
+        and report.get("broker_integration") == "disabled"
+    )
+    return {
+        "ok": ok,
+        "status": report.get("status"),
+        "overall_score": report.get("overall_score", 0),
+        "agent_count": report.get("agent_count", 0),
+        "item_count": report.get("item_count", 0),
+        "blocked_agents": blocked,
+        "missing_required_context_dimensions": missing_dimensions,
+        "forbidden_drop_violations": forbidden_violations,
+        "agent_scores": {row.get("agent_id"): row.get("score") for row in report.get("agent_results", [])},
+        "controls": report.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
 
 
 def fixture_catalog_check(root: Path) -> dict[str, Any]:

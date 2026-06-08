@@ -264,6 +264,10 @@ Skill Guardrails 违规必须生成 `skill_guardrail_violation` failure pattern�
 - Harness 能拒绝低质量升级候选。
 - 所有评分依据能引用 artifact / evidence / context / output id。
 
+## Context Stress Evaluation
+
+Harness includes a dense context stress check for vertical Agents. The check builds a synthetic high-density EvidencePack, generates role-specific ContextPacks, scores context budget compliance and loss accounting, and blocks when required dimensions or forbidden-drop controls are missing. The output artifact is `harness/context-stress.yaml` when an output run path is supplied.
+
 ## Acceptance Criteria
 
 - Every run writes EvaluationReport plus tool, agent, context, skill, case replay, claim graph, task DAG, portfolio, outcome, performance and governance harness artifacts when the relevant workflow runs.
