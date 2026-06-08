@@ -276,3 +276,19 @@ Harness includes a dense context stress check for vertical Agents. The check bui
 - `capability-regression.yaml` must block capability apply if required regression artifacts are missing or safety boundaries are violated.
 - `system audit --strict` must independently verify manifest schemas and runtime summaries against source artifacts.
 - Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, harness never promotes real trading authority.
+
+## Capability Benchmark Fixture
+
+Harness includes a before/after capability benchmark for controlled Agent self-improvement. The fixture builds an isolated runtime workspace, creates a skill-upgrade candidate, runs historical case replay, Agent Harness, evidence-quality evaluation, Capability Regression, and Skill Benchmark, then applies the candidate only through the human-approved capability apply path.
+
+Output artifact: `harness/capability-benchmark-fixture.yaml`.
+
+Required checks:
+
+- baseline snapshot must show no managed skill block for the candidate;
+- regression status must be `passed` before apply;
+- skill benchmark status must be `passed` before apply;
+- application status must transition from `pending_human_apply` to `applied`;
+- after-apply snapshot must show exactly the managed capability block in the isolated runtime skill;
+- source-controlled Agent Card and Skill files must remain unchanged;
+- safety boundary remains `real_trade_allowed=false`, `broker_integration=disabled`.

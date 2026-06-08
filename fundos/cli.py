@@ -18,6 +18,7 @@ from fundos.agent_tool_use import write_agent_tool_use_report
 from fundos.agent_performance import load_performance_summary, write_agent_performance
 from fundos.agent_threads import load_agent_thread_summary, materialize_agent_threads, record_run_threads
 from fundos.capability_apply import apply_approved_capability, list_pending_capabilities
+from fundos.capability_benchmark import run_capability_benchmark_fixture
 from fundos.case_replay import run_case_replay
 from fundos.case_library import build_case_library_index, load_case_library
 from fundos.claim_graph import write_claim_graph
@@ -1016,6 +1017,24 @@ def command_harness_context_stress(args: argparse.Namespace) -> int:
     print("broker_integration=disabled")
     return 0 if report["status"] == "passed" else 1
 
+
+def command_harness_capability_benchmark(args: argparse.Namespace) -> int:
+    report = run_capability_benchmark_fixture(Path.cwd(), fixture_name=args.fixture_name)
+    print(f"capability_benchmark_status={report['status']}")
+    print(f"candidate_id={report['candidate_id']}")
+    print(f"target_agent={report['target_agent']}")
+    print(f"regression_status={report['regression_status']}")
+    print(f"skill_benchmark_status={report['skill_benchmark_status']}")
+    print(f"application_status={report['application_status']}")
+    print(f"managed_skill_block_added={report['improvement']['managed_skill_block_added']}")
+    print(f"skill_text_length_delta={report['improvement']['skill_text_length_delta']}")
+    print(f"case_replay_score={report['case_replay_score']}")
+    report_path = Path.cwd() / report["workspace_path"] / "runs" / report["run_id"] / "harness" / "capability-benchmark-fixture.yaml"
+    print(f"capability_benchmark_report={report_path}")
+    print(f"real_trade_allowed={report['real_trade_allowed']}")
+    print(f"broker_integration={report['broker_integration']}")
+    return 0 if report["status"] == "passed" else 1
+
 def command_followups_list(args: argparse.Namespace) -> int:
     run_path = resolve_run_path(args.run)
     reconcile_research_gap_followups(run_path)
@@ -1269,6 +1288,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_harness_context.add_argument("--fail-under", default="80", help="Minimum context-management score per agent")
     p_harness_context.add_argument("--out-run", default="", help="Optional run directory where harness/context-stress.yaml should be written")
     p_harness_context.set_defaults(func=command_harness_context_stress)
+    p_harness_capability = harness_sub.add_parser("capability-benchmark")
+    p_harness_capability.add_argument("--fixture-name", default="capability_benchmark_skill_apply_fixture_v1", help="Isolated fixture workspace name under runs/")
+    p_harness_capability.set_defaults(func=command_harness_capability_benchmark)
 
     p_followups = sub.add_parser("followups")
     followups_sub = p_followups.add_subparsers(dest="followups_command", required=True)

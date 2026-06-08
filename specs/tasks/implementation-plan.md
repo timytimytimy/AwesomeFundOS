@@ -43,6 +43,8 @@ python3 -m fundos.cli cases list
 python3 -m fundos.cli followups list --run runs/<run_id>
 python3 -m fundos.cli threads show --agent fund_manager
 python3 -m fundos.cli governance summary --run runs/<run_id>
+python3 -m fundos.cli harness context-stress --items 72
+python3 -m fundos.cli harness capability-benchmark
 python3 -m fundos.cli system doctor
 python3 -m fundos.cli system audit --strict
 ```
@@ -309,7 +311,7 @@ broker_integration=disabled
 ## 6. Suggested next hardening tasks
 
 1. Expand historical case replay coverage for fraud, policy cycles, failed breakouts, and KOL thesis failures.
-2. Add benchmark fixtures that compare capability versions before/after human apply.
+2. Add more benchmark fixtures for non-skill capability kinds and failure/blocking cases.
 3. Add cross-agent handoff stress tests on top of the dense ContextPack stress harness.
 4. Add additional fixture catalog scenarios beyond the current robotics, consumer_healthcare, cyclical_macro, and policy_event set.
 5. Keep `.github/workflows/ci.yml` aligned with `scripts/verify_v1.sh` whenever quality gates change.

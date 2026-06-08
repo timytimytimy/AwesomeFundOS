@@ -278,3 +278,15 @@ V1 的 `historical_case_replay` 只验证 pattern 是否可作为 checklist / hy
 - Failure patterns from reflections, evaluation, Agent Harness and outcome tracking feed future candidates as negative examples.
 - Source-controlled `agent.md` and `SKILL.md` are never mutated by automatic evolve/apply flows.
 - Safety boundary: `real_trade_allowed=false`, `broker_integration=disabled`, capability upgrades cannot open broker or real-trade permissions.
+
+## Capability Benchmark Fixture
+
+Learning / Evolution must provide a deterministic benchmark fixture that proves capability versions can be compared before and after human-approved apply. The fixture is intentionally narrow: it tests a skill candidate for a trader Agent, but exercises the full route from candidate registry to regression, skill benchmark, approval, managed runtime block, ledger update, and after-apply snapshot.
+
+The benchmark is not allowed to promote a KOL, book, course, or historical case into direct buy/sell evidence. Methodology and case replay remain hypothesis/checklist inputs only. A candidate that fails replay, evidence quality, role consistency, skill benchmark, or safety gates must remain blocked and cannot be applied.
+
+Acceptance additions:
+
+- `fundos harness capability-benchmark` returns pass only when before/after snapshots show a real controlled capability delta.
+- `system audit --strict` includes `evolution.capability_benchmark_fixture_before_after_apply`.
+- Automatic benchmark/apply flows do not mutate source-controlled `agent.md`, `SKILL.md`, tool permissions, risk limits, broker settings, or real-trade authority.

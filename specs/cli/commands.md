@@ -34,6 +34,7 @@ fundos followups close --run runs/2026-06-05-robotics --task-id 2026-06-05-robot
 fundos threads show --agent fund_manager
 fundos governance summary --run runs/2026-06-05-robotics
 fundos harness context-stress --items 72 --out-run runs/context-stress
+fundos harness capability-benchmark
 fundos system doctor
 fundos system audit --strict
 ```
@@ -48,6 +49,17 @@ fundos harness context-stress --agents tech_growth_analyst,position_trend_trader
 ```
 
 Outputs include `context_stress_status`, per-agent scores, compression ratios, blocked agents, and optional `harness/context-stress.yaml`. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
+
+### 1.3 `fundos harness capability-benchmark`
+
+Runs an isolated before/after capability-upgrade benchmark fixture. The fixture creates a pending skill capability candidate for `position_trend_trader`, validates it through historical case replay, agent harness, evidence quality, capability regression, and skill benchmark gates, then applies it only through the same human-approved managed-block path used by `fundos capabilities apply`.
+
+```bash
+fundos harness capability-benchmark
+fundos harness capability-benchmark --fixture-name capability_benchmark_skill_apply_fixture_v1
+```
+
+Outputs include `capability_benchmark_status`, `candidate_id`, `regression_status`, `skill_benchmark_status`, `application_status`, `managed_skill_block_added`, `skill_text_length_delta`, `case_replay_score`, and the generated `harness/capability-benchmark-fixture.yaml`. The benchmark writes only under its isolated `runs/<fixture-name>/` workspace and must not mutate source-controlled `specs/agents/agent-cards/*/agent.md` or `specs/skills/*/SKILL.md`. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
 ### 1.1 `fundos fixtures list` and `fundos run --fixture-id <id>`
 

@@ -642,6 +642,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
     agent_skill_contract_manifest = agent_skill_contract_manifest_check(root, agents)
     fixture_catalog = fixture_catalog_check(root)
     context_stress = context_stress_check(root)
+    capability_benchmark = capability_benchmark_fixture_check(root)
     return [
         requirement(
             "prd.overall_and_modules_exist",
@@ -813,6 +814,14 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
             details=context_stress,
         ),
         requirement(
+            "evolution.capability_benchmark_fixture_before_after_apply",
+            "learning_evolution",
+            "Capability benchmark fixture compares capability versions before and after human-approved apply, while verifying regression and skill benchmark gates.",
+            [root / "fundos/capability_benchmark.py", root / "fundos/capability_regression.py", root / "fundos/capability_apply.py", root / "fundos/skill_benchmark.py"],
+            capability_benchmark["ok"],
+            details=capability_benchmark,
+        ),
+        requirement(
             "tools.read_only_adapter_contracts_and_runtime",
             "tooling",
             "Read-only tool adapter contracts and deterministic fixture runtime exist.",
@@ -933,6 +942,50 @@ def context_stress_check(root: Path) -> dict[str, Any]:
         "missing_required_context_dimensions": missing_dimensions,
         "forbidden_drop_violations": forbidden_violations,
         "agent_scores": {row.get("agent_id"): row.get("score") for row in report.get("agent_results", [])},
+        "controls": report.get("controls", []),
+        "real_trade_allowed": False,
+        "broker_integration": "disabled",
+    }
+
+
+def capability_benchmark_fixture_check(root: Path) -> dict[str, Any]:
+    from fundos.capability_benchmark import run_capability_benchmark_fixture
+
+    try:
+        report = run_capability_benchmark_fixture(root)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "blocked",
+            "blocking_issues": [f"capability_benchmark_failed:{exc}"],
+            "real_trade_allowed": False,
+            "broker_integration": "disabled",
+        }
+    improvement = report.get("improvement", {}) or {}
+    ok = (
+        report.get("status") == "passed"
+        and report.get("regression_status") == "passed"
+        and report.get("skill_benchmark_status") == "passed"
+        and report.get("application_status") == "applied"
+        and improvement.get("managed_skill_block_added") is True
+        and report.get("real_trade_allowed") is False
+        and report.get("broker_integration") == "disabled"
+    )
+    return {
+        "ok": ok,
+        "status": report.get("status"),
+        "fixture_id": report.get("fixture_id"),
+        "candidate_id": report.get("candidate_id"),
+        "target_agent": report.get("target_agent"),
+        "workspace_path": report.get("workspace_path"),
+        "regression_status": report.get("regression_status"),
+        "skill_benchmark_status": report.get("skill_benchmark_status"),
+        "application_status": report.get("application_status"),
+        "managed_skill_block_added": improvement.get("managed_skill_block_added"),
+        "application_status_transition": improvement.get("application_status_transition"),
+        "skill_text_length_delta": improvement.get("skill_text_length_delta"),
+        "case_replay_score": report.get("case_replay_score", 0),
+        "blocking_issues": report.get("blocking_issues", []),
         "controls": report.get("controls", []),
         "real_trade_allowed": False,
         "broker_integration": "disabled",
