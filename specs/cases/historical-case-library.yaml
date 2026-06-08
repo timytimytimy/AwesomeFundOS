@@ -14,6 +14,10 @@ case_files:
   - cases/failed-breakout-risk-control.yaml
   - cases/kol-thesis-failure.yaml
   - cases/methodology-transfer-failure.yaml
+  - cases/global-liquidity-rate-cycle.yaml
+  - cases/developed-market-platform-reset.yaml
+  - cases/commodity-capex-cycle.yaml
+  - cases/emerging-market-balance-sheet-cycle.yaml
 controls:
   - case_library_is_training_and_evaluation_not_trade_signal
   - direct_case_mapping_forbidden
@@ -32,3 +36,7 @@ minimum_case_types:
   - failed_breakout
   - kol_thesis_failure
   - methodology_transfer_failure
+  - global_liquidity_cycle
+  - developed_market_quality_cycle
+  - commodity_capex_cycle
+  - emerging_market_balance_sheet_cycle

@@ -143,7 +143,7 @@ Harness Evaluation 需要把回放摘要写入 `case_replay_quality`，并把 `h
 
 #### Historical Case Replay Stress Fixture
 
-V1 还必须提供离线覆盖率压力测试，证明 source-controlled historical case library 不只是存在，而是能被回放系统覆盖到关键失败类型：fraud blowup、policy-driven cycle、failed breakout、KOL thesis failure，以及 manifest 声明的 minimum case types。
+V1 还必须提供离线覆盖率压力测试，证明 source-controlled historical case library 不只是存在，而是能被回放系统覆盖到关键失败类型：fraud blowup、policy-driven cycle、failed breakout、KOL thesis failure，以及跨市场多周期类型：global liquidity/rate cycle、developed-market platform reset、commodity capex cycle、emerging-market balance-sheet cycle，以及 manifest 声明的 minimum case types。
 
 命令：
 
@@ -161,6 +161,7 @@ runs/{fixture_name}/runs/case-replay-stress-fixture/harness/case-replay-stress.y
 
 - `missing_required_case_types=[]`；
 - `missing_critical_replay_types=[]`，至少覆盖 fraud、policy、failed breakout、KOL thesis failure；
+- `missing_cross_market_replay_types=[]`，至少覆盖 global multi-asset、US equity、global commodity equity、EM equity/FX 等跨市场结构；
 - critical case 的 failure modes 必须进入 `failure_modes_checked`；
 - KOL / 大 V / 课程 / 书籍 / 历史案例仍只能是 methodology、hypothesis、checklist 或 case pattern 来源；
 - 回放通过不允许产生 direct buy/sell、direct case mapping、broker instruction 或真实交易权限；

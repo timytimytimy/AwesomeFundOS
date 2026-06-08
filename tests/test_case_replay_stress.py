@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from fundos.case_replay_stress import CRITICAL_CASE_TYPES, run_case_replay_stress_fixture
+from fundos.case_replay_stress import CRITICAL_CASE_TYPES, CROSS_MARKET_CASE_TYPES, run_case_replay_stress_fixture
 from fundos.io import REPO_ROOT, read_yaml
 from fundos.system_audit import run_system_audit
 
@@ -22,10 +22,13 @@ class CaseReplayStressFixtureTests(unittest.TestCase):
         self.assertEqual(report["status"], "passed")
         self.assertEqual(report["missing_required_case_types"], [])
         self.assertEqual(report["missing_critical_replay_types"], [])
+        self.assertEqual(report["missing_cross_market_replay_types"], [])
         self.assertTrue(set(CRITICAL_CASE_TYPES).issubset(set(report["matched_case_types"])))
-        self.assertGreaterEqual(report["case_count"], 10)
+        self.assertTrue(set(CROSS_MARKET_CASE_TYPES).issubset(set(report["matched_case_types"])))
+        self.assertGreaterEqual(report["case_count"], 14)
         self.assertGreaterEqual(report["case_results_total"], report["case_count"])
         self.assertTrue(report["checks"]["failure_modes_checked"])
+        self.assertTrue(report["checks"]["cross_market_multi_cycle_cases_replayed"])
         self.assertTrue(report["checks"]["methodology_only_controls_ok"])
         self.assertTrue(report["checks"]["kol_thesis_hypothesis_only_ok"])
         self.assertTrue(report["checks"]["no_direct_mapping_ok"])
@@ -59,6 +62,7 @@ class CaseReplayStressFixtureTests(unittest.TestCase):
         self.assertIn("case_replay_stress_status=passed", proc.stdout)
         self.assertIn("missing_required_case_types=none", proc.stdout)
         self.assertIn("missing_critical_replay_types=none", proc.stdout)
+        self.assertIn("missing_cross_market_replay_types=none", proc.stdout)
         self.assertIn("missing_critical_failure_modes=none", proc.stdout)
         self.assertIn("blocking_issues=none", proc.stdout)
         self.assertIn("real_trade_allowed=False", proc.stdout)
@@ -74,7 +78,10 @@ class CaseReplayStressFixtureTests(unittest.TestCase):
         self.assertEqual(row["details"]["status"], "passed")
         self.assertEqual(row["details"]["missing_required_case_types"], [])
         self.assertEqual(row["details"]["missing_critical_replay_types"], [])
+        self.assertEqual(row["details"]["missing_cross_market_replay_types"], [])
         self.assertTrue(set(CRITICAL_CASE_TYPES).issubset(set(row["details"]["matched_case_types"])))
+        self.assertTrue(set(CROSS_MARKET_CASE_TYPES).issubset(set(row["details"]["matched_case_types"])))
+        self.assertGreaterEqual(len([market for market in row["details"]["replay_markets_covered"] if market != "CN_A_SHARE"]), 4)
         self.assertFalse(row["details"]["real_trade_allowed"])
         self.assertEqual(row["details"]["broker_integration"], "disabled")
 

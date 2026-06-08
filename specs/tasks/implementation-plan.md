@@ -310,7 +310,7 @@ broker_integration=disabled
 
 ## 6. Suggested next hardening tasks
 
-1. Add cross-market case libraries and multi-cycle replay suites beyond the current A-share-style fixture coverage.
+1. Expand case replay from fixture-level coverage into parameterized multi-year scenario packs with richer evidence timelines.
 2. Add richer benchmark fixtures for tool-policy governance, risk-limit refusal, and multi-agent capability dependency chains.
 3. Add richer cross-agent handoff stress tests for delayed/partial handoffs, multi-run thread carryover, and larger committee rosters.
 4. Add additional fixture catalog scenarios beyond the current robotics, consumer_healthcare, cyclical_macro, and policy_event set.

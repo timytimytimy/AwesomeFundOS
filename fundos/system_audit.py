@@ -835,7 +835,7 @@ def build_requirements(root: Path, agents: list[dict[str, Any]]) -> list[dict[st
         requirement(
             "cases.historical_case_replay_coverage_stress",
             "case_library",
-            "Historical case replay stress harness covers fraud, policy cycles, failed breakouts, KOL thesis failures, failure modes, and no-direct-mapping safety controls.",
+            "Historical case replay stress harness covers fraud, policy cycles, failed breakouts, KOL thesis failures, cross-market multi-cycle cases, failure modes, and no-direct-mapping safety controls.",
             [root / "fundos/case_replay_stress.py", root / "fundos/case_replay.py", root / "specs/cases/historical-case-library.yaml", root / "specs/cases/cases"],
             case_replay_stress["ok"],
             details=case_replay_stress,
@@ -1064,7 +1064,7 @@ def capability_matrix_fixture_check(root: Path) -> dict[str, Any]:
 
 
 def case_replay_stress_check(root: Path) -> dict[str, Any]:
-    from fundos.case_replay_stress import CRITICAL_CASE_TYPES, run_case_replay_stress_fixture
+    from fundos.case_replay_stress import CRITICAL_CASE_TYPES, CROSS_MARKET_CASE_TYPES, run_case_replay_stress_fixture
 
     try:
         report = run_case_replay_stress_fixture(root)
@@ -1081,8 +1081,11 @@ def case_replay_stress_check(root: Path) -> dict[str, Any]:
         report.get("status") == "passed"
         and not report.get("missing_required_case_types")
         and not report.get("missing_critical_replay_types")
+        and not report.get("missing_cross_market_replay_types")
         and set(CRITICAL_CASE_TYPES).issubset(set(report.get("matched_case_types", []) or []))
+        and set(CROSS_MARKET_CASE_TYPES).issubset(set(report.get("matched_case_types", []) or []))
         and checks.get("failure_modes_checked") is True
+        and checks.get("cross_market_multi_cycle_cases_replayed") is True
         and checks.get("methodology_only_controls_ok") is True
         and checks.get("kol_thesis_hypothesis_only_ok") is True
         and checks.get("no_direct_mapping_ok") is True
@@ -1100,8 +1103,12 @@ def case_replay_stress_check(root: Path) -> dict[str, Any]:
         "case_results_total": report.get("case_results_total", 0),
         "matched_case_types": report.get("matched_case_types", []),
         "critical_case_types": report.get("critical_case_types", []),
+        "cross_market_case_types": report.get("cross_market_case_types", []),
+        "markets_covered": report.get("markets_covered", []),
+        "replay_markets_covered": report.get("replay_markets_covered", []),
         "missing_required_case_types": report.get("missing_required_case_types", []),
         "missing_critical_replay_types": report.get("missing_critical_replay_types", []),
+        "missing_cross_market_replay_types": report.get("missing_cross_market_replay_types", []),
         "missing_critical_failure_modes": report.get("missing_critical_failure_modes", []),
         "checks": checks,
         "blocking_issues": report.get("blocking_issues", []),

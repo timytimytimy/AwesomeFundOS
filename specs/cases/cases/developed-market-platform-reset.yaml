@@ -1,0 +1,20 @@
+case_id: developed_market_platform_compounder_growth_reset
+case_type: developed_market_quality_cycle
+market: US_EQUITY
+time_range: earnings_slowdown_to_reacceleration_or_derating
+market_state: quality_growth_expectation_reset
+summary: Developed-market platform compounders can move through expectation resets when growth, margins, regulation, or capital allocation change; quality labels must be re-earned through public evidence, not assumed from past dominance.
+tags: [company, quality_growth, platform, valuation, primary_validation, multi_cycle]
+pattern_ids: [developed_market_platform_quality, buffett_munger_quality, oneil_canslim_growth]
+applicable_agents: [quality_growth_company_analyst, tech_growth_analyst, fund_manager, bear_debater]
+evidence_requirements: [segment_growth_disclosure, margin_bridge, regulatory_or_competition_risk, capital_allocation, valuation_scenario]
+known_lessons:
+  - A great historical business can still be a poor forward setup if expectations outrun evidence.
+  - Quality analysis must include what would prove the moat is weakening.
+failure_modes: [quality_label_anchoring, multiple_compression_ignored, moat_decay_underweighted]
+replay_questions:
+  - Did the analyst update the moat from current evidence rather than reputation?
+  - Did the committee require downside scenarios when valuation embeds high expectations?
+forbidden_uses: [direct_buy_sell_signal, single_case_price_target, broker_instruction]
+real_trade_allowed: false
+broker_integration: disabled

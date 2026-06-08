@@ -1,0 +1,20 @@
+case_id: global_liquidity_rate_cycle_from_easing_to_tightening
+case_type: global_liquidity_cycle
+market: GLOBAL_MULTI_ASSET
+time_range: easing_cycle_to_tightening_cycle
+market_state: liquidity_expansion_to_discount_rate_reset
+summary: Global liquidity cycles can lift long-duration assets during easing and compress them when inflation, rates, or funding conditions tighten; macro interpretation must be linked to valuation duration, balance-sheet resilience, and liquidity risk.
+tags: [macro, liquidity, rates, risk, trading, multi_cycle]
+pattern_ids: [global_liquidity_cycle, howard_marks_cycle_risk, soros_reflexivity]
+applicable_agents: [cyclical_macro_analyst, risk_manager, fund_manager, defensive_execution_trader]
+evidence_requirements: [central_bank_policy_path, inflation_or_growth_data, yield_curve_shift, valuation_duration, funding_liquidity]
+known_lessons:
+  - Liquidity tailwinds can disguise duration and financing risk until the policy regime changes.
+  - Macro views must be translated into falsifiable exposure, valuation, and liquidity checks.
+failure_modes: [liquidity_regime_misread, duration_risk_ignored, macro_story_without_position_limits]
+replay_questions:
+  - Did the macro analyst separate liquidity direction from company fundamentals?
+  - Did risk management reduce confidence when discount-rate sensitivity rose?
+forbidden_uses: [direct_buy_sell_signal, macro_call_as_trade_instruction, broker_instruction]
+real_trade_allowed: false
+broker_integration: disabled

@@ -1,0 +1,20 @@
+case_id: commodity_capex_cycle_supply_response_and_peak_margin
+case_type: commodity_capex_cycle
+market: GLOBAL_COMMODITY_EQUITY
+time_range: shortage_pricing_to_supply_response
+market_state: cyclical_shortage_to_capex_normalization
+summary: Commodity and upstream capex cycles often look strongest near peak margins; agents must separate structural scarcity from cyclical shortage, supply response, and balance-sheet cyclicality.
+tags: [commodity, cyclical, capex, risk, macro, multi_cycle]
+pattern_ids: [commodity_capex_cycle, howard_marks_cycle_risk]
+applicable_agents: [cyclical_macro_analyst, turnaround_value_company_analyst, risk_manager, fund_manager]
+evidence_requirements: [inventory_or_capacity_data, capex_pipeline, cost_curve_position, balance_sheet_cyclicality, demand_sensitivity]
+known_lessons:
+  - Peak earnings can make cyclicals look deceptively cheap.
+  - Supply response and balance-sheet leverage must be evaluated before extrapolating margins.
+failure_modes: [peak_earnings_extrapolation, supply_response_blindness, leverage_cycle_underweighted]
+replay_questions:
+  - Did the analyst normalize earnings across a cycle?
+  - Did risk management identify what happens when supply catches up?
+forbidden_uses: [direct_buy_sell_signal, commodity_price_call_as_order, broker_instruction]
+real_trade_allowed: false
+broker_integration: disabled

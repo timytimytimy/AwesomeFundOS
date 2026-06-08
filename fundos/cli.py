@@ -1081,6 +1081,7 @@ def command_harness_case_replay_stress(args: argparse.Namespace) -> int:
     print(f"case_results_total={report['case_results_total']}")
     print("missing_required_case_types=" + (",".join(report.get("missing_required_case_types", [])) or "none"))
     print("missing_critical_replay_types=" + (",".join(report.get("missing_critical_replay_types", [])) or "none"))
+    print("missing_cross_market_replay_types=" + (",".join(report.get("missing_cross_market_replay_types", [])) or "none"))
     print("missing_critical_failure_modes=" + (",".join(report.get("missing_critical_failure_modes", [])) or "none"))
     print("blocking_issues=" + (",".join(report.get("blocking_issues", [])) or "none"))
     report_path = Path.cwd() / report["workspace_path"] / "runs" / report["run_id"] / "harness" / "case-replay-stress.yaml"

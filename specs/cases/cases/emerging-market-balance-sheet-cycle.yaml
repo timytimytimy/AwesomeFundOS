@@ -1,0 +1,20 @@
+case_id: emerging_market_fx_balance_sheet_reflexive_cycle
+case_type: emerging_market_balance_sheet_cycle
+market: EM_EQUITY_FX
+time_range: capital_inflow_to_fx_or_funding_stress
+market_state: external_liquidity_reversal
+summary: Emerging-market equity and FX cycles can become reflexive when external funding tightens, currency weakness pressures balance sheets, and investor flows reinforce fundamentals; local policy and currency mismatch must be explicit.
+tags: [emerging_market, fx, balance_sheet, liquidity, macro, risk, multi_cycle]
+pattern_ids: [em_balance_sheet_cycle, soros_reflexivity, howard_marks_cycle_risk]
+applicable_agents: [cyclical_macro_analyst, risk_manager, defensive_execution_trader, bear_debater]
+evidence_requirements: [external_debt_profile, currency_mismatch, capital_flow_data, policy_response, liquidity_or_reserve_buffer]
+known_lessons:
+  - FX, funding, and equity fundamentals can reinforce each other in both directions.
+  - Imported frameworks must be adapted to local policy, liquidity, and balance-sheet structure.
+failure_modes: [currency_mismatch_ignored, flow_reflexivity_missed, imported_framework_without_local_adaptation]
+replay_questions:
+  - Did the macro analyst identify external funding and currency mismatch?
+  - Did the trader avoid translating macro stress into any real order instruction?
+forbidden_uses: [direct_buy_sell_signal, currency_trade_instruction, broker_instruction]
+real_trade_allowed: false
+broker_integration: disabled

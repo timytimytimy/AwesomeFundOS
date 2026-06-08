@@ -12,6 +12,12 @@ CASE_REPLAY_STRESS_VERSION = "0.1.0"
 FIXTURE_ID = "case_replay_coverage_fixture_v1"
 RUN_ID = "case-replay-stress-fixture"
 CRITICAL_CASE_TYPES = ["fraud_blowup", "policy_driven_cycle", "failed_breakout", "kol_thesis_failure"]
+CROSS_MARKET_CASE_TYPES = [
+    "global_liquidity_cycle",
+    "developed_market_quality_cycle",
+    "commodity_capex_cycle",
+    "emerging_market_balance_sheet_cycle",
+]
 
 
 PATTERN_FIXTURES: list[dict[str, Any]] = [
@@ -71,6 +77,34 @@ PATTERN_FIXTURES: list[dict[str, Any]] = [
         "validation_gates": ["historical_case_replay"],
         "allowed_use": "hypothesis_and_checklist_only_not_direct_mapping",
     },
+    {
+        "id": "global_liquidity_cycle",
+        "tags": ["macro", "liquidity", "rates", "risk", "trading", "multi_cycle"],
+        "target_agents": ["cyclical_macro_analyst", "risk_manager", "fund_manager", "defensive_execution_trader"],
+        "validation_gates": ["historical_case_replay"],
+        "allowed_use": "hypothesis_and_checklist_only_not_direct_mapping",
+    },
+    {
+        "id": "developed_market_platform_quality",
+        "tags": ["company", "quality_growth", "platform", "valuation", "primary_validation", "multi_cycle"],
+        "target_agents": ["quality_growth_company_analyst", "tech_growth_analyst", "fund_manager", "bear_debater"],
+        "validation_gates": ["historical_case_replay"],
+        "allowed_use": "hypothesis_and_checklist_only_not_direct_mapping",
+    },
+    {
+        "id": "commodity_capex_cycle",
+        "tags": ["commodity", "cyclical", "capex", "risk", "macro", "multi_cycle"],
+        "target_agents": ["cyclical_macro_analyst", "turnaround_value_company_analyst", "risk_manager", "fund_manager"],
+        "validation_gates": ["historical_case_replay"],
+        "allowed_use": "hypothesis_and_checklist_only_not_direct_mapping",
+    },
+    {
+        "id": "em_balance_sheet_cycle",
+        "tags": ["emerging_market", "fx", "balance_sheet", "liquidity", "macro", "risk", "multi_cycle"],
+        "target_agents": ["cyclical_macro_analyst", "risk_manager", "defensive_execution_trader", "bear_debater"],
+        "validation_gates": ["historical_case_replay"],
+        "allowed_use": "hypothesis_and_checklist_only_not_direct_mapping",
+    },
 ]
 
 
@@ -125,12 +159,16 @@ def build_stress_report(root: Path, workspace: Path, run_path: Path, library: di
     matched_case_ids = {row.get("case_id") for row in case_results if row.get("case_id") and row.get("case_id") != "none"}
     missing_required_case_types = sorted(set(required_case_types) - set(available_case_types))
     missing_critical_replay_types = sorted(set(CRITICAL_CASE_TYPES) - set(matched_case_types))
+    missing_cross_market_replay_types = sorted(set(CROSS_MARKET_CASE_TYPES) - set(matched_case_types))
+    markets_covered = sorted({case.get("market") for case in cases if case.get("market")})
+    replay_markets_covered = sorted({case.get("market") for case in cases if case.get("case_id") in matched_case_ids and case.get("market")})
     missing_critical_failure_modes = sorted(set(required_failure_modes) - set(replay_failure_modes))
     blocking_issues: list[str] = []
 
     checks = {
         "required_case_types_present": not missing_required_case_types,
         "critical_case_types_replayed": not missing_critical_replay_types,
+        "cross_market_multi_cycle_cases_replayed": not missing_cross_market_replay_types and len([market for market in replay_markets_covered if market != "CN_A_SHARE"]) >= 4,
         "failure_modes_checked": not missing_critical_failure_modes and bool(required_failure_modes),
         "methodology_only_controls_ok": methodology_only_controls_ok(cases, case_results),
         "kol_thesis_hypothesis_only_ok": kol_thesis_hypothesis_only_ok(cases, case_results),
@@ -158,8 +196,12 @@ def build_stress_report(root: Path, workspace: Path, run_path: Path, library: di
         "available_case_types": available_case_types,
         "matched_case_types": matched_case_types,
         "critical_case_types": list(CRITICAL_CASE_TYPES),
+        "cross_market_case_types": list(CROSS_MARKET_CASE_TYPES),
+        "markets_covered": markets_covered,
+        "replay_markets_covered": replay_markets_covered,
         "missing_required_case_types": missing_required_case_types,
         "missing_critical_replay_types": missing_critical_replay_types,
+        "missing_cross_market_replay_types": missing_cross_market_replay_types,
         "failure_modes_checked": replay_failure_modes,
         "missing_critical_failure_modes": missing_critical_failure_modes,
         "case_replay_score": replay.get("case_replay_score", 0),
@@ -172,6 +214,7 @@ def build_stress_report(root: Path, workspace: Path, run_path: Path, library: di
             "kol_thesis_hypothesis_only",
             "primary_evidence_still_required",
             "source_controlled_case_files_replayed",
+            "cross_market_multi_cycle_case_replay",
             "no_real_trade_action",
             "broker_integration_disabled",
         ],

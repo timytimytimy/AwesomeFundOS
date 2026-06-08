@@ -88,14 +88,14 @@ Outputs include `handoff_stress_status`, `scenario_count`, `passed_scenarios`, `
 
 ### 1.6 `fundos harness case-replay-stress`
 
-Runs an isolated historical case replay coverage fixture. The fixture creates controlled learning patterns for fraud blowups, policy cycles, failed breakouts, KOL thesis failures, and the remaining minimum case types, then verifies that replay touches source-controlled case files and their failure modes without turning any case, book, course, KOL, or historical analogy into a direct buy/sell signal.
+Runs an isolated historical case replay coverage fixture. The fixture creates controlled learning patterns for fraud blowups, policy cycles, failed breakouts, KOL thesis failures, cross-market liquidity/rate cycles, developed-market platform resets, commodity capex cycles, emerging-market balance-sheet cycles, and the remaining minimum case types. It then verifies that replay touches source-controlled case files and their failure modes without turning any case, book, course, KOL, or historical analogy into a direct buy/sell signal.
 
 ```bash
 fundos harness case-replay-stress
 fundos harness case-replay-stress --fixture-name case_replay_coverage_fixture_v1
 ```
 
-Outputs include `case_replay_stress_status`, `case_count`, `patterns_replayed`, `case_results_total`, `missing_required_case_types`, `missing_critical_replay_types`, `missing_critical_failure_modes`, and the generated `harness/case-replay-stress.yaml`. The fixture writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
+Outputs include `case_replay_stress_status`, `case_count`, `patterns_replayed`, `case_results_total`, `missing_required_case_types`, `missing_critical_replay_types`, `missing_cross_market_replay_types`, `missing_critical_failure_modes`, and the generated `harness/case-replay-stress.yaml`. The fixture writes only under its isolated `runs/<fixture-name>/` workspace. Safety boundaries remain `real_trade_allowed=false` and `broker_integration=disabled`.
 
 ### 1.7 `fundos fixtures list` and `fundos run --fixture-id <id>`
 

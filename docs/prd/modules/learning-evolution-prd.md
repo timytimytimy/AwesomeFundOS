@@ -287,7 +287,7 @@ The benchmark is not allowed to promote a KOL, book, course, or historical case 
 
 ## Historical Case Replay Coverage Fixture
 
-Learning Evolution depends on case replay before durable capability upgrades, so V1 includes a dedicated offline fixture that stresses the historical case library itself. `fundos harness case-replay-stress` creates controlled learning patterns for fraud blowups, policy cycles, failed breakouts, KOL thesis failures, and the remaining minimum case types. It then runs the normal replay engine and blocks if any required case type, critical replay type, or critical failure mode is not checked.
+Learning Evolution depends on case replay before durable capability upgrades, so V1 includes a dedicated offline fixture that stresses the historical case library itself. `fundos harness case-replay-stress` creates controlled learning patterns for fraud blowups, policy cycles, failed breakouts, KOL thesis failures, global liquidity/rate cycles, developed-market platform resets, commodity capex cycles, emerging-market balance-sheet cycles, and the remaining minimum case types. It then runs the normal replay engine and blocks if any required case type, critical replay type, cross-market replay type, or critical failure mode is not checked.
 
 Output artifact: `harness/case-replay-stress.yaml`.
 
@@ -295,6 +295,7 @@ Required checks:
 
 - source-controlled case manifest minimum types are present;
 - fraud, policy cycle, failed breakout, and KOL thesis failure cases are replayed;
+- cross-market and multi-cycle cases are replayed across global multi-asset, US equity, global commodity equity, and EM equity/FX regimes;
 - failure modes from those critical cases are included in replay results;
 - KOL and social-signal cases remain hypothesis/checklist only;
 - direct case mapping, direct buy/sell signals, broker instructions, and real-trade authority remain forbidden;
